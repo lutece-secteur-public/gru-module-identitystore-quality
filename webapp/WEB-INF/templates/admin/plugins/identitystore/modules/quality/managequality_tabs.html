@@ -1,0 +1,10 @@
+<#macro tabs2 tab >
+<@tabs>
+	<@tabList>
+			<li <#if tab="suspiciousidentity">class="active"</#if>>
+				<@aButton href="jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp">#i18n{module.identitystore.quality.manage_suspiciousidentitys.pageTitle}</@aButton>
+			</li>
+	</@tabList>
+</@tabs>
+
+</#macro>

@@ -1,0 +1,19 @@
+<#include "managequality_tabs.html" />
+<@tabs2 tab="suspiciousidentity" />
+
+
+<@box>
+	<@boxHeader title='#i18n{module.identitystore.quality.modify_suspiciousidentity.title}' />
+	<@boxBody>
+    <@tform class="form-horizontal" method="post" name="modify_suspiciousidentity" action="jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp" >
+			<@messages errors=errors />
+			<@input type="hidden" id="id" name="id" value="${suspiciousidentity.id}"/>
+			<@input type="hidden" value="${token}" name="token" />
+			
+			<@formGroup labelFor='customer_id' labelKey='#i18n{module.identitystore.quality.modify_suspiciousidentity.labelCustomerId}' mandatory=true>
+				<@input type='text' id='customer_id' name='customer_id'  maxlength=50 value='${suspiciousidentity.customerId!\'\'}' tabIndex='0' />
+			</@formGroup>
+        <@actionButtons button1Name="action_modifySuspiciousIdentity" button2Name="view_manageSuspiciousIdentity"/>
+    </@tform>
+	</@boxBody>
+</@box>
