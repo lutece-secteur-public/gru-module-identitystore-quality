@@ -34,7 +34,7 @@
 package fr.paris.lutece.plugins.identitystore.modules.quality.service;
 
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
-import fr.paris.lutece.plugins.identitystore.business.rules.DuplicateRule;
+import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.modules.quality.business.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.modules.quality.business.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
