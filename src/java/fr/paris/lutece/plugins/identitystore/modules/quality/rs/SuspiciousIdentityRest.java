@@ -137,7 +137,7 @@ public class SuspiciousIdentityRest
     @Path( Constants.SUSPICIONS_PATH + "/{rule}" )
     @Produces( MediaType.APPLICATION_JSON )
     @ApiOperation( value = "Get a list of suspicions, limited to max" )
-    public Response getSuspiciousIdentityList( @ApiParam( name = "rule", value = "The rule id to filter with" ) @PathVariable( required = false ) Integer rule,
+    public Response getSuspiciousIdentityList( @ApiParam( name = "rule", value = "The rule id to filter with" ) @PathParam( "rule" ) Integer rule,
             @ApiParam( name = "max", value = "Maximum number of " ) @QueryParam( Constants.PARAM_MAX ) final int max,
             @ApiParam( name = "page", value = "Page to return" ) @QueryParam( Constants.PARAM_PAGE ) Integer page,
             @ApiParam( name = "size", value = "number of suspicious identity to return " ) @QueryParam( Constants.PARAM_SIZE ) Integer size )
