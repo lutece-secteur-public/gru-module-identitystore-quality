@@ -45,6 +45,9 @@ import fr.paris.lutece.plugins.identitystore.v3.web.request.DuplicateRuleGetRequ
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.ResponseDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeStatus;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchStatusType;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummarySearchResponse;
@@ -58,6 +61,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import javax.ws.rs.Consumes;
@@ -222,33 +226,46 @@ public class SuspiciousIdentityRest
     }
 
     @PUT
-    @Path( Constants.EXCLUSION_PATH + "/{master_customer_id}" )
+    @Path( Constants.EXCLUSION_PATH )
     @Consumes( MediaType.APPLICATION_JSON )
-    @ApiOperation( value = "Excluse entities", notes = "The consolidation is conditioned by the service contract definition associated to the client application code." )
+    @ApiOperation( value = "Exclude identities", notes = "Exclude identities from duplicate suspicions.", response = SuspiciousIdentityExcludeResponse.class )
     @ApiResponses( value = {
-            @ApiResponse( code = 201, message = "Success" ), @ApiResponse( code = 400, message = ERROR_DURING_TREATMENT + " with explanation message" ),
-            @ApiResponse( code = 403, message = "Failure" ), @ApiResponse( code = 409, message = "Conflict" )
+            @ApiResponse( code = 201, message = "Success" ), @ApiResponse( code = 403, message = "Failure" )
     } )
     public Response excludeSuspiciousIdentity(
-            @ApiParam( name = "master_customer_id", value = "the id of the master csutomer" ) @PathParam( "master_customer_id" ) String master_customer_id,
-            @ApiParam( name = "Request body", value = "An Identity Change Request that will be the master identity" ) SuspiciousIdentityChangeRequest suspiciousIdentityChangeRequest,
-            @QueryParam( "ruleId" ) final int ruleId,
-            @ApiParam( name = Constants.PARAM_CLIENT_CODE, value = SwaggerConstants.CLIENT_CLIENT_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_CLIENT_CODE ) final String strHeaderClientCode,
-            @QueryParam( Constants.PARAM_CLIENT_CODE ) final String strQueryClientCode )
+            @ApiParam( name = "Request body", value = "An Identity exclusion request" ) SuspiciousIdentityExcludeRequest suspiciousIdentityExcludeRequest,
+            @ApiParam( name = Constants.PARAM_CLIENT_CODE, value = SwaggerConstants.CLIENT_CLIENT_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_CLIENT_CODE ) final String strHeaderClientCode )
     {
-
-        SuspiciousIdentity suspicious1 = SuspiciousIdentityHome.selectByCustomerID( master_customer_id );
-        SuspiciousIdentity suspicious2 = SuspiciousIdentityHome.selectByCustomerID( suspiciousIdentityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) );
-        if ( suspicious1 != null && suspicious2 != null )
+        final SuspiciousIdentityExcludeResponse response = new SuspiciousIdentityExcludeResponse( );
+        if ( suspiciousIdentityExcludeRequest == null
+                || StringUtils.isAnyBlank( suspiciousIdentityExcludeRequest.getIdentityCuid1( ), suspiciousIdentityExcludeRequest.getIdentityCuid2( ) )
+                || suspiciousIdentityExcludeRequest.getRuleId( ) == null )
         {
-            // flag the 2 identities: manage the list of identities to exlude (suposed to be a field at the identitiy level)
-            SuspiciousIdentityHome.exclude( suspicious1, suspicious2, ruleId );
-            // clean the consolidated identities from suspicious identities
-            SuspiciousIdentityHome.remove( suspicious1.getId( ) );
-            SuspiciousIdentityHome.remove( suspicious2.getId( ) );
-            return Response.status( Response.Status.OK ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
+            response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_FAILURE );
+            response.setMessage( "Please provide a valid SuspiciousIdentityExcludeRequest." );
         }
-        return Response.status( Response.Status.NOT_FOUND ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
+        else
+        {
+            SuspiciousIdentity suspicious1 = SuspiciousIdentityHome.selectByCustomerID( suspiciousIdentityExcludeRequest.getIdentityCuid1( ) );
+            SuspiciousIdentity suspicious2 = SuspiciousIdentityHome.selectByCustomerID( suspiciousIdentityExcludeRequest.getIdentityCuid2( ) );
+            if ( suspicious1 != null && suspicious2 != null )
+            {
+                // flag the 2 identities: manage the list of identities to exlude (suposed to be a field at the identitiy level)
+                SuspiciousIdentityHome.exclude( suspicious1, suspicious2, suspiciousIdentityExcludeRequest.getRuleId( ) );
+                // clean the consolidated identities from suspicious identities
+                SuspiciousIdentityHome.remove( suspicious1.getId( ) );
+                SuspiciousIdentityHome.remove( suspicious2.getId( ) );
+
+                response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_SUCCESS );
+                response.setMessage( "Identities excluded from duplicate suspicions." );
+            }
+            else
+            {
+                response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_FAILURE );
+                response.setMessage( "The provided identities are not known to be suspicious." );
+            }
+        }
+        return Response.status( response.getStatus( ).getCode( ) ).entity( response ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
     }
 
     /**
