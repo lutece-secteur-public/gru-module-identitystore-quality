@@ -51,7 +51,7 @@ import java.util.Optional;
 public final class SuspiciousIdentityDAO implements ISuspiciousIdentityDAO
 {
     // Constants
-    private static final String SQL_QUERY_PURGE = "TRUNCATE TABLE identitystore_quality_suspicious_identity;";
+    private static final String SQL_QUERY_PURGE = "TRUNCATE TABLE identitystore_quality_suspicious_identity";
     private static final String SQL_QUERY_SELECT = "SELECT id_suspicious_identity, customer_id , id_duplicate_rule FROM identitystore_quality_suspicious_identity WHERE id_suspicious_identity = ?";
     private static final String SQL_QUERY_INSERT = "INSERT INTO identitystore_quality_suspicious_identity ( customer_id, id_duplicate_rule ) VALUES ( ?, ?) ";
     private static final String SQL_QUERY_INSERT_EXCLUDED = "INSERT INTO identitystore_quality_suspicious_identity_excluded ( id_suspicious_identity_master,id_suspicious_identity_child, id_duplicate_rule ) VALUES ( ?, ?, ?) ";
