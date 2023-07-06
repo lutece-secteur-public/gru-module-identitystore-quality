@@ -33,11 +33,11 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.service;
 
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
 import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
-import fr.paris.lutece.plugins.identitystore.modules.quality.business.SuspiciousIdentity;
-import fr.paris.lutece.plugins.identitystore.modules.quality.business.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
@@ -132,11 +132,11 @@ public class IdentityDuplicatesDaemon extends Daemon
         AppLogService.info( cuidList.size( ) + " identities found. Searching for potential duplicates on those..." );
         logs.append( cuidList.size( ) + " identities found. Searching for potential duplicates on those..." ).append( "\n" );
         int markedSuspicious = 0;
-        for ( final List<String> cuid : cuidList )
+        for ( final List<String> cuids : cuidList )
         {
-            for ( final String s : cuid )
+            for ( final String cuid : cuids )
             {
-                final Identity identity = IdentityHome.findByCustomerId( s );
+                final Identity identity = IdentityHome.findByCustomerId( cuid );
                 final DuplicateSearchResponse duplicates = IdentityService.instance( ).findDuplicates( identity, rule.getId( ) );
                 final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
                 if ( duplicateCount > 0 )

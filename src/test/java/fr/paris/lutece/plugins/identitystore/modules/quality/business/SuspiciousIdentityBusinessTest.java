@@ -33,6 +33,8 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.business;
 
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.test.LuteceTestCase;
 
 import java.util.Optional;

@@ -33,6 +33,7 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.web;
 
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockServletConfig;
@@ -44,7 +45,6 @@ import java.util.List;
 import java.io.IOException;
 import fr.paris.lutece.test.LuteceTestCase;
 import fr.paris.lutece.portal.service.security.SecurityTokenService;
-import fr.paris.lutece.plugins.identitystore.modules.quality.business.SuspiciousIdentityHome;
 
 /**
  * This is the business class test for the object SuspiciousIdentity

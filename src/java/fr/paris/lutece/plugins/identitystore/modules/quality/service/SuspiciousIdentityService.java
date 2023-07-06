@@ -34,30 +34,20 @@
 package fr.paris.lutece.plugins.identitystore.modules.quality.service;
 
 import fr.paris.lutece.plugins.identitystore.business.application.ClientApplication;
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
 import fr.paris.lutece.plugins.identitystore.business.identity.IdentityAttribute;
 import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
-import fr.paris.lutece.plugins.identitystore.cache.IdentityAttributeCache;
-import fr.paris.lutece.plugins.identitystore.modules.quality.business.SuspiciousIdentity;
-import fr.paris.lutece.plugins.identitystore.modules.quality.business.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.modules.quality.rs.SuspiciousIdentityMapper;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.SuspiciousIdentityStoreCreateRequest;
-import fr.paris.lutece.plugins.identitystore.service.IdentityChange;
-import fr.paris.lutece.plugins.identitystore.service.IdentityChangeType;
-import fr.paris.lutece.plugins.identitystore.service.contract.AttributeCertificationDefinitionService;
 import fr.paris.lutece.plugins.identitystore.service.contract.ServiceContractService;
-import fr.paris.lutece.plugins.identitystore.service.duplicate.IDuplicateService;
-import fr.paris.lutece.plugins.identitystore.service.listeners.IdentityStoreNotifyListenerService;
 import fr.paris.lutece.plugins.identitystore.service.search.ISearchIdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.IdentityChangeStatus;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.history.AttributeChange;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.history.AttributeChangeType;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.IdentitySearchStatusType;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.spring.SpringContextService;
-import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -91,8 +81,8 @@ public class SuspiciousIdentityService
      * @throws IdentityStoreException
      *             in case of error
      */
-    public SuspiciousIdentity create( final SuspiciousIdentityChangeRequest identityChangeRequest, final String clientCode,
-            final SuspiciousIdentityChangeResponse response ) throws IdentityStoreException
+    public SuspiciousIdentity create(final SuspiciousIdentityChangeRequest identityChangeRequest, final String clientCode,
+                                     final SuspiciousIdentityChangeResponse response ) throws IdentityStoreException
     {
         // TODO check if the application has the right to create a suspicious identity
         /*

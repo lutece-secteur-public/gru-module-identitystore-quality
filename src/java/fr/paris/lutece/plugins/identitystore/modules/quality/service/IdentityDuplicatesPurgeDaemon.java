@@ -33,7 +33,7 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.service;
 
-import fr.paris.lutece.plugins.identitystore.modules.quality.business.SuspiciousIdentityHome;
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.portal.service.daemon.Daemon;
 
 /**
