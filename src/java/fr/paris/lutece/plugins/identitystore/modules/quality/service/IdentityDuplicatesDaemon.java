@@ -47,6 +47,8 @@ import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreExceptio
 import fr.paris.lutece.portal.service.daemon.Daemon;
 import fr.paris.lutece.portal.service.util.AppLogService;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.time.DurationFormatUtils;
+import org.apache.commons.lang3.time.StopWatch;
 
 import java.util.Comparator;
 import java.util.List;
@@ -63,6 +65,8 @@ public class IdentityDuplicatesDaemon extends Daemon
     @Override
     public void run( )
     {
+        final StopWatch stopWatch = new StopWatch( );
+        stopWatch.start( );
         final StringBuilder logs = new StringBuilder( );
         final String startingMessage = "Starting IdentityDuplicatesDaemon...";
         AppLogService.info( startingMessage );
@@ -107,9 +111,14 @@ public class IdentityDuplicatesDaemon extends Daemon
             {
                 AppLogService.error( e );
                 logs.append( e.getMessage( ) ).append( "\n" );
-                ;
             }
         }
+
+        stopWatch.stop( );
+        final String duration = DurationFormatUtils.formatDurationWords( stopWatch.getTime( ), true, true );
+        final String log = "Execution time " + duration;
+        AppLogService.info(log);
+        logs.append(log);
         setLastRunLogs( logs.toString( ) );
     }
 
