@@ -39,18 +39,15 @@ import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.Susp
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
 import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.SuspiciousIdentityStoreCreateRequest;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.SuspiciousIdentityStoreLockRequest;
 import fr.paris.lutece.plugins.identitystore.service.IdentityStoreService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.request.DuplicateRuleGetRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.ResponseDto;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeStatus;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchStatusType;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.*;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummarySearchResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.swagger.SwaggerConstants;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
@@ -62,17 +59,8 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.web.bind.annotation.PathVariable;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.Collections;
@@ -214,7 +202,7 @@ public class SuspiciousIdentityRest
             if ( suspicious1 != null && suspicious2 != null )
             {
                 // flag the 2 identities: manage the list of identities to exclude (supposed to be a field at the identity level)
-                SuspiciousIdentityHome.exclude( suspicious1.getCustomerId(), suspicious2.getCustomerId() );
+                SuspiciousIdentityHome.exclude( suspicious1.getCustomerId( ), suspicious2.getCustomerId( ) );
                 // clean the consolidated identities from suspicious identities
                 SuspiciousIdentityHome.remove( suspicious1.getId( ) );
                 SuspiciousIdentityHome.remove( suspicious2.getId( ) );
@@ -288,6 +276,31 @@ public class SuspiciousIdentityRest
         {
             return getErrorResponse( exception );
         }
+    }
+
+    @POST
+    @Path( Constants.LOCK_PATH )
+    @Consumes( MediaType.APPLICATION_JSON )
+    @ApiOperation( value = "Lock an existing Suspicious Identity", notes = "The suspicious identity must exist." )
+    @ApiResponses( value = {
+            @ApiResponse( code = 201, message = "Success" ), @ApiResponse( code = 400, message = ERROR_DURING_TREATMENT + " with explanation message" ),
+            @ApiResponse( code = 403, message = "Failure" ), @ApiResponse( code = 409, message = "Conflict" )
+    } )
+    public Response lock( @ApiParam( name = "Request body", value = "An Identity exclusion request" ) SuspiciousIdentityLockRequest request,
+            @ApiParam( name = Constants.PARAM_CLIENT_CODE, value = SwaggerConstants.CLIENT_CLIENT_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_CLIENT_CODE ) final String strHeaderClientCode )
+    {
+        try
+        {
+            final String trustedClientCode = IdentityStoreService.getTrustedClientCode( strHeaderClientCode, null );
+            final SuspiciousIdentityStoreLockRequest suspiciousIdentityStoreLockRequest = new SuspiciousIdentityStoreLockRequest( trustedClientCode, request );
+            SuspiciousIdentityLockResponse suspiciousIdentityLockResponse = (SuspiciousIdentityLockResponse) suspiciousIdentityStoreLockRequest.doRequest( );
+            return Response.status( Response.Status.OK ).entity( suspiciousIdentityLockResponse ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
+        }
+        catch( Exception exception )
+        {
+            return getErrorResponse( exception );
+        }
+
     }
 
     /**

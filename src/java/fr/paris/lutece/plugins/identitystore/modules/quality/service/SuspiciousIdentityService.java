@@ -36,16 +36,21 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.service;
 import fr.paris.lutece.plugins.identitystore.business.application.ClientApplication;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityLockedException;
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
 import fr.paris.lutece.plugins.identitystore.business.identity.IdentityAttribute;
 import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.modules.quality.rs.SuspiciousIdentityMapper;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.SuspiciousIdentityStoreCreateRequest;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.SuspiciousIdentityStoreLockRequest;
 import fr.paris.lutece.plugins.identitystore.service.contract.ServiceContractService;
 import fr.paris.lutece.plugins.identitystore.service.search.ISearchIdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.IdentityChangeStatus;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockStatus;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.spring.SpringContextService;
 
@@ -81,8 +86,8 @@ public class SuspiciousIdentityService
      * @throws IdentityStoreException
      *             in case of error
      */
-    public SuspiciousIdentity create(final SuspiciousIdentityChangeRequest identityChangeRequest, final String clientCode,
-                                     final SuspiciousIdentityChangeResponse response ) throws IdentityStoreException
+    public SuspiciousIdentity create( final SuspiciousIdentityChangeRequest identityChangeRequest, final String clientCode,
+            final SuspiciousIdentityChangeResponse response ) throws IdentityStoreException
     {
         // TODO check if the application has the right to create a suspicious identity
         /*
@@ -150,4 +155,26 @@ public class SuspiciousIdentityService
         return identity;
     }
 
+    public void lock( SuspiciousIdentityLockRequest request, String strClientCode, SuspiciousIdentityLockResponse response )
+    {
+        try
+        {
+            final boolean locked = SuspiciousIdentityHome.manageLock( request.getCustomerId( ), request.getOrigin( ).getType( ).name( ),
+                    request.getOrigin( ).getName( ), request.isLocked( ) );
+            response.setLocked( locked );
+            response.setStatus( SuspiciousIdentityLockStatus.SUCCESS );
+        }
+        catch( SuspiciousIdentityLockedException e )
+        {
+            response.setLocked( false );
+            response.setStatus( SuspiciousIdentityLockStatus.CONFLICT );
+            response.setMessage( e.getMessage( ) );
+        }
+        catch( IdentityStoreException e )
+        {
+            response.setLocked( false );
+            response.setStatus( SuspiciousIdentityLockStatus.NOT_FOUND );
+            response.setMessage( e.getMessage( ) );
+        }
+    }
 }
