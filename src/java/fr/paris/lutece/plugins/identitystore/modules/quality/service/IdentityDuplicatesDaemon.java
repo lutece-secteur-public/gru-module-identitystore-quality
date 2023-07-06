@@ -43,7 +43,6 @@ import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleServ
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.utils.Batch;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentity;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.daemon.Daemon;
 import fr.paris.lutece.portal.service.util.AppLogService;
@@ -64,10 +63,10 @@ public class IdentityDuplicatesDaemon extends Daemon
     @Override
     public void run( )
     {
-        final StringBuilder logs = new StringBuilder();
+        final StringBuilder logs = new StringBuilder( );
         final String startingMessage = "Starting IdentityDuplicatesDaemon...";
-        AppLogService.info(startingMessage);
-        logs.append(startingMessage).append("\n");
+        AppLogService.info( startingMessage );
+        logs.append( startingMessage ).append( "\n" );
         final List<DuplicateRule> rules;
         try
         {
@@ -76,7 +75,7 @@ public class IdentityDuplicatesDaemon extends Daemon
         catch( final DuplicateRuleNotFoundException e )
         {
             AppLogService.error( "No duplicate rules found in database. Stoping daemon.", e );
-            logs.append( "No duplicate rules found in database. Stoping daemon." + e.getMessage()).append("\n");
+            logs.append( "No duplicate rules found in database. Stoping daemon." + e.getMessage( ) ).append( "\n" );
             return;
         }
         if ( CollectionUtils.isEmpty( rules ) )
@@ -87,25 +86,31 @@ public class IdentityDuplicatesDaemon extends Daemon
         }
 
         AppLogService.info( rules.size( ) + " applicable detection rules found. Starting process..." );
-        logs.append( rules.size( ) + " applicable detection rules found. Starting process..." ).append("\n");;
+        logs.append( rules.size( ) + " applicable detection rules found. Starting process..." ).append( "\n" );
+        ;
         rules.sort( Comparator.comparingInt( r -> r.getPriority( ).ordinal( ) ) );
-//        rules.stream().parallel().forEach(rule -> {
-//            try {
-//                this.search(rule, logs);
-//            } catch (IdentityStoreException e) {
-//                AppLogService.error(e);
-//                logs.append(e.getMessage()).append("\n");;
-//            }
-//        });
-        for (DuplicateRule rule : rules) {
-            try {
-                this.search(rule, logs);
-            } catch (IdentityStoreException e) {
-                AppLogService.error(e);
-                logs.append(e.getMessage()).append("\n");;
+        // rules.stream().parallel().forEach(rule -> {
+        // try {
+        // this.search(rule, logs);
+        // } catch (IdentityStoreException e) {
+        // AppLogService.error(e);
+        // logs.append(e.getMessage()).append("\n");;
+        // }
+        // });
+        for ( DuplicateRule rule : rules )
+        {
+            try
+            {
+                this.search( rule, logs );
+            }
+            catch( IdentityStoreException e )
+            {
+                AppLogService.error( e );
+                logs.append( e.getMessage( ) ).append( "\n" );
+                ;
             }
         }
-        setLastRunLogs(logs.toString());
+        setLastRunLogs( logs.toString( ) );
     }
 
     /**
@@ -114,33 +119,37 @@ public class IdentityDuplicatesDaemon extends Daemon
      * @param rule
      *            the rule used to search duplicates
      */
-    private void search( final DuplicateRule rule, final StringBuilder logs ) throws IdentityStoreException {
+    private void search( final DuplicateRule rule, final StringBuilder logs ) throws IdentityStoreException
+    {
         AppLogService.info( "-- Processing Rule id = [" + rule.getId( ) + "] ..." );
         final Batch<String> cuidList = IdentityService.instance( ).getIdentitiesBatchForPotentialDuplicate( rule, 200 );
         if ( cuidList == null || cuidList.isEmpty( ) )
         {
             AppLogService.info( "No identities having required attributes and not already suspicious found." );
-            logs.append( "No identities having required attributes and not already suspicious found." ).append("\n");
+            logs.append( "No identities having required attributes and not already suspicious found." ).append( "\n" );
             return;
         }
         AppLogService.info( cuidList.size( ) + " identities found. Searching for potential duplicates on those..." );
-        logs.append( cuidList.size( ) + " identities found. Searching for potential duplicates on those..." ).append("\n");
+        logs.append( cuidList.size( ) + " identities found. Searching for potential duplicates on those..." ).append( "\n" );
         int markedSuspicious = 0;
-        for (final List<String> cuid : cuidList) {
-            for (final String s : cuid) {
-                final Identity identity = IdentityHome.findByCustomerId(s);
-                final DuplicateSearchResponse duplicates = IdentityService.instance().findDuplicates(identity, rule.getId());
-                final int duplicateCount = duplicates != null ? duplicates.getIdentities().size() : 0;
-                if (duplicateCount > 0) {
-                    final SuspiciousIdentity suspiciousIdentity = new SuspiciousIdentity();
-                    suspiciousIdentity.setCustomerId(identity.getCustomerId());
-                    suspiciousIdentity.setIdDuplicateRule(rule.getId());
-                    SuspiciousIdentityHome.create(suspiciousIdentity);
+        for ( final List<String> cuid : cuidList )
+        {
+            for ( final String s : cuid )
+            {
+                final Identity identity = IdentityHome.findByCustomerId( s );
+                final DuplicateSearchResponse duplicates = IdentityService.instance( ).findDuplicates( identity, rule.getId( ) );
+                final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
+                if ( duplicateCount > 0 )
+                {
+                    final SuspiciousIdentity suspiciousIdentity = new SuspiciousIdentity( );
+                    suspiciousIdentity.setCustomerId( identity.getCustomerId( ) );
+                    suspiciousIdentity.setIdDuplicateRule( rule.getId( ) );
+                    SuspiciousIdentityHome.create( suspiciousIdentity );
                     markedSuspicious++;
                 }
             }
         }
         AppLogService.info( markedSuspicious + " identities have been marked as suspicious." );
-        logs.append( markedSuspicious + " identities have been marked as suspicious." ).append("\n");
+        logs.append( markedSuspicious + " identities have been marked as suspicious." ).append( "\n" );
     }
 }

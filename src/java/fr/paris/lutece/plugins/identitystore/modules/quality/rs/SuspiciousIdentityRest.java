@@ -189,43 +189,6 @@ public class SuspiciousIdentityRest
     }
 
     @PUT
-    @Path( Constants.RAPPROCHEMENT_PATH + "/{master_customer_id}" )
-    @Consumes( MediaType.APPLICATION_JSON )
-    @ApiOperation( value = "Consolidate 2 entities", notes = "The consolidation is conditioned by the service contract definition associated to the client application code." )
-    @ApiResponses( value = {
-            @ApiResponse( code = 201, message = "Success" ), @ApiResponse( code = 400, message = ERROR_DURING_TREATMENT + " with explanation message" ),
-            @ApiResponse( code = 403, message = "Failure" ), @ApiResponse( code = 409, message = "Conflict" )
-    } )
-    public Response createSuspiciousIdentity(
-            @ApiParam( name = "master_customer_id", value = "the id of the master csutomer" ) @PathParam( "master_customer_id" ) String master_customer_id,
-            @ApiParam( name = "Request body", value = "An Identity Change Request that we will attach to the master" ) SuspiciousIdentityChangeRequest suspiciousIdentityChangeRequest2,
-            @ApiParam( name = Constants.PARAM_CLIENT_CODE, value = SwaggerConstants.CLIENT_CLIENT_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_CLIENT_CODE ) final String strHeaderClientCode,
-            @QueryParam( Constants.PARAM_CLIENT_CODE ) final String strQueryClientCode )
-    {
-
-        final String trustedClientCode = IdentityStoreService.getTrustedClientCode( strHeaderClientCode, strQueryClientCode );
-
-        Identity identity1 = IdentityHome.findByCustomerId( master_customer_id );
-        Identity identity2 = IdentityHome.findByCustomerId( suspiciousIdentityChangeRequest2.getSuspiciousIdentity( ).getCustomerId( ) );
-        // consolidate entities if they are not already consolidated with another one
-        if ( identity2.getMasterIdentityId( ) == 0 )
-        {
-            identity2.setMasterIdentityId( identity1.getId( ) );
-            IdentityHome.update( identity2 );
-        }
-        else
-        {
-            return Response.status( Response.Status.CONFLICT ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
-        }
-        // clean the consolidated identities from suspicious identities
-        SuspiciousIdentity suspicious1 = SuspiciousIdentityHome.selectByCustomerID( identity1.getCustomerId( ) );
-        SuspiciousIdentity suspicious2 = SuspiciousIdentityHome.selectByCustomerID( identity2.getCustomerId( ) );
-        SuspiciousIdentityHome.remove( suspicious1.getId( ) );
-        SuspiciousIdentityHome.remove( suspicious2.getId( ) );
-        return Response.status( Response.Status.OK ).entity( identity2 ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
-    }
-
-    @PUT
     @Path( Constants.EXCLUSION_PATH )
     @Consumes( MediaType.APPLICATION_JSON )
     @ApiOperation( value = "Exclude identities", notes = "Exclude identities from duplicate suspicions.", response = SuspiciousIdentityExcludeResponse.class )
