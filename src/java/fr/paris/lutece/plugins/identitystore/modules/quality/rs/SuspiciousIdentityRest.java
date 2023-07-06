@@ -209,12 +209,12 @@ public class SuspiciousIdentityRest
         }
         else
         {
-            SuspiciousIdentity suspicious1 = SuspiciousIdentityHome.selectByCustomerID( suspiciousIdentityExcludeRequest.getIdentityCuid1( ) );
-            SuspiciousIdentity suspicious2 = SuspiciousIdentityHome.selectByCustomerID( suspiciousIdentityExcludeRequest.getIdentityCuid2( ) );
+            final SuspiciousIdentity suspicious1 = SuspiciousIdentityHome.selectByCustomerID( suspiciousIdentityExcludeRequest.getIdentityCuid1( ) );
+            final SuspiciousIdentity suspicious2 = SuspiciousIdentityHome.selectByCustomerID( suspiciousIdentityExcludeRequest.getIdentityCuid2( ) );
             if ( suspicious1 != null && suspicious2 != null )
             {
-                // flag the 2 identities: manage the list of identities to exlude (suposed to be a field at the identitiy level)
-                SuspiciousIdentityHome.exclude( suspicious1, suspicious2, suspiciousIdentityExcludeRequest.getRuleId( ) );
+                // flag the 2 identities: manage the list of identities to exclude (supposed to be a field at the identity level)
+                SuspiciousIdentityHome.exclude( suspicious1.getCustomerId(), suspicious2.getCustomerId() );
                 // clean the consolidated identities from suspicious identities
                 SuspiciousIdentityHome.remove( suspicious1.getId( ) );
                 SuspiciousIdentityHome.remove( suspicious2.getId( ) );
