@@ -159,8 +159,8 @@ public class SuspiciousIdentityService
     {
         try
         {
-            final boolean locked = SuspiciousIdentityHome.manageLock( request.getCustomerId( ), request.getOrigin( ).getType( ).name( ),
-                    request.getOrigin( ).getName( ), request.isLocked( ) );
+            final boolean locked = SuspiciousIdentityHome.manageLock( request.getCustomerId( ), request.getOrigin( ).getName( ),
+                    request.getOrigin( ).getType( ).name( ), request.isLocked( ) );
             response.setLocked( locked );
             response.setStatus( SuspiciousIdentityLockStatus.SUCCESS );
         }
