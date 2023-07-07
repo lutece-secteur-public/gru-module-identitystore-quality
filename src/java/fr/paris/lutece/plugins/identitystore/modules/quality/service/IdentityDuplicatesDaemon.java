@@ -43,6 +43,7 @@ import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleServ
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.utils.Batch;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentity;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.daemon.Daemon;
 import fr.paris.lutece.portal.service.util.AppLogService;
@@ -117,8 +118,8 @@ public class IdentityDuplicatesDaemon extends Daemon
         stopWatch.stop( );
         final String duration = DurationFormatUtils.formatDurationWords( stopWatch.getTime( ), true, true );
         final String log = "Execution time " + duration;
-        AppLogService.info(log);
-        logs.append(log);
+        AppLogService.info( log );
+        logs.append( log );
         setLastRunLogs( logs.toString( ) );
     }
 
@@ -145,7 +146,7 @@ public class IdentityDuplicatesDaemon extends Daemon
         {
             for ( final String cuid : cuids )
             {
-                final Identity identity = IdentityHome.findByCustomerId( cuid );
+                final QualifiedIdentity identity = IdentityService.instance( ).getQualifiedIdentity( cuid );
                 final DuplicateSearchResponse duplicates = IdentityService.instance( ).findDuplicates( identity, rule.getId( ) );
                 final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
                 if ( duplicateCount > 0 )

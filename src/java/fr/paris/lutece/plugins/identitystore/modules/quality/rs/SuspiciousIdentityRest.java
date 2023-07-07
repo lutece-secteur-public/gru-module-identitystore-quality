@@ -49,6 +49,7 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRu
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentity;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.swagger.SwaggerConstants;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityNotFoundException;
@@ -268,7 +269,7 @@ public class SuspiciousIdentityRest
     {
         try
         {
-            final Identity identity = IdentityHome.findByCustomerId( customer_id );
+            final QualifiedIdentity identity = IdentityService.instance( ).getQualifiedIdentity( customer_id );
             final DuplicateSearchResponse identities = IdentityService.instance( ).findDuplicates( identity, rule_id );
             return Response.status( Response.Status.OK ).entity( identities ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
         }
