@@ -33,7 +33,10 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.rs;
 
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.IdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeStatus;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.util.AppException;
@@ -133,6 +136,32 @@ public final class SuspiciousIdentityRequestValidator
             throw new IdentityStoreException( "Provided Author is null or empty" );
         }
 
+    }
+
+    /**
+     * check suspicious identity exclusion request
+     *
+     * @param request
+     * @throws AppException
+     */
+    public void checkSuspiciousIdentityChange( SuspiciousIdentityExcludeRequest request ) throws IdentityStoreException
+    {
+        if ( request == null )
+        {
+            throw new IdentityStoreException( "The provided request is null or empty." );
+        }
+
+        if ( StringUtils.isEmpty( request.getIdentityCuid1( ) ) )
+        {
+            throw new IdentityStoreException( "Parameter identity_cuid_1 is missing." );
+        }
+
+        if ( StringUtils.isEmpty( request.getIdentityCuid2( ) ) )
+        {
+            throw new IdentityStoreException( "Parameter identity_cuid_2 is missing." );
+        }
+
+        IdentityRequestValidator.instance( ).checkOrigin( request );
     }
 
     /**

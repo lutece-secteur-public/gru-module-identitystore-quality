@@ -189,34 +189,16 @@ public class SuspiciousIdentityRest
             @ApiParam( name = Constants.PARAM_CLIENT_CODE, value = SwaggerConstants.CLIENT_CLIENT_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_CLIENT_CODE ) final String strHeaderClientCode )
     {
         final SuspiciousIdentityExcludeResponse response = new SuspiciousIdentityExcludeResponse( );
-        if ( suspiciousIdentityExcludeRequest == null
-                || StringUtils.isAnyBlank( suspiciousIdentityExcludeRequest.getIdentityCuid1( ), suspiciousIdentityExcludeRequest.getIdentityCuid2( ) )
-                || suspiciousIdentityExcludeRequest.getRuleId( ) == null )
-        {
-            response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_FAILURE );
-            response.setMessage( "Please provide a valid SuspiciousIdentityExcludeRequest." );
-        }
-        else
-        {
-            final SuspiciousIdentity suspicious1 = SuspiciousIdentityHome.selectByCustomerID( suspiciousIdentityExcludeRequest.getIdentityCuid1( ) );
-            final SuspiciousIdentity suspicious2 = SuspiciousIdentityHome.selectByCustomerID( suspiciousIdentityExcludeRequest.getIdentityCuid2( ) );
-            if ( suspicious1 != null && suspicious2 != null )
-            {
-                // flag the 2 identities: manage the list of identities to exclude (supposed to be a field at the identity level)
-                SuspiciousIdentityHome.exclude( suspicious1.getCustomerId( ), suspicious2.getCustomerId( ) );
-                // clean the consolidated identities from suspicious identities
-                SuspiciousIdentityHome.remove( suspicious1.getId( ) );
-                SuspiciousIdentityHome.remove( suspicious2.getId( ) );
 
-                response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_SUCCESS );
-                response.setMessage( "Identities excluded from duplicate suspicions." );
-            }
-            else
-            {
-                response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_FAILURE );
-                response.setMessage( "The provided identities are not known to be suspicious." );
-            }
-        }
+        // flag the 2 identities: manage the list of identities to exclude (supposed to be a field at the identity level)
+        SuspiciousIdentityHome.exclude( suspiciousIdentityExcludeRequest.getIdentityCuid1(), suspiciousIdentityExcludeRequest.getIdentityCuid2(),
+                suspiciousIdentityExcludeRequest.getOrigin( ).getType( ).name( ), suspiciousIdentityExcludeRequest.getOrigin( ).getName( ) );
+        // clean the consolidated identities from suspicious identities
+        SuspiciousIdentityHome.remove( suspiciousIdentityExcludeRequest.getIdentityCuid1() );
+        SuspiciousIdentityHome.remove( suspiciousIdentityExcludeRequest.getIdentityCuid2() );
+
+        response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_SUCCESS );
+        response.setMessage( "Identities excluded from duplicate suspicions." );
         return Response.status( response.getStatus( ).getCode( ) ).entity( response ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
     }
 

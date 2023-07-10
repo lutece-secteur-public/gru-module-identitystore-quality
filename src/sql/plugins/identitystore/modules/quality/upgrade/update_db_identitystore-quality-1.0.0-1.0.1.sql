@@ -1,5 +1,1 @@
-ALTER TABLE identitystore_quality_suspicious_identity ADD COLUMN id_duplicate_rule INT NOT NULL DEFAULT 0;
-ALTER TABLE identitystore_quality_suspicious_identity ADD COLUMN date_create timestamp default CURRENT_TIMESTAMP not null;
-ALTER TABLE identitystore_quality_suspicious_identity ADD COLUMN last_update_date timestamp;
-ALTER TABLE identitystore_quality_suspicious_identity ADD COLUMN date_delete timestamp;
-ALTER TABLE identitystore_quality_suspicious_identity ADD COLUMN is_deleted smallint default 0;
+
