@@ -130,6 +130,7 @@ public class IdentityDuplicatesDaemon extends Daemon
     private void search( final DuplicateRule rule, final StringBuilder logs ) throws IdentityStoreException
     {
         AppLogService.info( "-- Processing Rule id = [" + rule.getId( ) + "] ..." );
+        logs.append( "-- Processing Rule id = [" + rule.getId( ) + "] ..." ).append( "\n" );
         final Batch<String> cuidList = IdentityService.instance( ).getIdentitiesBatchForPotentialDuplicate( rule, 200 );
         if ( cuidList == null || cuidList.isEmpty( ) )
         {
