@@ -191,11 +191,11 @@ public class SuspiciousIdentityRest
         final SuspiciousIdentityExcludeResponse response = new SuspiciousIdentityExcludeResponse( );
 
         // flag the 2 identities: manage the list of identities to exclude (supposed to be a field at the identity level)
-        SuspiciousIdentityHome.exclude( suspiciousIdentityExcludeRequest.getIdentityCuid1(), suspiciousIdentityExcludeRequest.getIdentityCuid2(),
+        SuspiciousIdentityHome.exclude( suspiciousIdentityExcludeRequest.getIdentityCuid1( ), suspiciousIdentityExcludeRequest.getIdentityCuid2( ),
                 suspiciousIdentityExcludeRequest.getOrigin( ).getType( ).name( ), suspiciousIdentityExcludeRequest.getOrigin( ).getName( ) );
         // clean the consolidated identities from suspicious identities
-        SuspiciousIdentityHome.remove( suspiciousIdentityExcludeRequest.getIdentityCuid1() );
-        SuspiciousIdentityHome.remove( suspiciousIdentityExcludeRequest.getIdentityCuid2() );
+        SuspiciousIdentityHome.remove( suspiciousIdentityExcludeRequest.getIdentityCuid1( ) );
+        SuspiciousIdentityHome.remove( suspiciousIdentityExcludeRequest.getIdentityCuid2( ) );
 
         response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_SUCCESS );
         response.setMessage( "Identities excluded from duplicate suspicions." );

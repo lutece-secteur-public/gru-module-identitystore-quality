@@ -56,6 +56,7 @@ import fr.paris.lutece.portal.service.spring.SpringContextService;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 
 public class SuspiciousIdentityService
 {
@@ -176,5 +177,10 @@ public class SuspiciousIdentityService
             response.setStatus( SuspiciousIdentityLockStatus.NOT_FOUND );
             response.setMessage( e.getMessage( ) );
         }
+    }
+
+    public boolean hasSuspicious( final List<String> customerIds )
+    {
+        return SuspiciousIdentityHome.hasSuspicious( customerIds );
     }
 }

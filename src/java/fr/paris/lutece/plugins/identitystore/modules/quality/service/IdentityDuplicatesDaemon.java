@@ -36,7 +36,6 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.service;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
-import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
@@ -92,7 +91,6 @@ public class IdentityDuplicatesDaemon extends Daemon
 
         AppLogService.info( rules.size( ) + " applicable detection rules found. Starting process..." );
         logs.append( rules.size( ) + " applicable detection rules found. Starting process..." ).append( "\n" );
-        ;
         rules.sort( Comparator.comparingInt( r -> r.getPriority( ).ordinal( ) ) );
         // rules.stream().parallel().forEach(rule -> {
         // try {
@@ -151,11 +149,16 @@ public class IdentityDuplicatesDaemon extends Daemon
                 final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
                 if ( duplicateCount > 0 )
                 {
-                    final SuspiciousIdentity suspiciousIdentity = new SuspiciousIdentity( );
-                    suspiciousIdentity.setCustomerId( identity.getCustomerId( ) );
-                    suspiciousIdentity.setIdDuplicateRule( rule.getId( ) );
-                    SuspiciousIdentityHome.create( suspiciousIdentity );
-                    markedSuspicious++;
+                    final List<String> customerIds = duplicates.getIdentities( ).stream( ).map( QualifiedIdentity::getCustomerId )
+                            .collect( Collectors.toList( ) );
+                    if ( !SuspiciousIdentityService.instance( ).hasSuspicious( customerIds ) )
+                    {
+                        final SuspiciousIdentity suspiciousIdentity = new SuspiciousIdentity( );
+                        suspiciousIdentity.setCustomerId( identity.getCustomerId( ) );
+                        suspiciousIdentity.setIdDuplicateRule( rule.getId( ) );
+                        SuspiciousIdentityHome.create( suspiciousIdentity );
+                        markedSuspicious++;
+                    }
                 }
             }
         }

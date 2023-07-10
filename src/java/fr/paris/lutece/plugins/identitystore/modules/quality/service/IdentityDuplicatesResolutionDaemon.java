@@ -86,7 +86,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
                     processedIdentities.add( identity );
 
                     /* Order identity list by connected identities, then best quality */
-                    final Comparator<QualifiedIdentity> connectedComparator = Comparator.comparing( QualifiedIdentity::isMonParisActive ).reversed();
+                    final Comparator<QualifiedIdentity> connectedComparator = Comparator.comparing( QualifiedIdentity::isMonParisActive ).reversed( );
                     final Comparator<QualifiedIdentity> qualityComparator = Comparator.comparingDouble( QualifiedIdentity::getQuality ).reversed( );
                     final Comparator<QualifiedIdentity> orderingComparator = connectedComparator.thenComparing( qualityComparator );
                     processedIdentities.sort( orderingComparator );
