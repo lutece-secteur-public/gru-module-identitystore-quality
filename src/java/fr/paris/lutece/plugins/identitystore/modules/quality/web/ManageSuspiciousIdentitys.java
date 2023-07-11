@@ -36,6 +36,7 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.web;
 
 import fr.paris.lutece.plugins.identitystore.business.attribute.AttributeKey;
 import fr.paris.lutece.plugins.identitystore.business.attribute.AttributeKeyHome;
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.ExcludedIdentities;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
@@ -76,9 +77,13 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     private static final String TEMPLATE_CHOOSE_DUPLICATE_TYPE = "/admin/plugins/identitystore/modules/quality/choose_duplicate_type.html";
     private static final String TEMPLATE_SEARCH_DUPLICATES = "/admin/plugins/identitystore/modules/quality/search_duplicates.html";
     private static final String TEMPLATE_SELECT_IDENTITIES = "/admin/plugins/identitystore/modules/quality/select_identities.html";
+    private static final String TEMPLATE_MANAGE_EXCLUDED_IDENTITIES = "/admin/plugins/identitystore/modules/quality/manage_excluded_identities.html";
+    private static final String TEMPLATE_DISPLAY_IDENTITIES = "/admin/plugins/identitystore/modules/quality/display_excluded_identities.html";
 
     // Parameters
     private static final String PARAMETER_ID_SUSPICIOUSIDENTITY = "id";
+    private static final String PARAMETER_FIRST_CUSTOMER_ID = "first_customer_id";
+    private static final String PARAMETER_SECOND_CUSTOMER_ID = "second_customer_id";
 
     // Properties for page titles
     private static final String PROPERTY_PAGE_TITLE_MANAGE_SUSPICIOUSIDENTITYS = "module.identitystore.quality.choose_duplicate_type.pageTitle";
@@ -86,19 +91,25 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     private static final String PROPERTY_PAGE_TITLE_CREATE_SUSPICIOUSIDENTITY = "module.identitystore.quality.create_suspiciousidentity.pageTitle";
     private static final String PROPERTY_PAGE_TITLE_SEARCH_DUPLICATES = "module.identitystore.quality.search_duplicates.pageTitle";
     private static final String PROPERTY_PAGE_TITLE_SELECT_IDENTITIES = "module.identitystore.quality.select_identities.pageTitle";
+    private static final String PROPERTY_PAGE_TITLE_MANAGE_EXCLUDED_IDENTITIES = "module.identitystore.quality.manage_excluded_identities.pageTitle";
+    private static final String PROPERTY_PAGE_TITLE_DISPLAY_IDENTITIES = "module.identitystore.quality.display_excluded_identities.pageTitle";
 
     // Markers
     private static final String MARK_SUSPICIOUSIDENTITY_LIST = "suspiciousidentity_list";
+    private static final String MARK_EXCLUDED_IDENTITIES_LIST = "excluded_identities_list";
     private static final String MARK_SUSPICIOUSIDENTITY = "suspiciousidentity";
     private static final String MARK_DUPLICATE_RULE_LIST = "duplicate_rule_list";
     private static final String MARK_DUPLICATE_HOLDER_LIST = "duplicate_holder_list";
     private static final String MARK_READABLE_ATTRIBUTES = "readable_attribute_list";
     private static final String MARK_IDENTITY_LIST = "identity_list";
+    private static final String MARK_FIRST_CUSTOMER_ID = "first_customer_id";
+    private static final String MARK_SECOND_CUSTOMER_ID = "second_customer_id";
 
     private static final String JSP_MANAGE_SUSPICIOUSIDENTITYS = "jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp";
 
     // Properties
     private static final String MESSAGE_CONFIRM_REMOVE_SUSPICIOUSIDENTITY = "module.identitystore.quality.message.confirmRemoveSuspiciousIdentity";
+    private static final String MESSAGE_CONFIRM_REMOVE_EXCLUDED_IDENTITIES = "module.identitystore.quality.manage_excluded_identities.message.removeExcludedIdentities";
 
     // Validations
     private static final String VALIDATION_ATTRIBUTES_PREFIX = "module.identitystore.quality.model.entity.suspiciousidentity.attribute.";
@@ -110,12 +121,16 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     private static final String VIEW_CHOOSE_DUPLICATE_TYPE = "chooseDuplicateType";
     private static final String VIEW_SEARCH_DUPLICATES = "searchDuplicates";
     private static final String VIEW_SELECT_IDENTITIES = "selectIdentities";
+    private static final String VIEW_MANAGE_EXCLUDED_IDENTITIES = "manageExcludedIdentities";
+    private static final String VIEW_DISPLAY_EXCLUDED_IDENTITIES = "displayExcludedIdentities";
 
     // Actions
     private static final String ACTION_CREATE_SUSPICIOUSIDENTITY = "createSuspiciousIdentity";
     private static final String ACTION_MODIFY_SUSPICIOUSIDENTITY = "modifySuspiciousIdentity";
     private static final String ACTION_REMOVE_SUSPICIOUSIDENTITY = "removeSuspiciousIdentity";
+    private static final String ACTION_REMOVE_EXCLUDED_IDENTITIES = "removeExcludedIdentities";
     private static final String ACTION_CONFIRM_REMOVE_SUSPICIOUSIDENTITY = "confirmRemoveSuspiciousIdentity";
+    private static final String ACTION_CONFIRM_REMOVE_EXCLUDED_IDENTITIES = "confirmRemoveExcludedIdentities";
 
     // Infos
     private static final String INFO_SUSPICIOUSIDENTITY_CREATED = "module.identitystore.quality.info.suspiciousidentity.created";
@@ -272,6 +287,150 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         model.put( MARK_READABLE_ATTRIBUTES, readableAttributes );
 
         return getPage( PROPERTY_PAGE_TITLE_SELECT_IDENTITIES, TEMPLATE_SELECT_IDENTITIES, model );
+    }
+
+    /**
+     * Build the Manage View
+     *
+     * @param request
+     *            The HTTP request
+     * @return The page
+     */
+    @View( value = VIEW_MANAGE_EXCLUDED_IDENTITIES )
+    public String getManageExcludedIdentities( HttpServletRequest request )
+    {
+        final List<ExcludedIdentities> excludedIdentitiesList = SuspiciousIdentityHome.getExcludedIdentitiesList( );
+        if ( CollectionUtils.isEmpty( excludedIdentitiesList ) )
+        {
+            addInfo( "No excluded identities found" );
+        }
+
+        final HashMap<Object, Object> parameters = new HashMap<>( );
+        parameters.put( "view_" + VIEW_MANAGE_EXCLUDED_IDENTITIES, "" );
+        final Map<String, Object> model = getPaginatedListModel( request, MARK_EXCLUDED_IDENTITIES_LIST, excludedIdentitiesList, JSP_MANAGE_SUSPICIOUSIDENTITYS,
+                parameters );
+
+        return getPage( PROPERTY_PAGE_TITLE_MANAGE_EXCLUDED_IDENTITIES, TEMPLATE_MANAGE_EXCLUDED_IDENTITIES, model );
+    }
+
+    /**
+     * Returns the form to select which identities to process
+     *
+     * @param request
+     * @return
+     */
+    @View( value = VIEW_DISPLAY_EXCLUDED_IDENTITIES )
+    public String getDisplayExcludedIdentities( final HttpServletRequest request )
+    {
+        final QualifiedIdentity firstIdentity;
+        final QualifiedIdentity secondIdentity;
+        final List<QualifiedIdentity> identities = new ArrayList<>( );
+        final List<AttributeKey> readableAttributes = new ArrayList<>( );
+        String firstCustomerId;
+        String secondCustomerId;
+        try
+        {
+            firstCustomerId = request.getParameter( "first_customer_id" );
+            secondCustomerId = request.getParameter( "second_customer_id" );
+            if ( StringUtils.isEmpty( firstCustomerId ) )
+            {
+                addError( "First Customer ID must be specified in request " );
+                return getDuplicateTypes( request );
+            }
+
+            if ( StringUtils.isEmpty( secondCustomerId ) )
+            {
+                addError( "Second Customer ID must be specified in request " + firstCustomerId );
+                return getDuplicateTypes( request );
+            }
+
+            firstIdentity = IdentityService.instance( ).getQualifiedIdentity( firstCustomerId );
+            if ( firstIdentity == null )
+            {
+                addError( "Could not find first identity with customer ID " + firstCustomerId );
+                return getDuplicateTypes( request );
+            }
+
+            secondIdentity = IdentityService.instance( ).getQualifiedIdentity( secondCustomerId );
+            if ( secondIdentity == null )
+            {
+                addError( "Could not find second identity with customer ID " + secondIdentity );
+                return getDuplicateTypes( request );
+            }
+            identities.add( firstIdentity );
+            identities.add( secondIdentity );
+            readableAttributes.addAll( AttributeKeyHome.getAttributeKeysList( ) );
+            final Comparator<AttributeKey> sortById = Comparator.comparing( AttributeKey::getId );
+            final Comparator<AttributeKey> sortByPivot = ( o1, o2 ) -> Boolean.compare( o2.getPivot( ), o1.getPivot( ) );
+            readableAttributes.sort( sortByPivot.thenComparing( sortById ) );
+        }
+        catch( final IdentityStoreException e )
+        {
+            addError( "An error occurred when fetching firstIdentity : " + e.getMessage( ) );
+            return getDuplicateTypes( request );
+        }
+
+        final Map<String, Object> model = getModel( );
+        model.put( MARK_IDENTITY_LIST, identities );
+        model.put( MARK_FIRST_CUSTOMER_ID, firstCustomerId );
+        model.put( MARK_SECOND_CUSTOMER_ID, secondCustomerId );
+        model.put( MARK_IDENTITY_LIST, identities );
+        model.put( MARK_READABLE_ATTRIBUTES, readableAttributes );
+
+        return getPage( PROPERTY_PAGE_TITLE_DISPLAY_IDENTITIES, TEMPLATE_DISPLAY_IDENTITIES, model );
+    }
+
+    /**
+     * Manages the removal form of a excluded identities whose identifier is in the http request
+     *
+     * @param request
+     *            The Http request
+     * @return the html code to confirm
+     */
+    @Action( ACTION_CONFIRM_REMOVE_EXCLUDED_IDENTITIES )
+    public String getConfirmRemoveSExcludedIdentities( HttpServletRequest request )
+    {
+        final String firstCustomerId = request.getParameter( PARAMETER_FIRST_CUSTOMER_ID );
+        final String secondCustomerId = request.getParameter( PARAMETER_SECOND_CUSTOMER_ID );
+        final UrlItem url = new UrlItem( getActionUrl( ACTION_REMOVE_EXCLUDED_IDENTITIES ) );
+        url.addParameter( PARAMETER_FIRST_CUSTOMER_ID, firstCustomerId );
+        url.addParameter( PARAMETER_SECOND_CUSTOMER_ID, secondCustomerId );
+
+        final String strMessageUrl = AdminMessageService.getMessageUrl( request, MESSAGE_CONFIRM_REMOVE_EXCLUDED_IDENTITIES, url.getUrl( ),
+                AdminMessage.TYPE_CONFIRMATION );
+
+        return redirect( request, strMessageUrl );
+    }
+
+    /**
+     * Handles the removal form of a suspiciousidentity
+     *
+     * @param request
+     *            The Http request
+     * @return the jsp URL to display the form to manage suspiciousidentitys
+     */
+    @Action( ACTION_REMOVE_EXCLUDED_IDENTITIES )
+    public String doRemoveExcludedIdentities( HttpServletRequest request )
+    {
+        final String firstCustomerId = request.getParameter( PARAMETER_FIRST_CUSTOMER_ID );
+        final String secondCustomerId = request.getParameter( PARAMETER_SECOND_CUSTOMER_ID );
+
+        if ( StringUtils.isEmpty( firstCustomerId ) )
+        {
+            addError( "First Customer ID must be specified in request " );
+            return getManageExcludedIdentities( request );
+        }
+
+        if ( StringUtils.isEmpty( secondCustomerId ) )
+        {
+            addError( "Second Customer ID must be specified in request " );
+            return getManageExcludedIdentities( request );
+        }
+
+        SuspiciousIdentityHome.removeExcludedIdentities( firstCustomerId, secondCustomerId );
+        addInfo( "Identities exclusion successfully removed", getLocale( ) );
+
+        return redirectView( request, VIEW_MANAGE_EXCLUDED_IDENTITIES );
     }
 
     /**

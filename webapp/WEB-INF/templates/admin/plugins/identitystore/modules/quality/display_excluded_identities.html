@@ -1,0 +1,98 @@
+<style>
+    #select-identities-table th, #select-identities-table .rounded-pill {
+        text-transform: uppercase;
+    }
+    span.non-matching-value {
+        font-weight: bold;
+        color: red;
+    }
+</style>
+<script type="text/javascript">
+    $(function() {
+        $('span[id^="id-1-"]').each(function() {
+            let value = $(this).text().trim().toUpperCase();
+
+                let key = $(this).prop('id').replace('id-1-', '').replace('-value', '');
+                $('#id-2-'+key+'-value').each(function() {
+                    if ($(this).text().trim().toUpperCase() !== value) {
+                        $(this).addClass('non-matching-value');
+                    }
+                });
+
+        });
+    });
+</script>
+<form class="form-inline" action="jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp">
+    <@rowBox>
+        <@boxBody>
+            <@messages infos=infos />
+            <@messages errors=errors />
+            <@messages warnings=warnings />
+            <@input type="hidden" value="${first_customer_id}" name="first_customer_id" />
+            <@input type="hidden" value="${second_customer_id}" name="second_customer_id" />
+            <@table id="select-identities-table">
+                <tr>
+                    <th>&nbsp;</th>
+                    <#assign count = 1>
+                    <#list identity_list as identity>
+                        <th class="fw-normal">
+                            <div class="col-12">#i18n{module.identitystore.quality.select_identities.identity} ${count}</div>
+                            <div class="col-12"><span class="quality-span">${identity.quality}</span> %</div>
+                            <#if identity.monParisActive >
+                                <span class="badge mon-paris-badge">MON PARIS</span>
+                            </#if>
+                        </th>
+                        <#assign count = count + 1>
+                    </#list>
+                </tr>
+                <@tableHeadBodySeparator />
+                <tr>
+                    <td>Customer ID</td>
+                    <#list identity_list as identity>
+                        <td>
+                            <span>${identity.customerId}</span>
+                        </td>
+                    </#list>
+                </tr>
+                <tr>
+                    <td>Connection ID</td>
+                    <#list identity_list as identity>
+                        <td>
+                            <span>${identity.connectionId}</span>
+                        </td>
+                    </#list>
+                </tr>
+                <#list readable_attribute_list as readableAttr>
+                    <tr>
+                        <td>${readableAttr.name}</td>
+                        <#assign count = 1>
+                        <#list identity_list as identity>
+                            <td>
+                                <#list identity.attributes?filter(a -> a.key == readableAttr.keyName) as attr>
+                                    <span id="id-${count}-${attr.key}-value">${attr.value}</span>
+                                    <#if attr.certifier??>
+                                        <span class="badge rounded-pill bg-info mx-1">${attr.certifier}</span>
+                                    </#if>
+                                    <#if attr.certificationDate??>
+                                        <span class="certification-date">${attr.certificationDate?date}</span>
+                                    </#if>
+                                </#list>
+                            </td>
+                            <#assign count = count + 1>
+                        </#list>
+                    </tr>
+                </#list>
+            </@table>
+        </@boxBody>
+    </@rowBox>
+    <@rowBox boxClass="action-box">
+        <@boxBody>
+            <button class="btn btn-primary" name="action_confirmRemoveExcludedIdentities" >
+                #i18n{module.identitystore.quality.manage_excluded_identities.buttonDissociate}
+            </button>
+            <button class="btn btn-secondary" name="view_manageExcludedIdentities" >
+                #i18n{module.identitystore.quality.manage_excluded_identities.buttonBack}
+            </button>
+        </@boxBody>
+    </@rowBox>
+</form>

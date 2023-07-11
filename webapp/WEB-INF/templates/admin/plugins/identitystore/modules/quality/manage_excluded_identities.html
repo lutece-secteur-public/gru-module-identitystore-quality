@@ -1,0 +1,49 @@
+<#include "managequality_tabs.html" />
+<@tabs tab="excludedidentities" />
+
+<@box>
+	<@boxHeader title='#i18n{module.identitystore.quality.manage_excluded_identities.title}' boxTools=true>
+	</@boxHeader>
+	<@boxBody>    
+    <@messages infos=infos />
+    <@paginationAdmin paginator=paginator combo=1 />
+    <div class="clearfix"></div>
+    <@table>
+        <tr>
+            <th>#i18n{module.identitystore.quality.manage_excluded_identities.labelFirstCustomerId}</th>
+            <th>#i18n{module.identitystore.quality.manage_excluded_identities.labelSecondCustomerId}</th>
+            <th>#i18n{module.identitystore.quality.manage_excluded_identities.labelDateExclusion}</th>
+            <th>#i18n{module.identitystore.quality.manage_excluded_identities.labelAuthorName}</th>
+            <th>#i18n{module.identitystore.quality.manage_excluded_identities.labelAuthorType}</th>
+            <th>#i18n{portal.util.labelActions}</th>
+        </tr>
+        <@tableHeadBodySeparator />
+        <#list excluded_identities_list as excluded_identities >
+        <tr>
+            <td>
+				${excluded_identities.firstCustomerId}
+			</td>
+            <td>
+                ${excluded_identities.secondCustomerId}
+            </td>
+            <td>
+                ${excluded_identities.exclusionDate}
+            </td>
+            <td>
+                ${excluded_identities.authorName}
+            </td>
+            <td>
+                ${excluded_identities.authorType}
+            </td>
+        	<td>
+				<@aButton href='jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp?view=displayExcludedIdentities&first_customer_id=${excluded_identities.firstCustomerId}&second_customer_id=${excluded_identities.secondCustomerId}' title='#i18n{module.identitystore.quality.manage_excluded_identities.buttonDisplay}' buttonIcon='arrow-right' hideTitle=['all'] color='btn-danger'  />
+				<@aButton href='jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp?action=confirmRemoveExcludedIdentities&first_customer_id=${excluded_identities.firstCustomerId}&second_customer_id=${excluded_identities.secondCustomerId}' title='#i18n{portal.util.labelDelete}' buttonIcon='trash' hideTitle=['all'] color='btn-danger'  />
+	        </td>
+        </tr>
+        </#list>
+    </@table>
+
+    <@paginationAdmin paginator=paginator />
+
+  </@boxBody>
+</@box>
