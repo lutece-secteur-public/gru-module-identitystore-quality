@@ -50,6 +50,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.time.StopWatch;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -138,8 +139,8 @@ public class IdentityDuplicatesDaemon extends Daemon
             logs.append( "No identities having required attributes and not already suspicious found." ).append( "\n" );
             return;
         }
-        AppLogService.info( cuidList.size( ) + " identities found. Searching for potential duplicates on those..." );
-        logs.append( cuidList.size( ) + " identities found. Searching for potential duplicates on those..." ).append( "\n" );
+        AppLogService.info( cuidList.totalSize( ) + " identities found. Searching for potential duplicates on those..." );
+        logs.append( cuidList.totalSize( ) + " identities found. Searching for potential duplicates on those..." ).append( "\n" );
         int markedSuspicious = 0;
         for ( final List<String> cuids : cuidList )
         {
@@ -150,12 +151,15 @@ public class IdentityDuplicatesDaemon extends Daemon
                 final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
                 if ( duplicateCount > 0 )
                 {
-                    final List<String> customerIds = duplicates.getIdentities( ).stream( ).map( QualifiedIdentity::getCustomerId )
-                            .collect( Collectors.toList( ) );
+                    final List<QualifiedIdentity> processedIdentities = new ArrayList<>( duplicates.getIdentities( ) );
+                    processedIdentities.add( identity );
+                    final List<String> customerIds = processedIdentities.stream( ).map( QualifiedIdentity::getCustomerId ).collect( Collectors.toList( ) );
                     if ( !SuspiciousIdentityService.instance( ).hasSuspicious( customerIds ) )
                     {
+                        final QualifiedIdentity bestIdentity = processedIdentities.stream( ).max( Comparator.comparing( QualifiedIdentity::getQuality ) )
+                                .orElseThrow( ( ) -> new IdentityStoreException( "Could not find best quality" ) );
                         final SuspiciousIdentity suspiciousIdentity = new SuspiciousIdentity( );
-                        suspiciousIdentity.setCustomerId( identity.getCustomerId( ) );
+                        suspiciousIdentity.setCustomerId( bestIdentity.getCustomerId( ) );
                         suspiciousIdentity.setIdDuplicateRule( rule.getId( ) );
                         SuspiciousIdentityHome.create( suspiciousIdentity );
                         markedSuspicious++;
