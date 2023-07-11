@@ -1,0 +1,55 @@
+<#include "managequality_tabs.html" />
+<@tabs tab="suspiciousidentity" />
+<style>
+    #search-duplicates-table .rounded-pill {
+        text-transform: uppercase;
+    }
+</style>
+<form class="form-inline" action="jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp">
+    <@rowBox>
+        <@boxHeader i18nTitleKey="module.identitystore.quality.search_duplicates.pageTitle">
+            <@headerButtons>
+            </@headerButtons>
+        </@boxHeader>
+        <@boxBody>
+            <@messages infos=infos />
+            <@messages errors=errors />
+            <@messages warnings=warnings />
+            <@paginationAdmin paginator=paginator combo=1 />
+            <@table id='search-duplicates-table'>
+                <tr>
+                    <th>Customer ID</th>
+                    <#list readable_attribute_list as readableAttr>
+                        <th>${readableAttr.name}</th>
+                    </#list>
+                    <th>#i18n{portal.util.labelActions}</th>
+                </tr>
+                <@tableHeadBodySeparator />
+                <#list duplicate_holder_list as identity>
+                    <tr>
+                        <td>
+                            <span>${identity.customerId}</span>
+                        </td>
+                        <#list readable_attribute_list as readableAttr>
+                            <td>
+                                <#list identity.attributes?filter(a -> a.key == readableAttr.keyName) as attr>
+                                    <span class="${attr.key}-value">${attr.value}</span>
+                                    <#if attr.certifier??>
+                                        <span class="badge rounded-pill bg-info mx-1">${attr.certifier}</span>
+                                    </#if>
+                                    <#if attr.certificationDate??>
+                                        <span class="certification-date">${attr.certificationDate?date}</span>
+                                    </#if>
+                                </#list>
+                            </td>
+                        </#list>
+                        <td>
+                            <@aButton href='jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp?view=selectIdentities&cuid=${identity.customerId}' title='#i18n{module.identitystore.quality.duplicate.process}' hideTitle=['all'] buttonIcon='arrow-right' />
+                        </td>
+                    </tr>
+                </#list>
+            </@table>
+            <@paginationAdmin paginator=paginator />
+        </@boxBody>
+    </@rowBox>
+</form>

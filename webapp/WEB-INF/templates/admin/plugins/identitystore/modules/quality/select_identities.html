@@ -1,0 +1,74 @@
+<style>
+    #select-identities-table th, #select-identities-table .rounded-pill {
+        text-transform: uppercase;
+    }
+</style>
+
+<form class="form-inline" action="jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp">
+    <@rowBox>
+        <@boxBody>
+            <@messages infos=infos />
+            <@messages errors=errors />
+            <@messages warnings=warnings />
+            <@table id="select-identities-table">
+                <tr>
+                    <th>&nbsp;</th>
+                    <#assign count = 1>
+                    <#list identity_list as identity>
+                        <th class="fw-normal">
+                            <div class="col-12">#i18n{module.identitystore.quality.select_identities.identity} ${count}</div>
+                            <div class="col-12"><span class="quality-span">${identity.quality}</span> %</div>
+                            <#if identity.monParisActive >
+                                <span class="badge mon-paris-badge">MON PARIS</span>
+                            </#if>
+                            <input type="hidden" name="identity-cuid-${count}" value="${identity.customerId}" disabled >
+                        </th>
+                        <#assign count = count + 1>
+                    </#list>
+                </tr>
+                <@tableHeadBodySeparator />
+                <tr>
+                    <td>Customer ID</td>
+                    <#list identity_list as identity>
+                        <td>
+                            <span>${identity.customerId}</span>
+                        </td>
+                    </#list>
+                </tr>
+                <tr>
+                    <td>Connection ID</td>
+                    <#list identity_list as identity>
+                        <td>
+                            <span>${identity.connectionId}</span>
+                        </td>
+                    </#list>
+                </tr>
+                <#list readable_attribute_list as readableAttr>
+                    <tr>
+                        <td>${readableAttr.name}</td>
+                        <#list identity_list as identity>
+                            <td>
+                                <#list identity.attributes?filter(a -> a.key == readableAttr.keyName) as attr>
+                                    <span class="${attr.key}-value">${attr.value}</span>
+                                    <#if attr.certifier??>
+                                        <span class="badge rounded-pill bg-info mx-1">${attr.certifier}</span>
+                                    </#if>
+                                    <#if attr.certificationDate??>
+                                        <span class="certification-date">${attr.certificationDate?date}</span>
+                                    </#if>
+                                </#list>
+                            </td>
+                        </#list>
+                    </tr>
+                </#list>
+            </@table>
+        </@boxBody>
+    </@rowBox>
+    <@rowBox boxClass="action-box">
+        <@boxBody>
+            <button class="btn btn-secondary" name="view_chooseDuplicateType" >
+                #i18n{module.identitystore.quality.select_identities.cancel}
+            </button>
+        </@boxBody>
+    </@rowBox>
+</form>

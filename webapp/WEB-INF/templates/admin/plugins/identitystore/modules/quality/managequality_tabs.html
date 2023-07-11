@@ -1,10 +1,7 @@
-<#macro tabs2 tab >
-<@tabs>
+<#macro tabs tab >
 	<@tabList>
-			<li <#if tab="suspiciousidentity">class="active"</#if>>
-				<@aButton href="jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp">#i18n{module.identitystore.quality.manage_suspiciousidentitys.pageTitle}</@aButton>
-			</li>
+		<@tabLink active=( tab == "suspiciousidentity" )
+				title="#i18n{module.identitystore.quality.choose_duplicate_type.tabTitle}"
+				href="jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp"  />
 	</@tabList>
-</@tabs>
-
 </#macro>

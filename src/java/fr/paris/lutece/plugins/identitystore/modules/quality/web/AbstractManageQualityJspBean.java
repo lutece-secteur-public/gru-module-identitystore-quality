@@ -34,11 +34,15 @@
 
 package fr.paris.lutece.plugins.identitystore.modules.quality.web;
 
+import com.drew.lang.StringUtil;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import fr.paris.lutece.portal.util.mvc.admin.MVCAdminJspBean;
 import fr.paris.lutece.portal.web.util.LocalizedPaginator;
 import fr.paris.lutece.util.html.AbstractPaginator;
 import fr.paris.lutece.util.url.UrlItem;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -79,39 +83,29 @@ public abstract class AbstractManageQualityJspBean<S, T> extends MVCAdminJspBean
      *            The JSP
      * @return The model
      */
-    protected <T> Map<String, Object> getPaginatedListModel( HttpServletRequest request, String strBookmark, List<S> list, String strManageJsp )
+    protected Map<String, Object> getPaginatedListModel( HttpServletRequest request, String strBookmark, List list, String strManageJsp,
+            Map<String, String> parameters )
     {
-        int nDefaultItemsPerPage = AppPropertiesService.getPropertyInt( PROPERTY_DEFAULT_LIST_ITEM_PER_PAGE, 50 );
+        int nDefaultItemsPerPage = AppPropertiesService.getPropertyInt( PROPERTY_DEFAULT_LIST_ITEM_PER_PAGE, 10 );
         _strCurrentPageIndex = AbstractPaginator.getPageIndex( request, AbstractPaginator.PARAMETER_PAGE_INDEX, _strCurrentPageIndex );
         _nItemsPerPage = AbstractPaginator.getItemsPerPage( request, AbstractPaginator.PARAMETER_ITEMS_PER_PAGE, _nItemsPerPage, nDefaultItemsPerPage );
 
-        UrlItem url = new UrlItem( strManageJsp );
-        String strUrl = url.getUrl( );
+        final UrlItem url = new UrlItem( strManageJsp );
+        if ( MapUtils.isNotEmpty( parameters ) )
+        {
+            parameters.forEach( url::addParameter );
+        }
+        final String strUrl = url.getUrl( );
 
         // PAGINATOR
-        LocalizedPaginator<S> paginator = new LocalizedPaginator<>( list, _nItemsPerPage, strUrl, PARAMETER_PAGE_INDEX, _strCurrentPageIndex, getLocale( ) );
+        final LocalizedPaginator paginator = new LocalizedPaginator( list, _nItemsPerPage, strUrl, PARAMETER_PAGE_INDEX, _strCurrentPageIndex, getLocale( ) );
 
-        Map<String, Object> model = getModel( );
+        final Map<String, Object> model = getModel( );
 
         model.put( MARK_NB_ITEMS_PER_PAGE, String.valueOf( _nItemsPerPage ) );
         model.put( MARK_PAGINATOR, paginator );
-        model.put( strBookmark, getItemsFromIds( paginator.getPageItems( ) ) );
+        model.put( strBookmark, paginator.getPageItems( ) );
 
         return model;
     }
-
-    /**
-     * Get Items from Ids list
-     * 
-     * @param <T>
-     *
-     * @param <S>
-     *            the generic type of the Ids
-     * @param <T>
-     *            the generic type of the items
-     * @param <S>
-     * @param listIds
-     * @return the populated list of items corresponding to the id List
-     */
-    abstract List<T> getItemsFromIds( List<S> listIds );
 }

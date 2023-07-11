@@ -223,10 +223,6 @@ public class SuspiciousIdentityRest
             final String trustedClientCode = IdentityStoreService.getTrustedClientCode( strHeaderClientCode, strQueryClientCode );
             final DuplicateRuleGetRequest request = new DuplicateRuleGetRequest( trustedClientCode );
             final DuplicateRuleSummarySearchResponse entity = (DuplicateRuleSummarySearchResponse) request.doRequest( );
-            entity.setDuplicateRuleSummaries( entity.getDuplicateRuleSummaries( ).stream( ).map( rule -> {
-                rule.setDuplicateCount( SuspiciousIdentityHome.countSuspiciousIdentity( rule.getId( ) ) );
-                return rule;
-            } ).collect( Collectors.toList( ) ) );
             return Response.status( entity.getStatus( ).getCode( ) ).entity( entity ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
         }
         catch( final Exception exception )

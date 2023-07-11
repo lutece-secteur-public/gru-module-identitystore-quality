@@ -1,0 +1,75 @@
+<#include "managequality_tabs.html" />
+<@tabs tab="suspiciousidentity" />
+
+<!--<@boxHeader title='#i18n{module.identitystore.quality.manage_suspiciousidentity.title}' boxTools=true>-->
+<!--    <@tform class='form-inline pull-right' name='manage_suspiciousidentity' action='jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp'>-->
+<!--        <@button type='submit' name='view_createSuspiciousIdentity' buttonIcon='plus' title='#i18n{module.identitystore.quality.manage_suspiciousidentitys.buttonAdd}' />-->
+<!--    </@tform>-->
+<!--</@boxHeader>-->
+<form class="form-inline" action="jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp">
+    <@rowBox boxClass="action-box" >
+        <@boxBody>
+            <button id="search-btn-up" class="btn btn-warning" name="view_searchDuplicates" >
+                #i18n{module.identitystore.quality.choose_duplicate_type.buttonSearch}
+            </button>
+        </@boxBody>
+    </@rowBox>
+
+    <@rowBox>
+        <@boxHeader i18nTitleKey="module.identitystore.quality.choose_duplicate_type.pageTitle">
+            <@headerButtons>
+            </@headerButtons>
+        </@boxHeader>
+        <@boxBody>
+            <@messages infos=infos />
+            <@messages errors=errors />
+            <@messages warnings=warnings />
+
+            <@table id='select-duplicate-type-table'>
+                <tr>
+                    <th></th>
+                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.ruleColumn}</th>
+                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.descriptionColumn}</th>
+                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.pendingColumn}</th>
+                </tr>
+                <@tableHeadBodySeparator />
+                <#list duplicate_rule_list as rule>
+                    <tr class="rule-tr">
+                        <td><input type="radio" name="rule-id" value="${rule.id}"></td>
+                        <td>${rule.name}</td>
+                        <td><pre>${rule.description}</pre></td>
+                        <td>${rule.duplicateCount}</td>
+                    </tr>
+                </#list>
+            </@table>
+        </@boxBody>
+    </@rowBox>
+    <@rowBox boxClass="action-box" >
+        <@boxBody>
+            <button id="search-btn-down" class="btn btn-warning" name="view_searchDuplicates" >
+                #i18n{module.identitystore.quality.choose_duplicate_type.buttonSearch}
+            </button>
+        </@boxBody>
+    </@rowBox>
+</form>
+
+<script type="text/javascript">
+    $(function () {
+        $('.action-box').hide();
+        $('#select-duplicate-type-table tr.rule-tr').click(function () {
+            $(this).find('input:radio').prop('checked', true);
+            $('.action-box').show();
+        });
+    });
+</script>
+
+<style>
+    pre {
+        background: inherit !important;
+        color: inherit !important;
+        font-family: inherit !important;
+        padding: 0 !important;
+        border-radius: unset !important;
+        font-size: inherit !important;
+    }
+</style>
