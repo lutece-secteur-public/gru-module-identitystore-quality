@@ -44,28 +44,26 @@ import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreExceptio
  */
 public class SuspiciousIdentityStoreCreateRequest extends AbstractSuspiciousIdentityStoreRequest
 {
-    protected static final String ERROR_JSON_MAPPING = "Error while translate object to json";
-
-    private final SuspiciousIdentityChangeRequest _identityChangeRequest;
+    private final SuspiciousIdentityChangeRequest _suspiciousIdentityChangeRequest;
 
     /**
      * Constructor of IdentityStoreCreateRequest
      *
-     * @param identityChangeRequest
+     * @param suspiciousIdentityChangeRequest
      *            the dto of identity's change
      */
-    public SuspiciousIdentityStoreCreateRequest( SuspiciousIdentityChangeRequest identityChangeRequest, String strClientAppCode )
+    public SuspiciousIdentityStoreCreateRequest( SuspiciousIdentityChangeRequest suspiciousIdentityChangeRequest, String strClientAppCode )
     {
         super( strClientAppCode );
-        this._identityChangeRequest = identityChangeRequest;
+        this._suspiciousIdentityChangeRequest = suspiciousIdentityChangeRequest;
     }
 
     @Override
     protected void validRequest( ) throws IdentityStoreException
     {
         SuspiciousIdentityRequestValidator.instance( ).checkClientApplication( _strClientCode );
-        SuspiciousIdentityRequestValidator.instance( ).checkSuspiciousIdentityChange( _identityChangeRequest );
-        SuspiciousIdentityRequestValidator.instance( ).checkCustomerId( _identityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) );
+        SuspiciousIdentityRequestValidator.instance( ).checkSuspiciousIdentityChange( _suspiciousIdentityChangeRequest );
+        SuspiciousIdentityRequestValidator.instance( ).checkCustomerId( _suspiciousIdentityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) );
     }
 
     @Override
@@ -73,7 +71,7 @@ public class SuspiciousIdentityStoreCreateRequest extends AbstractSuspiciousIden
     {
         final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
 
-        SuspiciousIdentityService.instance( ).create( _identityChangeRequest, _strClientCode, response );
+        SuspiciousIdentityService.instance( ).create( _suspiciousIdentityChangeRequest, _strClientCode, response );
 
         return response;
     }

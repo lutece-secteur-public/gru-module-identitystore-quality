@@ -36,13 +36,12 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.rs;
 
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
-import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
-import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.SuspiciousIdentityStoreCreateRequest;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.SuspiciousIdentityStoreLockRequest;
 import fr.paris.lutece.plugins.identitystore.service.IdentityStoreService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.request.DuplicateRuleGetRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.IdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.ResponseDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.*;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummarySearchResponse;
@@ -59,7 +58,6 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import org.apache.commons.lang3.StringUtils;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -188,18 +186,27 @@ public class SuspiciousIdentityRest
             @ApiParam( name = "Request body", value = "An Identity exclusion request" ) SuspiciousIdentityExcludeRequest suspiciousIdentityExcludeRequest,
             @ApiParam( name = Constants.PARAM_CLIENT_CODE, value = SwaggerConstants.CLIENT_CLIENT_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_CLIENT_CODE ) final String strHeaderClientCode )
     {
-        final SuspiciousIdentityExcludeResponse response = new SuspiciousIdentityExcludeResponse( );
+        try
+        {
+            IdentityRequestValidator.instance( ).checkOrigin( suspiciousIdentityExcludeRequest );
+            final SuspiciousIdentityExcludeResponse response = new SuspiciousIdentityExcludeResponse( );
 
-        // flag the 2 identities: manage the list of identities to exclude (supposed to be a field at the identity level)
-        SuspiciousIdentityHome.exclude( suspiciousIdentityExcludeRequest.getIdentityCuid1( ), suspiciousIdentityExcludeRequest.getIdentityCuid2( ),
-                suspiciousIdentityExcludeRequest.getOrigin( ).getType( ).name( ), suspiciousIdentityExcludeRequest.getOrigin( ).getName( ) );
-        // clean the consolidated identities from suspicious identities
-        SuspiciousIdentityHome.remove( suspiciousIdentityExcludeRequest.getIdentityCuid1( ) );
-        SuspiciousIdentityHome.remove( suspiciousIdentityExcludeRequest.getIdentityCuid2( ) );
+            // flag the 2 identities: manage the list of identities to exclude (supposed to be a field at the identity level)
+            SuspiciousIdentityHome.exclude( suspiciousIdentityExcludeRequest.getIdentityCuid1( ), suspiciousIdentityExcludeRequest.getIdentityCuid2( ),
+                    suspiciousIdentityExcludeRequest.getOrigin( ).getType( ).name( ), suspiciousIdentityExcludeRequest.getOrigin( ).getName( ) );
+            // clean the consolidated identities from suspicious identities
+            SuspiciousIdentityHome.remove( suspiciousIdentityExcludeRequest.getIdentityCuid1( ) );
+            SuspiciousIdentityHome.remove( suspiciousIdentityExcludeRequest.getIdentityCuid2( ) );
 
-        response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_SUCCESS );
-        response.setMessage( "Identities excluded from duplicate suspicions." );
-        return Response.status( response.getStatus( ).getCode( ) ).entity( response ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
+            response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_SUCCESS );
+            response.setMessage( "Identities excluded from duplicate suspicions." );
+            return Response.status( response.getStatus( ).getCode( ) ).entity( response ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
+        }
+        catch( Exception exception )
+        {
+            return getErrorResponse( exception );
+        }
+
     }
 
     /**
