@@ -33,17 +33,11 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
-import fr.paris.lutece.plugins.identitystore.modules.quality.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
-import fr.paris.lutece.plugins.identitystore.service.contract.ServiceContractService;
-import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
-import fr.paris.lutece.plugins.identitystore.v3.web.request.AbstractIdentityStoreRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.IdentityRequestValidator;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.*;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.SuspiciousIdentityRequestValidator;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
-import fr.paris.lutece.portal.service.util.AppException;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * This class represents a create request for IdentityStoreRestServive

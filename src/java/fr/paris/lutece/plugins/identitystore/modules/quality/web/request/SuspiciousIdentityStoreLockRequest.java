@@ -33,8 +33,8 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
-import fr.paris.lutece.plugins.identitystore.modules.quality.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
