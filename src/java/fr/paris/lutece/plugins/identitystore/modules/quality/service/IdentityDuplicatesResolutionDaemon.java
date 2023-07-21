@@ -39,23 +39,35 @@ import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateR
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AuthorType;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.Identity;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.merge.IdentityMergeRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.merge.IdentityMergeResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.CertifiedAttribute;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentity;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.daemon.Daemon;
 import fr.paris.lutece.portal.service.util.AppLogService;
+import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.time.StopWatch;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * This task attempts to automatically resolve duplicates.
  */
 public class IdentityDuplicatesResolutionDaemon extends Daemon
 {
+    private final String clientCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.client.code" );
+    private int nbIdentitiesMerged = 0;
+
     @Override
     public void run( )
     {
@@ -66,44 +78,84 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
         AppLogService.info( startingMessage );
         logs.append( startingMessage ).append( "\n" );
 
+        nbIdentitiesMerged = 0;
+        final String ruleName = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.rule.id" );
+        final int limit = AppPropertiesService.getPropertyInt( "daemon.identityDuplicatesResolutionDaemon.suspicious.limite", 1 );
+
         try
         {
             /* Get rule that identifies strict duplicates */
-            final DuplicateRule rgGenStrictDoublon01 = DuplicateRuleService.instance( ).get( "RG_GEN_StrictDoublon_01" );
-            /* Get a batch of suspicious identities that match the rule */
-            final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( rgGenStrictDoublon01.getId( ), 10 );
-            for ( final SuspiciousIdentity suspiciousIdentity : listSuspiciousIdentities )
+            final DuplicateRule processedRule = DuplicateRuleService.instance( ).get( ruleName );
+            if ( processedRule != null )
             {
-                /* Ignore locked suspicions */
-                if ( suspiciousIdentity.getLock( ) == null || !suspiciousIdentity.getLock( ).isLocked( ) )
+                final String ruleMessage = "Processing rule " + ruleName;
+                AppLogService.info( ruleMessage );
+                logs.append( ruleMessage ).append( "\n" );
+
+                /* Get a batch of suspicious identities that match the rule */
+                final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( processedRule.getId( ), limit );
+                for ( final SuspiciousIdentity suspiciousIdentity : listSuspiciousIdentities )
                 {
-                    /* Get and sort identities to process */
-                    final QualifiedIdentity identity = IdentityService.instance( ).getQualifiedIdentity( suspiciousIdentity.getCustomerId( ) );
-                    final DuplicateSearchResponse duplicateSearchResponse = IdentityService.instance( ).findDuplicates( identity,
-                            rgGenStrictDoublon01.getId( ) );
-                    final List<QualifiedIdentity> processedIdentities = new ArrayList<>( );
-                    processedIdentities.addAll( duplicateSearchResponse.getIdentities( ) );
-                    processedIdentities.add( identity );
+                    /* Ignore locked suspicions */
+                    if ( suspiciousIdentity.getLock( ) == null || !suspiciousIdentity.getLock( ).isLocked( ) )
+                    {
+                        /* Get and sort identities to process */
+                        final QualifiedIdentity identity = IdentityService.instance( ).getQualifiedIdentity( suspiciousIdentity.getCustomerId( ) );
+                        final DuplicateSearchResponse duplicateSearchResponse = IdentityService.instance( ).findDuplicates( identity, processedRule.getId( ) );
+                        final List<QualifiedIdentity> processedIdentities = new ArrayList<>( );
+                        processedIdentities.addAll( duplicateSearchResponse.getIdentities( ) );
+                        processedIdentities.add( identity );
 
-                    /* Order identity list by connected identities, then best quality */
-                    final Comparator<QualifiedIdentity> connectedComparator = Comparator.comparing( QualifiedIdentity::isMonParisActive ).reversed( );
-                    final Comparator<QualifiedIdentity> qualityComparator = Comparator.comparingDouble( QualifiedIdentity::getQuality ).reversed( );
-                    final Comparator<QualifiedIdentity> orderingComparator = connectedComparator.thenComparing( qualityComparator );
-                    processedIdentities.sort( orderingComparator );
+                        if ( processedIdentities.size( ) >= 2 )
+                        {
+                            /* Order identity list by connected identities, then best quality */
+                            final Comparator<QualifiedIdentity> connectedComparator = Comparator.comparing( QualifiedIdentity::isMonParisActive ).reversed( );
+                            final Comparator<QualifiedIdentity> qualityComparator = Comparator.comparingDouble( QualifiedIdentity::getQuality ).reversed( );
+                            final Comparator<QualifiedIdentity> orderingComparator = connectedComparator.thenComparing( qualityComparator );
+                            processedIdentities.sort( orderingComparator );
 
-                    final String log = "Found " + processedIdentities.size( ) + " to process";
-                    AppLogService.info( log );
-                    logs.append( log ).append( "\n" );
-                    /* Lock current */
-                    // SuspiciousIdentityHome.manageLock( suspiciousIdentity.getCustomerId( ), "IdentityDuplicatesResolutionDaemon", AuthorType.admin.name( ),
-                    // true );
+                            final String log = "Found " + processedIdentities.size( ) + " to process";
+                            AppLogService.info( log );
+                            logs.append( log ).append( "\n" );
 
+                            /* The first identity of the list is the base identity */
+                            final QualifiedIdentity primaryIdentity = processedIdentities.get( 0 );
+                            processedIdentities.remove( 0 );
+
+                            /* Then find the first identity in the list that is not connected */
+                            /* Try to merge */
+                            for ( final QualifiedIdentity candidate : processedIdentities )
+                            {
+                                logs.append( this.merge( primaryIdentity, candidate, suspiciousIdentity.getCustomerId( ) ) );
+                            }
+                        }
+                        else
+                        {
+                            final String log = "There is no duplicates to process for suspicious identity with customer ID "
+                                    + suspiciousIdentity.getCustomerId( ) + ". Suspicious identity removed from database";
+                            AppLogService.info( log );
+                            logs.append( log ).append( "\n" );
+                            SuspiciousIdentityHome.remove( suspiciousIdentity.getId( ) );
+                        }
+                    }
+                    else
+                    {
+                        final String log = "Suspicious identity with customer ID " + suspiciousIdentity.getCustomerId( ) + " is locked";
+                        AppLogService.info( log );
+                        logs.append( log ).append( "\n" );
+                    }
                 }
+            }
+            else
+            {
+                final String ruleMessage = "No rule found with name " + ruleName;
+                AppLogService.info( ruleMessage );
+                logs.append( ruleMessage ).append( "\n" );
             }
         }
         catch( DuplicateRuleNotFoundException e )
         {
-            final String log = "Could not fetch rule RG_GEN_StrictDoublon_01 :" + e.getMessage( );
+            final String log = "Could not fetch rule " + ruleName + " :" + e.getMessage( );
             AppLogService.info( log );
             logs.append( log );
         }
@@ -116,9 +168,113 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
 
         stopWatch.stop( );
         final String duration = DurationFormatUtils.formatDurationWords( stopWatch.getTime( ), true, true );
-        final String log = "Execution time " + duration;
+        final String log = nbIdentitiesMerged + " identities merged. Execution time " + duration;
         AppLogService.info( log );
         logs.append( log );
         setLastRunLogs( logs.toString( ) );
+    }
+
+    private String merge( final QualifiedIdentity primaryIdentity, final QualifiedIdentity candidate, final String suspiciousCustomerId )
+            throws IdentityStoreException
+    {
+        final StringBuilder logs = new StringBuilder( );
+        /* Cannot merge connected identity */
+        if ( this.canMerge( primaryIdentity, candidate ) )
+        {
+            /* Lock current */
+            SuspiciousIdentityHome.manageLock( suspiciousCustomerId, "IdentityDuplicatesResolutionDaemon", AuthorType.admin.name( ), true );
+            final String lock = "Lock suspicious identity with customer ID " + suspiciousCustomerId;
+            AppLogService.info( lock );
+            logs.append( lock ).append( "\n" );
+
+            final IdentityMergeRequest request = new IdentityMergeRequest( );
+            request.setPrimaryCuid( primaryIdentity.getCustomerId( ) );
+            request.setSecondaryCuid( candidate.getCustomerId( ) );
+
+            /* Get all attributes of secondary that do not exist in primary */
+            final Predicate<CertifiedAttribute> selectNonExistingAttribute = candidateAttribute -> primaryIdentity.getAttributes( ).stream( )
+                    .noneMatch( primaryAttribute -> Objects.equals( primaryAttribute.getKey( ), candidateAttribute.getKey( ) ) );
+            final List<CertifiedAttribute> attributesToCreate = candidate.getAttributes( ).stream( ).filter( selectNonExistingAttribute )
+                    .collect( Collectors.toList( ) );
+            if ( !attributesToCreate.isEmpty( ) )
+            {
+                final String log = "Attribute list to create "
+                        + attributesToCreate.stream( ).map( CertifiedAttribute::getKey ).collect( Collectors.joining( "," ) );
+                AppLogService.info( log );
+                logs.append( log ).append( "\n" );
+            }
+
+            /* Get all attributes of secondary that exist with higher certificate */
+            final Predicate<CertifiedAttribute> selectAttributesToOverride = candidateAttribute -> primaryIdentity.getAttributes( ).stream( )
+                    .anyMatch( primaryAttribute -> primaryAttribute.getKey( ).equals( candidateAttribute.getKey( ) )
+                            && primaryAttribute.getValue( ).equalsIgnoreCase( candidateAttribute.getValue( ) )
+                            && primaryAttribute.getCertificationLevel( ) < candidateAttribute.getCertificationLevel( ) );
+            final List<CertifiedAttribute> attributesToOverride = candidate.getAttributes( ).stream( ).filter( selectAttributesToOverride )
+                    .collect( Collectors.toList( ) );
+            if ( !attributesToOverride.isEmpty( ) )
+            {
+                final String log = "Attribute list to create "
+                        + attributesToOverride.stream( ).map( CertifiedAttribute::getKey ).collect( Collectors.joining( "," ) );
+                AppLogService.info( log );
+                logs.append( log ).append( "\n" );
+            }
+
+            if ( !attributesToCreate.isEmpty( ) || !attributesToOverride.isEmpty( ) )
+            {
+                final Identity identity = new Identity( );
+                request.setIdentity( identity );
+                identity.getAttributes( ).addAll( this.convertAttributeList( attributesToCreate ) );
+                identity.getAttributes( ).addAll( this.convertAttributeList( attributesToOverride ) );
+            }
+            final IdentityMergeResponse response = new IdentityMergeResponse( );
+            IdentityService.instance( ).merge( request, clientCode, response );
+            nbIdentitiesMerged++;
+            final String log = "Identities merged with status " + response.getStatus( ).name( );
+            AppLogService.info( log );
+            logs.append( log ).append( "\n" );
+
+            /* Unlock current */
+            SuspiciousIdentityHome.manageLock( suspiciousCustomerId, "IdentityDuplicatesResolutionDaemon", AuthorType.admin.name( ), false );
+            final String unlock = "Unlock suspicious identity with customer ID " + suspiciousCustomerId;
+            AppLogService.info( unlock );
+            logs.append( unlock ).append( "\n" );
+        }
+        else
+        {
+            final String err = "Candidate identity with customer ID " + candidate.getCustomerId( ) + " is not eligible to automatic merge.";
+            AppLogService.info( err );
+            logs.append( err ).append( "\n" );
+        }
+        return logs.toString( );
+    }
+
+    private boolean canMerge( final QualifiedIdentity primaryIdentity, final QualifiedIdentity candidate )
+    {
+        if ( candidate.isMonParisActive( ) )
+        {
+            return false;
+        }
+        return isStrictDuplicate( primaryIdentity, candidate );
+    }
+
+    private boolean isStrictDuplicate( final QualifiedIdentity primaryIdentity, final QualifiedIdentity candidate )
+    {
+        final Predicate<CertifiedAttribute> selectNotEqualAttributes = primaryAttribute -> candidate.getAttributes( ).stream( )
+                .anyMatch( candidateAttribute -> candidateAttribute.getKey( ).equals( primaryAttribute.getKey( ) )
+                        && !candidateAttribute.getValue( ).equalsIgnoreCase( primaryAttribute.getValue( ) ) );
+        return primaryIdentity.getAttributes( ).stream( ).noneMatch( selectNotEqualAttributes );
+    }
+
+    private List<fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.CertifiedAttribute> convertAttributeList(
+            List<CertifiedAttribute> attributesToOverride )
+    {
+        return attributesToOverride.stream( ).map( attributeToOverride -> {
+            final fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.CertifiedAttribute requestAttribute = new fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.CertifiedAttribute( );
+            requestAttribute.setKey( attributeToOverride.getKey( ) );
+            requestAttribute.setValue( attributeToOverride.getValue( ) );
+            requestAttribute.setCertificationProcess( attributeToOverride.getCertifier( ) );
+            requestAttribute.setCertificationDate( attributeToOverride.getCertificationDate( ) );
+            return requestAttribute;
+        } ).collect( Collectors.toList( ) );
     }
 }

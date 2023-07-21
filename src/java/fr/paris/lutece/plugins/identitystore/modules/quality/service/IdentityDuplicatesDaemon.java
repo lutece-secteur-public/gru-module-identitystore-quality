@@ -79,29 +79,22 @@ public class IdentityDuplicatesDaemon extends Daemon
         }
         catch( final DuplicateRuleNotFoundException e )
         {
-            AppLogService.error( "No duplicate rules found in database. Stoping daemon.", e );
+            AppLogService.error( "No duplicate rules found in database. Stopping daemon.", e );
             logs.append( "No duplicate rules found in database. Stoping daemon." + e.getMessage( ) ).append( "\n" );
             return;
         }
         if ( CollectionUtils.isEmpty( rules ) )
         {
-            AppLogService.info( "No existing duplicate rules marked to be used in daemon. Stoping daemon." );
-            logs.append( "No existing duplicate rules marked to be used in daemon. Stoping daemon." );
+            AppLogService.info( "No existing duplicate rules marked to be used in daemon. Stopping daemon." );
+            logs.append( "No existing duplicate rules marked to be used in daemon. Stopping daemon." );
             return;
         }
 
         AppLogService.info( rules.size( ) + " applicable detection rules found. Starting process..." );
         logs.append( rules.size( ) + " applicable detection rules found. Starting process..." ).append( "\n" );
         rules.sort( Comparator.comparingInt( r -> r.getPriority( ).ordinal( ) ) );
-        // rules.stream().parallel().forEach(rule -> {
-        // try {
-        // this.search(rule, logs);
-        // } catch (IdentityStoreException e) {
-        // AppLogService.error(e);
-        // logs.append(e.getMessage()).append("\n");;
-        // }
-        // });
-        for ( DuplicateRule rule : rules )
+
+        for ( final DuplicateRule rule : rules )
         {
             try
             {
