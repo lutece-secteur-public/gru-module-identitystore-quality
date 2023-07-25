@@ -156,7 +156,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         final List<DuplicateRuleSummaryDto> duplicateRules = new ArrayList<>( );
         try
         {
-            duplicateRules.addAll( DuplicateRuleService.instance( ).findAllSummaries( ) );
+            duplicateRules.addAll( DuplicateRuleService.instance( ).findSummaries( null ) );
             duplicateRules.sort( Comparator.comparingInt( DuplicateRuleSummaryDto::getPriority ).thenComparing( DuplicateRuleSummaryDto::getName ) );
         }
         catch( final IdentityStoreException e )

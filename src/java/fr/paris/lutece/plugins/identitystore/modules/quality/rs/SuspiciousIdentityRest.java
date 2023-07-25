@@ -75,7 +75,7 @@ public class SuspiciousIdentityRest
     protected static final String ERROR_NO_OBJECT_FOUND = "No object found";
     protected static final String ERROR_DURING_TREATMENT = "An error occured during the treatment.";
 
-    private Response getSuspiciousIdentityListResponse( int max, Integer page, Integer size, List<SuspiciousIdentity> listSuspiciousIdentities )
+    private Response getSuspiciousIdentityListResponse( Integer page, Integer size, List<SuspiciousIdentity> listSuspiciousIdentities )
     {
         final SuspiciousIdentitySearchResponse searchResponse = new SuspiciousIdentitySearchResponse( );
         if ( listSuspiciousIdentities.isEmpty( ) )
@@ -113,10 +113,11 @@ public class SuspiciousIdentityRest
     @ApiOperation( value = "Get a list of suspicions, limited to max" )
     public Response getAllSuspiciousIdentityList( @ApiParam( name = "max", value = "Maximum number of " ) @QueryParam( Constants.PARAM_MAX ) final int max,
             @ApiParam( name = "page", value = "Page to return" ) @QueryParam( Constants.PARAM_PAGE ) Integer page,
-            @ApiParam( name = "size", value = "number of suspicious identity to return " ) @QueryParam( Constants.PARAM_SIZE ) Integer size )
+            @ApiParam( name = "size", value = "number of suspicious identity to return " ) @QueryParam( Constants.PARAM_SIZE ) Integer size,
+            @ApiParam( name = "priority", value = "minimal priority of the rules that identified the suspicious identities to return " ) @QueryParam( Constants.PARAM_RULE_PRIORITY ) Integer priority )
     {
-        final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( null, max );
-        return this.getSuspiciousIdentityListResponse( max, page, size, listSuspiciousIdentities );
+        final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( null, max, priority );
+        return this.getSuspiciousIdentityListResponse( page, size, listSuspiciousIdentities );
     }
 
     /**
@@ -133,9 +134,8 @@ public class SuspiciousIdentityRest
             @ApiParam( name = "page", value = "Page to return" ) @QueryParam( Constants.PARAM_PAGE ) Integer page,
             @ApiParam( name = "size", value = "number of suspicious identity to return " ) @QueryParam( Constants.PARAM_SIZE ) Integer size )
     {
-        final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( rule, max );
-
-        return this.getSuspiciousIdentityListResponse( max, page, size, listSuspiciousIdentities );
+        final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( rule, max, null );
+        return this.getSuspiciousIdentityListResponse( page, size, listSuspiciousIdentities );
     }
 
     @POST
@@ -223,12 +223,12 @@ public class SuspiciousIdentityRest
             @ApiResponse( code = 403, message = "Failure" ), @ApiResponse( code = 404, message = ERROR_NO_OBJECT_FOUND )
     } )
     public Response getDuplicateRules( @HeaderParam( Constants.PARAM_CLIENT_CODE ) final String strHeaderClientCode,
-            @QueryParam( Constants.PARAM_CLIENT_CODE ) final String strQueryClientCode )
+            @QueryParam( Constants.PARAM_CLIENT_CODE ) final String strQueryClientCode, @QueryParam( Constants.PARAM_RULE_PRIORITY ) final Integer priority )
     {
         try
         {
             final String trustedClientCode = IdentityStoreService.getTrustedClientCode( strHeaderClientCode, strQueryClientCode );
-            final DuplicateRuleGetRequest request = new DuplicateRuleGetRequest( trustedClientCode );
+            final DuplicateRuleGetRequest request = new DuplicateRuleGetRequest( trustedClientCode, priority );
             final DuplicateRuleSummarySearchResponse entity = (DuplicateRuleSummarySearchResponse) request.doRequest( );
             return Response.status( entity.getStatus( ).getCode( ) ).entity( entity ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
         }
