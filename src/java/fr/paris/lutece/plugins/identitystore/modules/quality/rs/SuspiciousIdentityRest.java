@@ -36,16 +36,15 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.rs;
 
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.SuspiciousIdentityStoreCreateRequest;
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.SuspiciousIdentityStoreLockRequest;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousCreateRequest;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousExcludeRequest;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousLockRequest;
 import fr.paris.lutece.plugins.identitystore.service.IdentityStoreService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.request.DuplicateRuleGetRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.IdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.ResponseDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.*;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummarySearchResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentity;
@@ -75,7 +74,8 @@ public class SuspiciousIdentityRest
     protected static final String ERROR_NO_OBJECT_FOUND = "No object found";
     protected static final String ERROR_DURING_TREATMENT = "An error occured during the treatment.";
 
-    private Response getSuspiciousIdentityListResponse( Integer page, Integer size, List<SuspiciousIdentity> listSuspiciousIdentities )
+    private Response getPaginatedSuspiciousIdentityListResponse( final Integer page, final Integer size,
+            final List<SuspiciousIdentity> listSuspiciousIdentities )
     {
         final SuspiciousIdentitySearchResponse searchResponse = new SuspiciousIdentitySearchResponse( );
         if ( listSuspiciousIdentities.isEmpty( ) )
@@ -117,7 +117,7 @@ public class SuspiciousIdentityRest
             @ApiParam( name = "priority", value = "minimal priority of the rules that identified the suspicious identities to return " ) @QueryParam( Constants.PARAM_RULE_PRIORITY ) Integer priority )
     {
         final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( null, max, priority );
-        return this.getSuspiciousIdentityListResponse( page, size, listSuspiciousIdentities );
+        return this.getPaginatedSuspiciousIdentityListResponse( page, size, listSuspiciousIdentities );
     }
 
     /**
@@ -135,7 +135,7 @@ public class SuspiciousIdentityRest
             @ApiParam( name = "size", value = "number of suspicious identity to return " ) @QueryParam( Constants.PARAM_SIZE ) Integer size )
     {
         final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( rule, max, null );
-        return this.getSuspiciousIdentityListResponse( page, size, listSuspiciousIdentities );
+        return this.getPaginatedSuspiciousIdentityListResponse( page, size, listSuspiciousIdentities );
     }
 
     @POST
@@ -154,19 +154,10 @@ public class SuspiciousIdentityRest
         try
         {
             final String trustedClientCode = IdentityStoreService.getTrustedClientCode( strHeaderClientCode, strQueryClientCode );
-            final SuspiciousIdentityStoreCreateRequest suspiciousIdentityStoreRequest = new SuspiciousIdentityStoreCreateRequest(
+            final IdentityStoreSuspiciousCreateRequest suspiciousIdentityStoreRequest = new IdentityStoreSuspiciousCreateRequest(
                     suspiciousIdentityChangeRequest, trustedClientCode );
-
-            if ( suspiciousIdentityChangeRequest.getSuspiciousIdentity( ) != null
-                    && SuspiciousIdentityHome.selectByCustomerID( suspiciousIdentityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) ) != null )
-            {
-                final ResponseDto duplicateResponse = new ResponseDto( );
-                duplicateResponse.setStatus( Response.Status.CONFLICT.toString( ) );
-                duplicateResponse.setMessage( "already reported" );
-                return Response.status( Response.Status.CONFLICT ).type( MediaType.APPLICATION_JSON ).entity( duplicateResponse ).build( );
-            }
-            SuspiciousIdentityChangeResponse suspiciousIdentity = (SuspiciousIdentityChangeResponse) suspiciousIdentityStoreRequest.doRequest( );
-            return Response.status( Response.Status.OK ).entity( suspiciousIdentity ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
+            final SuspiciousIdentityChangeResponse response = (SuspiciousIdentityChangeResponse) suspiciousIdentityStoreRequest.doRequest( );
+            return Response.status( response.getStatus( ).getCode( ) ).entity( response ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
         }
         catch( Exception exception )
         {
@@ -188,18 +179,10 @@ public class SuspiciousIdentityRest
     {
         try
         {
-            IdentityRequestValidator.instance( ).checkOrigin( suspiciousIdentityExcludeRequest );
-            final SuspiciousIdentityExcludeResponse response = new SuspiciousIdentityExcludeResponse( );
-
-            // flag the 2 identities: manage the list of identities to exclude (supposed to be a field at the identity level)
-            SuspiciousIdentityHome.exclude( suspiciousIdentityExcludeRequest.getIdentityCuid1( ), suspiciousIdentityExcludeRequest.getIdentityCuid2( ),
-                    suspiciousIdentityExcludeRequest.getOrigin( ).getType( ).name( ), suspiciousIdentityExcludeRequest.getOrigin( ).getName( ) );
-            // clean the consolidated identities from suspicious identities
-            SuspiciousIdentityHome.remove( suspiciousIdentityExcludeRequest.getIdentityCuid1( ) );
-            SuspiciousIdentityHome.remove( suspiciousIdentityExcludeRequest.getIdentityCuid2( ) );
-
-            response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_SUCCESS );
-            response.setMessage( "Identities excluded from duplicate suspicions." );
+            final String trustedClientCode = IdentityStoreService.getTrustedClientCode( strHeaderClientCode, null );
+            final IdentityStoreSuspiciousExcludeRequest request = new IdentityStoreSuspiciousExcludeRequest( suspiciousIdentityExcludeRequest,
+                    trustedClientCode );
+            final SuspiciousIdentityExcludeResponse response = (SuspiciousIdentityExcludeResponse) request.doRequest( );
             return Response.status( response.getStatus( ).getCode( ) ).entity( response ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
         }
         catch( Exception exception )
@@ -272,14 +255,16 @@ public class SuspiciousIdentityRest
             @ApiResponse( code = 201, message = "Success" ), @ApiResponse( code = 400, message = ERROR_DURING_TREATMENT + " with explanation message" ),
             @ApiResponse( code = 403, message = "Failure" ), @ApiResponse( code = 409, message = "Conflict" )
     } )
-    public Response lock( @ApiParam( name = "Request body", value = "An Identity exclusion request" ) SuspiciousIdentityLockRequest request,
+    public Response lock(
+            @ApiParam( name = "Request body", value = "An Identity exclusion request" ) fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest request,
             @ApiParam( name = Constants.PARAM_CLIENT_CODE, value = SwaggerConstants.CLIENT_CLIENT_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_CLIENT_CODE ) final String strHeaderClientCode )
     {
         try
         {
             final String trustedClientCode = IdentityStoreService.getTrustedClientCode( strHeaderClientCode, null );
-            final SuspiciousIdentityStoreLockRequest suspiciousIdentityStoreLockRequest = new SuspiciousIdentityStoreLockRequest( trustedClientCode, request );
-            SuspiciousIdentityLockResponse suspiciousIdentityLockResponse = (SuspiciousIdentityLockResponse) suspiciousIdentityStoreLockRequest.doRequest( );
+            final IdentityStoreSuspiciousLockRequest suspiciousIdentityStoreLockRequest = new IdentityStoreSuspiciousLockRequest( trustedClientCode, request );
+            final SuspiciousIdentityLockResponse suspiciousIdentityLockResponse = (SuspiciousIdentityLockResponse) suspiciousIdentityStoreLockRequest
+                    .doRequest( );
             return Response.status( Response.Status.OK ).entity( suspiciousIdentityLockResponse ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
         }
         catch( Exception exception )

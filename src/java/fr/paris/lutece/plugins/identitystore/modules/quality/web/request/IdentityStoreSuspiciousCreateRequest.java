@@ -33,8 +33,10 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.SuspiciousIdentityRequestValidator;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.IdentityChangeStatus;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
@@ -42,7 +44,7 @@ import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreExceptio
 /**
  * This class represents a create request for IdentityStoreRestServive
  */
-public class SuspiciousIdentityStoreCreateRequest extends AbstractSuspiciousIdentityStoreRequest
+public class IdentityStoreSuspiciousCreateRequest extends AbstractSuspiciousIdentityStoreRequest
 {
     private final SuspiciousIdentityChangeRequest _suspiciousIdentityChangeRequest;
 
@@ -52,7 +54,7 @@ public class SuspiciousIdentityStoreCreateRequest extends AbstractSuspiciousIden
      * @param suspiciousIdentityChangeRequest
      *            the dto of identity's change
      */
-    public SuspiciousIdentityStoreCreateRequest( SuspiciousIdentityChangeRequest suspiciousIdentityChangeRequest, String strClientAppCode )
+    public IdentityStoreSuspiciousCreateRequest( SuspiciousIdentityChangeRequest suspiciousIdentityChangeRequest, String strClientAppCode )
     {
         super( strClientAppCode );
         this._suspiciousIdentityChangeRequest = suspiciousIdentityChangeRequest;
@@ -70,6 +72,13 @@ public class SuspiciousIdentityStoreCreateRequest extends AbstractSuspiciousIden
     public SuspiciousIdentityChangeResponse doSpecificRequest( ) throws IdentityStoreException
     {
         final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
+        if ( _suspiciousIdentityChangeRequest.getSuspiciousIdentity( ) != null
+                && SuspiciousIdentityHome.selectByCustomerID( _suspiciousIdentityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) ) != null )
+        {
+            response.setStatus( IdentityChangeStatus.CONFLICT );
+            response.setMessage( "already reported" );
+            return response;
+        }
 
         SuspiciousIdentityService.instance( ).create( _suspiciousIdentityChangeRequest, _strClientCode, response );
 

@@ -38,21 +38,14 @@ import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.Susp
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityLockedException;
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
-import fr.paris.lutece.plugins.identitystore.business.identity.IdentityAttribute;
 import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.modules.quality.rs.SuspiciousIdentityMapper;
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.SuspiciousIdentityStoreCreateRequest;
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.SuspiciousIdentityStoreLockRequest;
-import fr.paris.lutece.plugins.identitystore.service.contract.ServiceContractService;
-import fr.paris.lutece.plugins.identitystore.service.search.ISearchIdentityService;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.IdentityChangeStatus;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.*;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockStatus;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
+import fr.paris.lutece.util.sql.TransactionManager;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -60,9 +53,6 @@ import java.util.List;
 
 public class SuspiciousIdentityService
 {
-
-    protected ISearchIdentityService _searchIdentityService = SpringContextService.getBean( "identitystore.searchIdentityService" );
-    private final ServiceContractService _serviceContractService = ServiceContractService.instance( );
     private static SuspiciousIdentityService _instance;
 
     public static SuspiciousIdentityService instance( )
@@ -75,107 +65,105 @@ public class SuspiciousIdentityService
     }
 
     /**
-     * Creates a new {@link Identity} according to the given {@link SuspiciousIdentityChangeRequest}
+     * Creates a new {@link SuspiciousIdentity} according to the given {@link SuspiciousIdentityChangeRequest}
      *
      * @param identityChangeRequest
-     *            the {@link SuspiciousIdentityChangeRequest} holding the parameters of the identity change request
+     *            the {@link SuspiciousIdentityChangeRequest} holding the parameters of the suspicious identity change request
      * @param clientCode
      *            code of the {@link ClientApplication} requesting the change
      * @param response
      *            the {@link SuspiciousIdentityChangeResponse} holding the status of the execution of the request
-     * @return the created {@link Identity}
+     * @return the created {@link SuspiciousIdentity}
      * @throws IdentityStoreException
      *             in case of error
      */
-    public SuspiciousIdentity create( final SuspiciousIdentityChangeRequest identityChangeRequest, final String clientCode,
-            final SuspiciousIdentityChangeResponse response ) throws IdentityStoreException
+    public void create( final SuspiciousIdentityChangeRequest identityChangeRequest, final String clientCode, final SuspiciousIdentityChangeResponse response )
+            throws IdentityStoreException
     {
         // TODO check if the application has the right to create a suspicious identity
         /*
          * if ( !_serviceContractService.canCreateSuspiciousIdentity( clientCode ) ) { response.setStatus( IdentityChangeStatus.FAILURE ); response.setMessage(
          * "The client application is not authorized to create an identity." ); return null; }
          */
-
-        Identity identity = IdentityHome.findByCustomerId( identityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) );
-        final SuspiciousIdentity suspiciousIdentity = new SuspiciousIdentity( );
-        if ( identity == null )
+        TransactionManager.beginTransaction( null );
+        try
         {
-            response.setStatus( IdentityChangeStatus.NOT_FOUND );
+            final Identity identity = IdentityHome.findByCustomerId( identityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) );
+            if ( identity == null )
+            {
+                response.setStatus( IdentityChangeStatus.NOT_FOUND );
+            }
+            else
+            {
+                final SuspiciousIdentity suspiciousIdentity = new SuspiciousIdentity( );
+                suspiciousIdentity.setIdDuplicateRule( identityChangeRequest.getSuspiciousIdentity( ).getIdDuplicateRule( ) );
+                suspiciousIdentity.setCustomerId( identityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) );
+                suspiciousIdentity.setCreationDate( Timestamp.from( Instant.now( ) ) );
+                suspiciousIdentity.setLastUpdateDate( identity.getLastUpdateDate( ) );
+
+                SuspiciousIdentityHome.create( suspiciousIdentity );
+
+                response.setSuspiciousIdentity( SuspiciousIdentityMapper.toDto( suspiciousIdentity ) );
+                response.setStatus( IdentityChangeStatus.CREATE_SUCCESS );
+            }
+            TransactionManager.commitTransaction( null );
         }
-        else
+        catch( Exception e )
         {
-
-            suspiciousIdentity.setIdDuplicateRule( identityChangeRequest.getSuspiciousIdentity( ).getIdDuplicateRule( ) );
-            suspiciousIdentity.setCustomerId( identityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) );
-            suspiciousIdentity.setCreationDate( Timestamp.from( Instant.now( ) ) );
-            suspiciousIdentity.setLastUpdateDate( identity.getLastUpdateDate( ) );
-
-            SuspiciousIdentityHome.create( suspiciousIdentity );
-
-            response.setSuspiciousIdentity( SuspiciousIdentityMapper.toDto( suspiciousIdentity ) );
-            response.setStatus( IdentityChangeStatus.CREATE_SUCCESS );
+            TransactionManager.rollBack( null );
+            response.setStatus( IdentityChangeStatus.FAILURE );
+            response.setMessage( e.getMessage( ) );
         }
-        return suspiciousIdentity;
-    }
-
-    /**
-     * Updates an existing {@link Identity} according to the given {@link SuspiciousIdentityStoreCreateRequest} and following the given rules: <br>
-     * <ul>
-     * <li>The {@link Identity} must exist in te database. If not, NOT_FOUND status is returned in the execution response</li>
-     * <li>The {@link Identity} must not be merged or deleted. In case of merged/deleted identity, the update is not performed and the customer ID of the
-     * primary identity is returned in the execution response with a CONFLICT status</li>
-     * <li>If the {@link Identity} can be updated, its {@link IdentityAttribute} list is updated following the given rule:
-     * <ul>
-     * <li>If the {@link IdentityAttribute} exists, it is updated if the value is different, and if the process level given in the request is higher than the
-     * existing one. If the value cannot be updated, the NOT_UPDATED status, associated with the attribute key, is returned in the execution response.</li>
-     * <li>If the {@link IdentityAttribute} does not exist, it is created. The CREATED status, associated with the attribute key, is returned in the execution
-     * response.</li>
-     * <li>CUID and GUID attributes cannot be modified.</li>
-     * </ul>
-     * </li>
-     * </ul>
-     *
-     * @param customerId
-     *            the id of the updated {@link Identity}
-     * @param identityChangeRequest
-     *            the {@link SuspiciousIdentityChangeRequest} holding the parameters of the identity change request
-     * @param clientCode
-     *            code of the {@link ClientApplication} requesting the change
-     * @param response
-     *            the {@link SuspiciousIdentityChangeResponse} holding the status of the execution of the request
-     * @return the updated {@link Identity}
-     * @throws IdentityStoreException
-     *             in case of error
-     */
-    public SuspiciousIdentity update( final String customerId, final SuspiciousIdentityChangeRequest identityChangeRequest, final String clientCode,
-            final SuspiciousIdentityChangeResponse response ) throws IdentityStoreException
-    {
-
-        final SuspiciousIdentity identity = SuspiciousIdentityHome.selectByCustomerID( customerId );
-
-        return identity;
     }
 
     public void lock( SuspiciousIdentityLockRequest request, String strClientCode, SuspiciousIdentityLockResponse response )
     {
+        TransactionManager.beginTransaction( null );
         try
         {
             final boolean locked = SuspiciousIdentityHome.manageLock( request.getCustomerId( ), request.getOrigin( ).getName( ),
                     request.getOrigin( ).getType( ).name( ), request.isLocked( ) );
             response.setLocked( locked );
             response.setStatus( SuspiciousIdentityLockStatus.SUCCESS );
+            TransactionManager.commitTransaction( null );
         }
         catch( SuspiciousIdentityLockedException e )
         {
             response.setLocked( false );
             response.setStatus( SuspiciousIdentityLockStatus.CONFLICT );
             response.setMessage( e.getMessage( ) );
+            TransactionManager.rollBack( null );
         }
         catch( IdentityStoreException e )
         {
             response.setLocked( false );
             response.setStatus( SuspiciousIdentityLockStatus.NOT_FOUND );
             response.setMessage( e.getMessage( ) );
+            TransactionManager.rollBack( null );
+        }
+    }
+
+    public void exclude( final SuspiciousIdentityExcludeRequest request, final String clientCode, final SuspiciousIdentityExcludeResponse response )
+    {
+        TransactionManager.beginTransaction( null );
+        try
+        {
+            // flag the 2 identities: manage the list of identities to exclude (supposed to be a field at the identity level)
+            SuspiciousIdentityHome.exclude( request.getIdentityCuid1( ), request.getIdentityCuid2( ), request.getOrigin( ).getType( ).name( ),
+                    request.getOrigin( ).getName( ) );
+            // clean the consolidated identities from suspicious identities
+            SuspiciousIdentityHome.remove( request.getIdentityCuid1( ) );
+            SuspiciousIdentityHome.remove( request.getIdentityCuid2( ) );
+
+            response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_SUCCESS );
+            response.setMessage( "Identities excluded from duplicate suspicions." );
+            TransactionManager.commitTransaction( null );
+        }
+        catch( Exception e )
+        {
+            TransactionManager.rollBack( null );
+            response.setMessage( e.getMessage( ) );
+            response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_FAILURE );
         }
     }
 

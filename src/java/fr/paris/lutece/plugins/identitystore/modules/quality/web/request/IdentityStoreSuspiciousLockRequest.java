@@ -35,45 +35,41 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.SuspiciousIdentityRequestValidator;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 
 /**
  * This class represents a create request for IdentityStoreRestServive
  */
-public class SuspiciousIdentityStoreUpdateRequest extends AbstractSuspiciousIdentityStoreRequest
+public class IdentityStoreSuspiciousLockRequest extends AbstractSuspiciousIdentityStoreRequest
 {
-    protected static final String ERROR_JSON_MAPPING = "Error while translate object to json";
-
-    private final SuspiciousIdentityChangeRequest _identityChangeRequest;
+    private fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest _request;
 
     /**
      * Constructor of IdentityStoreCreateRequest
      *
-     * @param identityChangeRequest
-     *            the dto of identity's change
+     * @param request
+     *            the dto of lock's change
      */
-    public SuspiciousIdentityStoreUpdateRequest( SuspiciousIdentityChangeRequest identityChangeRequest, String strClientAppCode )
+    public IdentityStoreSuspiciousLockRequest( String strClientAppCode,
+            fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest request )
     {
         super( strClientAppCode );
-        this._identityChangeRequest = identityChangeRequest;
+        this._request = request;
     }
 
     @Override
     protected void validRequest( ) throws IdentityStoreException
     {
         SuspiciousIdentityRequestValidator.instance( ).checkClientApplication( _strClientCode );
-        SuspiciousIdentityRequestValidator.instance( ).checkSuspiciousIdentityChange( _identityChangeRequest );
-        SuspiciousIdentityRequestValidator.instance( ).checkCustomerId( _identityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) );
     }
 
     @Override
-    public SuspiciousIdentityChangeResponse doSpecificRequest( ) throws IdentityStoreException
+    public SuspiciousIdentityLockResponse doSpecificRequest( ) throws IdentityStoreException
     {
-        final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
+        final SuspiciousIdentityLockResponse response = new SuspiciousIdentityLockResponse( );
 
-        SuspiciousIdentityService.instance( ).create( _identityChangeRequest, _strClientCode, response );
+        SuspiciousIdentityService.instance( ).lock( _request, _strClientCode, response );
 
         return response;
     }

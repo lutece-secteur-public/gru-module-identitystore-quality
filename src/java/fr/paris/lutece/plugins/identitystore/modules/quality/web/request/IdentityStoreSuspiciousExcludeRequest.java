@@ -33,44 +33,47 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.IdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.SuspiciousIdentityRequestValidator;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeStatus;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 
 /**
  * This class represents a create request for IdentityStoreRestServive
  */
-public class SuspiciousIdentityStoreLockRequest extends AbstractSuspiciousIdentityStoreRequest
+public class IdentityStoreSuspiciousExcludeRequest extends AbstractSuspiciousIdentityStoreRequest
 {
-    private SuspiciousIdentityLockRequest _request;
+    private final SuspiciousIdentityExcludeRequest _suspiciousIdentityExcludeRequest;
 
     /**
      * Constructor of IdentityStoreCreateRequest
      *
-     * @param request
-     *            the dto of lock's change
+     * @param suspiciousIdentityExcludeRequest
+     *            the dto of identity's change
      */
-    public SuspiciousIdentityStoreLockRequest( String strClientAppCode, SuspiciousIdentityLockRequest request )
+    public IdentityStoreSuspiciousExcludeRequest( SuspiciousIdentityExcludeRequest suspiciousIdentityExcludeRequest, String strClientAppCode )
     {
         super( strClientAppCode );
-        this._request = request;
+        this._suspiciousIdentityExcludeRequest = suspiciousIdentityExcludeRequest;
     }
 
     @Override
     protected void validRequest( ) throws IdentityStoreException
     {
         SuspiciousIdentityRequestValidator.instance( ).checkClientApplication( _strClientCode );
+        IdentityRequestValidator.instance( ).checkOrigin( _suspiciousIdentityExcludeRequest );
     }
 
     @Override
-    public SuspiciousIdentityLockResponse doSpecificRequest( ) throws IdentityStoreException
+    public SuspiciousIdentityExcludeResponse doSpecificRequest( ) throws IdentityStoreException
     {
-        final SuspiciousIdentityLockResponse response = new SuspiciousIdentityLockResponse( );
-
-        SuspiciousIdentityService.instance( ).lock( _request, _strClientCode, response );
-
+        final SuspiciousIdentityExcludeResponse response = new SuspiciousIdentityExcludeResponse( );
+        SuspiciousIdentityService.instance( ).exclude( _suspiciousIdentityExcludeRequest, _strClientCode, response );
         return response;
     }
 

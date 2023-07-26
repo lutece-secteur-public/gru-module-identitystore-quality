@@ -41,6 +41,9 @@ import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotF
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.utils.Batch;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentity;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
@@ -149,12 +152,14 @@ public class IdentityDuplicatesDaemon extends Daemon
                     final List<String> customerIds = processedIdentities.stream( ).map( QualifiedIdentity::getCustomerId ).collect( Collectors.toList( ) );
                     if ( !SuspiciousIdentityService.instance( ).hasSuspicious( customerIds ) )
                     {
+                        final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
+                        final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
                         final QualifiedIdentity bestIdentity = processedIdentities.stream( ).max( Comparator.comparing( QualifiedIdentity::getQuality ) )
                                 .orElseThrow( ( ) -> new IdentityStoreException( "Could not find best quality" ) );
-                        final SuspiciousIdentity suspiciousIdentity = new SuspiciousIdentity( );
-                        suspiciousIdentity.setCustomerId( bestIdentity.getCustomerId( ) );
-                        suspiciousIdentity.setIdDuplicateRule( rule.getId( ) );
-                        SuspiciousIdentityHome.create( suspiciousIdentity );
+                        request.setSuspiciousIdentity( new SuspiciousIdentityDto( ) );
+                        request.getSuspiciousIdentity( ).setCustomerId( bestIdentity.getCustomerId( ) );
+                        request.getSuspiciousIdentity( ).setIdDuplicateRule( rule.getId( ) );
+                        SuspiciousIdentityService.instance( ).create( request, null, response );
                         markedSuspicious++;
                     }
                 }
