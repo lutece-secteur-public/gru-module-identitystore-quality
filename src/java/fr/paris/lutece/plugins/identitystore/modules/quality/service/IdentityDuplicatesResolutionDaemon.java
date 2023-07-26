@@ -40,6 +40,7 @@ import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotF
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AuthorType;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.RequestAuthor;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.Identity;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.merge.IdentityMergeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.merge.IdentityMergeResponse;
@@ -50,6 +51,7 @@ import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreExceptio
 import fr.paris.lutece.portal.service.daemon.Daemon;
 import fr.paris.lutece.portal.service.util.AppLogService;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.time.StopWatch;
 
@@ -66,6 +68,7 @@ import java.util.stream.Collectors;
 public class IdentityDuplicatesResolutionDaemon extends Daemon
 {
     private final String clientCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.client.code" );
+    private final String authorName = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.author.name" );
     private int nbIdentitiesMerged = 0;
 
     @Override
@@ -73,6 +76,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
     {
         final StopWatch stopWatch = new StopWatch( );
         stopWatch.start( );
+        final RequestAuthor author = this.buildAuthor( stopWatch.getStartTime( ) );
         final StringBuilder logs = new StringBuilder( );
         final String startingMessage = "Starting IdentityDuplicatesResolutionDaemon...";
         AppLogService.info( startingMessage );
@@ -126,7 +130,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
                             /* Try to merge */
                             for ( final QualifiedIdentity candidate : processedIdentities )
                             {
-                                logs.append( this.merge( primaryIdentity, candidate, suspiciousIdentity.getCustomerId( ) ) );
+                                logs.append( this.merge( primaryIdentity, candidate, suspiciousIdentity.getCustomerId( ), author ) );
                             }
                         }
                         else
@@ -174,8 +178,16 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
         setLastRunLogs( logs.toString( ) );
     }
 
-    private String merge( final QualifiedIdentity primaryIdentity, final QualifiedIdentity candidate, final String suspiciousCustomerId )
-            throws IdentityStoreException
+    private RequestAuthor buildAuthor( long time )
+    {
+        final RequestAuthor author = new RequestAuthor( );
+        author.setType( AuthorType.admin );
+        author.setName( authorName + DateFormatUtils.ISO_8601_EXTENDED_DATETIME_FORMAT.format( time ) );
+        return author;
+    }
+
+    private String merge( final QualifiedIdentity primaryIdentity, final QualifiedIdentity candidate, final String suspiciousCustomerId,
+            final RequestAuthor author ) throws IdentityStoreException
     {
         final StringBuilder logs = new StringBuilder( );
         /* Cannot merge connected identity */
@@ -188,6 +200,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
             logs.append( lock ).append( "\n" );
 
             final IdentityMergeRequest request = new IdentityMergeRequest( );
+            request.setOrigin( author );
             request.setPrimaryCuid( primaryIdentity.getCustomerId( ) );
             request.setSecondaryCuid( candidate.getCustomerId( ) );
 
