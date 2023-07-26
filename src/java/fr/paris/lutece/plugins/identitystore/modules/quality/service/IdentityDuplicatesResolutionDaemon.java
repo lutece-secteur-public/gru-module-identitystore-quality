@@ -181,7 +181,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
     private RequestAuthor buildAuthor( long time )
     {
         final RequestAuthor author = new RequestAuthor( );
-        author.setType( AuthorType.admin );
+        author.setType( AuthorType.application );
         author.setName( authorName + DateFormatUtils.ISO_8601_EXTENDED_DATETIME_FORMAT.format( time ) );
         return author;
     }
