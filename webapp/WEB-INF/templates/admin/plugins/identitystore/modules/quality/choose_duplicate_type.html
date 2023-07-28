@@ -35,7 +35,7 @@
                 <@tableHeadBodySeparator />
                 <#list duplicate_rule_list as rule>
                     <tr class="rule-tr">
-                        <td><input type="radio" name="rule-id" value="${rule.id}"></td>
+                        <td><input type="radio" name="rule-code" value="${rule.id}"></td>
                         <td>${rule.name}</td>
                         <td><pre>${rule.description}</pre></td>
                         <td>${rule.duplicateCount}</td>

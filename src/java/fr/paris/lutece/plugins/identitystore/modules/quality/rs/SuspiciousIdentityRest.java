@@ -126,15 +126,16 @@ public class SuspiciousIdentityRest
      * @return the SuspiciousIdentity List
      */
     @GET
-    @Path( Constants.SUSPICIONS_PATH + "/{rule}" )
+    @Path( Constants.SUSPICIONS_PATH + "/{" + Constants.PARAM_RULE_CODE + "}" )
     @Produces( MediaType.APPLICATION_JSON )
     @ApiOperation( value = "Get a list of suspicions, limited to max" )
-    public Response getSuspiciousIdentityList( @ApiParam( name = "rule", value = "The rule id to filter with" ) @PathParam( "rule" ) Integer rule,
-            @ApiParam( name = "max", value = "Maximum number of " ) @QueryParam( Constants.PARAM_MAX ) final int max,
-            @ApiParam( name = "page", value = "Page to return" ) @QueryParam( Constants.PARAM_PAGE ) Integer page,
-            @ApiParam( name = "size", value = "number of suspicious identity to return " ) @QueryParam( Constants.PARAM_SIZE ) Integer size )
+    public Response getSuspiciousIdentityList(
+            @ApiParam( name = Constants.PARAM_RULE_CODE, value = "The rule code to filter with" ) @PathParam( Constants.PARAM_RULE_CODE ) String ruleCode,
+            @ApiParam( name = Constants.PARAM_MAX, value = "Maximum number of " ) @QueryParam( Constants.PARAM_MAX ) final int max,
+            @ApiParam( name = Constants.PARAM_PAGE, value = "Page to return" ) @QueryParam( Constants.PARAM_PAGE ) Integer page,
+            @ApiParam( name = Constants.PARAM_SIZE, value = "number of suspicious identity to return " ) @QueryParam( Constants.PARAM_SIZE ) Integer size )
     {
-        final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( rule, max, null );
+        final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( ruleCode, max, null );
         return this.getPaginatedSuspiciousIdentityListResponse( page, size, listSuspiciousIdentities );
     }
 
@@ -232,13 +233,13 @@ public class SuspiciousIdentityRest
     @Produces( MediaType.APPLICATION_JSON )
     @ApiOperation( value = "Get list of identities that are duplicates of the provided customer_id's identity, according to the provided rule ID.", response = DuplicateSearchResponse.class )
     public Response findDuplicates( @ApiParam( name = "customer_id", value = "the id of the customer" ) @PathParam( "customer_id" ) final String customer_id,
-            @ApiParam( name = "rule_id", value = "the id of the rule" ) @QueryParam( "rule_id" ) final Integer rule_id,
+            @ApiParam( name = Constants.PARAM_SIZE, value = "the id of the rule" ) @QueryParam( Constants.PARAM_SIZE ) final String ruleCode,
             @HeaderParam( Constants.PARAM_CLIENT_CODE ) final String strHeaderClientAppCode )
     {
         try
         {
             final QualifiedIdentity identity = IdentityService.instance( ).getQualifiedIdentity( customer_id );
-            final DuplicateSearchResponse identities = IdentityService.instance( ).findDuplicates( identity, rule_id );
+            final DuplicateSearchResponse identities = IdentityService.instance( ).findDuplicates( identity, ruleCode );
             return Response.status( Response.Status.OK ).entity( identities ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
         }
         catch( final Exception exception )

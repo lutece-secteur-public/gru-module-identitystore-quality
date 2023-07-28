@@ -71,7 +71,7 @@ public class SuspiciousIdentityBusinessTest extends LuteceTestCase
         assertEquals( suspiciousIdentityStored.getCustomerId( ), suspiciousIdentity.getCustomerId( ) );
 
         // List test
-        SuspiciousIdentityHome.getSuspiciousIdentitysList( 0, 0, null );
+        SuspiciousIdentityHome.getSuspiciousIdentitysList( "0", 0, null );
 
         // Delete test
         SuspiciousIdentityHome.remove( suspiciousIdentity.getId( ) );

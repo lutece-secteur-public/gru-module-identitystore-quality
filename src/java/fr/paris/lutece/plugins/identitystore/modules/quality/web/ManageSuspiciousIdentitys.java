@@ -143,7 +143,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     // Session variable to store working values
     private SuspiciousIdentity _suspiciousidentity;
     private List<Integer> _listIdSuspiciousIdentitys;
-    private Integer _currentRuleId;
+    private String _currentRuleCode;
 
     /**
      *
@@ -181,18 +181,17 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     @View( value = VIEW_SEARCH_DUPLICATES )
     public String getSearchDuplicates( final HttpServletRequest request )
     {
-        final String ruleIdStr = request.getParameter( "rule-id" );
-        if ( StringUtils.isBlank( ruleIdStr ) )
+        _currentRuleCode = request.getParameter( "rule-code" );
+        if ( StringUtils.isBlank( _currentRuleCode ) )
         {
             AppLogService.error( "Rule id must be specified in request." );
             return getDuplicateTypes( request );
         }
-        _currentRuleId = Integer.parseInt( ruleIdStr );
         final List<QualifiedIdentity> identities = new ArrayList<>( );
         final List<AttributeKey> readableAttributes = new ArrayList<>( );
         try
         {
-            final List<String> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentityCuidsList( _currentRuleId );
+            final List<String> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentityCuidsList( _currentRuleCode );
             final List<QualifiedIdentity> qualifiedIdentityList = new ArrayList<>( );
             for ( final String cuid : listSuspiciousIdentities )
             {
@@ -201,7 +200,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
             identities.addAll( qualifiedIdentityList );
             if ( CollectionUtils.isEmpty( identities ) )
             {
-                addInfo( "No suspicous identities found for rule id " + _currentRuleId );
+                addInfo( "No suspicous identities found for rule id " + _currentRuleCode );
                 return getDuplicateTypes( request );
             }
 
@@ -217,7 +216,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         }
 
         final Map<String, String> parameters = new HashMap<>( );
-        parameters.put( "rule-id", String.valueOf( _currentRuleId ) );
+        parameters.put( "rule-code", String.valueOf( _currentRuleCode ) );
         parameters.put( "view_" + VIEW_SEARCH_DUPLICATES, "" );
 
         final Map<String, Object> model = getPaginatedListModel( request, MARK_DUPLICATE_HOLDER_LIST, identities, JSP_MANAGE_SUSPICIOUSIDENTITYS, parameters );
@@ -266,7 +265,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         final List<QualifiedIdentity> identityList = new ArrayList<>( );
         try
         {
-            final List<QualifiedIdentity> duplicateList = IdentityService.instance( ).findDuplicates( identity, _currentRuleId ).getIdentities( );
+            final List<QualifiedIdentity> duplicateList = IdentityService.instance( ).findDuplicates( identity, _currentRuleCode ).getIdentities( );
             if ( CollectionUtils.isEmpty( duplicateList ) )
             {
                 addError( "No duplicate could be found." );

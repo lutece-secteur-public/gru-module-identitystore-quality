@@ -97,7 +97,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
                 logs.append( ruleMessage ).append( "\n" );
 
                 /* Get a batch of suspicious identities that match the rule */
-                final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( processedRule.getId( ), limit,
+                final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( processedRule.getCode( ), limit,
                         null );
                 for ( final SuspiciousIdentity suspiciousIdentity : listSuspiciousIdentities )
                 {
@@ -106,7 +106,8 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
                     {
                         /* Get and sort identities to process */
                         final QualifiedIdentity identity = IdentityService.instance( ).getQualifiedIdentity( suspiciousIdentity.getCustomerId( ) );
-                        final DuplicateSearchResponse duplicateSearchResponse = IdentityService.instance( ).findDuplicates( identity, processedRule.getId( ) );
+                        final DuplicateSearchResponse duplicateSearchResponse = IdentityService.instance( ).findDuplicates( identity,
+                                processedRule.getCode( ) );
                         final List<QualifiedIdentity> processedIdentities = new ArrayList<>( duplicateSearchResponse.getIdentities( ) );
                         processedIdentities.add( identity );
 

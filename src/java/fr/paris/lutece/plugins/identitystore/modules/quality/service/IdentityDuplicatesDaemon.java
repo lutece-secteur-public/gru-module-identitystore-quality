@@ -143,7 +143,7 @@ public class IdentityDuplicatesDaemon extends Daemon
             for ( final String cuid : cuids )
             {
                 final QualifiedIdentity identity = IdentityService.instance( ).getQualifiedIdentity( cuid );
-                final DuplicateSearchResponse duplicates = IdentityService.instance( ).findDuplicates( identity, rule.getId( ) );
+                final DuplicateSearchResponse duplicates = IdentityService.instance( ).findDuplicates( identity, rule.getCode( ) );
                 final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
                 if ( duplicateCount > 0 )
                 {
