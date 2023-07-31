@@ -42,11 +42,14 @@ import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.modules.quality.rs.SuspiciousIdentityMapper;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
+import fr.paris.lutece.plugins.identitystore.service.user.InternalUserService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.*;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockStatus;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
+import fr.paris.lutece.portal.service.security.AccessLogService;
+import fr.paris.lutece.portal.service.security.AccessLoggerConstants;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import fr.paris.lutece.util.sql.TransactionManager;
 
@@ -56,7 +59,15 @@ import java.util.List;
 
 public class SuspiciousIdentityService
 {
+    // EVENTS FOR ACCESS LOGGING
+    private static final String CREATE_SUSPICIOUS_IDENTITY_EVENT_CODE = "CREATE_SUSPICIOUS_IDENTITY";
+    private static final String LOCK_SUSPICIOUS_IDENTITY_EVENT_CODE = "LOCK_SUSPICIOUS_IDENTITY";
+    private static final String EXCLUDE_SUSPICIOUS_IDENTITY_EVENT_CODE = "EXCLUDE_SUSPICIOUS_IDENTITY";
+    private static final String SPECIFIC_ORIGIN = "BO";
+
+    // SERVICES
     private final String externalDeclarationRuleCode = AppPropertiesService.getProperty( "identitystore-quality.external.duplicates.rule.code" );
+    private final InternalUserService _internalUserService = InternalUserService.getInstance( );
     private static SuspiciousIdentityService _instance;
 
     public static SuspiciousIdentityService instance( )
@@ -71,7 +82,7 @@ public class SuspiciousIdentityService
     /**
      * Creates a new {@link SuspiciousIdentity} according to the given {@link SuspiciousIdentityChangeRequest}
      *
-     * @param identityChangeRequest
+     * @param request
      *            the {@link SuspiciousIdentityChangeRequest} holding the parameters of the suspicious identity change request
      * @param clientCode
      *            code of the {@link ClientApplication} requesting the change
@@ -81,7 +92,7 @@ public class SuspiciousIdentityService
      * @throws IdentityStoreException
      *             in case of error
      */
-    public void create( final SuspiciousIdentityChangeRequest identityChangeRequest, final String clientCode, final SuspiciousIdentityChangeResponse response )
+    public void create( final SuspiciousIdentityChangeRequest request, final String clientCode, final SuspiciousIdentityChangeResponse response )
             throws IdentityStoreException
     {
         // TODO check if the application has the right to create a suspicious identity
@@ -92,7 +103,7 @@ public class SuspiciousIdentityService
         TransactionManager.beginTransaction( null );
         try
         {
-            final Identity identity = IdentityHome.findByCustomerId( identityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) );
+            final Identity identity = IdentityHome.findByCustomerId( request.getSuspiciousIdentity( ).getCustomerId( ) );
             if ( identity == null )
             {
                 response.setStatus( IdentityChangeStatus.NOT_FOUND );
@@ -100,12 +111,12 @@ public class SuspiciousIdentityService
             else
             {
                 final SuspiciousIdentity suspiciousIdentity = new SuspiciousIdentity( );
-                final String requestRuleCode = identityChangeRequest.getSuspiciousIdentity( ).getDuplicationRuleCode( );
+                final String requestRuleCode = request.getSuspiciousIdentity( ).getDuplicationRuleCode( );
                 final String ruleCode = requestRuleCode != null ? requestRuleCode : externalDeclarationRuleCode;
                 final DuplicateRule duplicateRule = DuplicateRuleService.instance( ).get( ruleCode );
                 suspiciousIdentity.setDuplicateRuleCode( ruleCode );
                 suspiciousIdentity.setIdDuplicateRule( duplicateRule.getId( ) );
-                suspiciousIdentity.setCustomerId( identityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) );
+                suspiciousIdentity.setCustomerId( request.getSuspiciousIdentity( ).getCustomerId( ) );
                 suspiciousIdentity.setCreationDate( Timestamp.from( Instant.now( ) ) );
                 suspiciousIdentity.setLastUpdateDate( identity.getLastUpdateDate( ) );
 
@@ -115,6 +126,8 @@ public class SuspiciousIdentityService
                 response.setStatus( IdentityChangeStatus.CREATE_SUCCESS );
             }
             TransactionManager.commitTransaction( null );
+            AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_CREATE, CREATE_SUSPICIOUS_IDENTITY_EVENT_CODE,
+                    _internalUserService.getApiUser( request, clientCode ), request, SPECIFIC_ORIGIN );
         }
         catch( Exception e )
         {
@@ -134,6 +147,8 @@ public class SuspiciousIdentityService
             response.setLocked( locked );
             response.setStatus( SuspiciousIdentityLockStatus.SUCCESS );
             TransactionManager.commitTransaction( null );
+            AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY, LOCK_SUSPICIOUS_IDENTITY_EVENT_CODE,
+                    _internalUserService.getApiUser( request, strClientCode ), request, SPECIFIC_ORIGIN );
         }
         catch( SuspiciousIdentityLockedException e )
         {
@@ -166,6 +181,8 @@ public class SuspiciousIdentityService
             response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_SUCCESS );
             response.setMessage( "Identities excluded from duplicate suspicions." );
             TransactionManager.commitTransaction( null );
+            AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY, EXCLUDE_SUSPICIOUS_IDENTITY_EVENT_CODE,
+                    _internalUserService.getApiUser( request, clientCode ), request, SPECIFIC_ORIGIN );
         }
         catch( Exception e )
         {
