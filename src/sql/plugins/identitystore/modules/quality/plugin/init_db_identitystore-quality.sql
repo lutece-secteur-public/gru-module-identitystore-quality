@@ -1,0 +1,3 @@
+-- #299 [Règle doublons] créer une règle pour les déclaration externes de suspicions
+INSERT INTO identitystore_duplicate_rule( code, name, description, nb_equal_attributes, nb_missing_attributes, priority, active, daemon, nb_filled_attributes)
+VALUES ('ExternalDeclarationRule', 'Règle utilisée pour rattacher les déclarations externes d''identités suspectées d''avoir des doublons', '', 0, 0, 0, 0, 0, 0);

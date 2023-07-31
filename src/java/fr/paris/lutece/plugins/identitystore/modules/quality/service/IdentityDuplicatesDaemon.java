@@ -33,8 +33,6 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.service;
 
-import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
-import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
@@ -158,7 +156,7 @@ public class IdentityDuplicatesDaemon extends Daemon
                                 .orElseThrow( ( ) -> new IdentityStoreException( "Could not find best quality" ) );
                         request.setSuspiciousIdentity( new SuspiciousIdentityDto( ) );
                         request.getSuspiciousIdentity( ).setCustomerId( bestIdentity.getCustomerId( ) );
-                        request.getSuspiciousIdentity( ).setIdDuplicateRule( rule.getId( ) );
+                        request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
                         SuspiciousIdentityService.instance( ).create( request, null, response );
                         markedSuspicious++;
                     }

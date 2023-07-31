@@ -39,12 +39,15 @@ import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.Susp
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityLockedException;
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
 import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
+import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.modules.quality.rs.SuspiciousIdentityMapper;
+import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.*;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockStatus;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
+import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import fr.paris.lutece.util.sql.TransactionManager;
 
 import java.sql.Timestamp;
@@ -53,6 +56,7 @@ import java.util.List;
 
 public class SuspiciousIdentityService
 {
+    private final String externalDeclarationRuleCode = AppPropertiesService.getProperty( "identitystore-quality.external.duplicates.rule.code" );
     private static SuspiciousIdentityService _instance;
 
     public static SuspiciousIdentityService instance( )
@@ -96,7 +100,11 @@ public class SuspiciousIdentityService
             else
             {
                 final SuspiciousIdentity suspiciousIdentity = new SuspiciousIdentity( );
-                suspiciousIdentity.setIdDuplicateRule( identityChangeRequest.getSuspiciousIdentity( ).getIdDuplicateRule( ) );
+                final String requestRuleCode = identityChangeRequest.getSuspiciousIdentity( ).getDuplicationRuleCode( );
+                final String ruleCode = requestRuleCode != null ? requestRuleCode : externalDeclarationRuleCode;
+                final DuplicateRule duplicateRule = DuplicateRuleService.instance( ).get( ruleCode );
+                suspiciousIdentity.setDuplicateRuleCode( ruleCode );
+                suspiciousIdentity.setIdDuplicateRule( duplicateRule.getId( ) );
                 suspiciousIdentity.setCustomerId( identityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) );
                 suspiciousIdentity.setCreationDate( Timestamp.from( Instant.now( ) ) );
                 suspiciousIdentity.setLastUpdateDate( identity.getLastUpdateDate( ) );

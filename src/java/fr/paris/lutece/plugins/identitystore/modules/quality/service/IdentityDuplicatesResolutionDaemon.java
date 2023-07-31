@@ -83,16 +83,16 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
         logs.append( startingMessage ).append( "\n" );
 
         nbIdentitiesMerged = 0;
-        final String ruleName = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.rule.id" );
+        final String ruleCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.rule.code" );
         final int limit = AppPropertiesService.getPropertyInt( "daemon.identityDuplicatesResolutionDaemon.suspicious.limite", 1 );
 
         try
         {
             /* Get rule that identifies strict duplicates */
-            final DuplicateRule processedRule = DuplicateRuleService.instance( ).get( ruleName );
+            final DuplicateRule processedRule = DuplicateRuleService.instance( ).get( ruleCode );
             if ( processedRule != null )
             {
-                final String ruleMessage = "Processing rule " + ruleName;
+                final String ruleMessage = "Processing rule " + ruleCode;
                 AppLogService.info( ruleMessage );
                 logs.append( ruleMessage ).append( "\n" );
 
@@ -153,14 +153,14 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
             }
             else
             {
-                final String ruleMessage = "No rule found with name " + ruleName;
+                final String ruleMessage = "No rule found with name " + ruleCode;
                 AppLogService.info( ruleMessage );
                 logs.append( ruleMessage ).append( "\n" );
             }
         }
         catch( DuplicateRuleNotFoundException e )
         {
-            final String log = "Could not fetch rule " + ruleName + " :" + e.getMessage( );
+            final String log = "Could not fetch rule " + ruleCode + " :" + e.getMessage( );
             AppLogService.info( log );
             logs.append( log );
         }

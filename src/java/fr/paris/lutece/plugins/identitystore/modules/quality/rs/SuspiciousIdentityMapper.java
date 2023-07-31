@@ -52,7 +52,7 @@ public class SuspiciousIdentityMapper
         dto.setCreationDate( suspiciousIdentity.getCreationDate( ) );
         dto.setCustomerId( suspiciousIdentity.getCustomerId( ) );
         dto.setLastUpdateDate( suspiciousIdentity.getLastUpdateDate( ) );
-        dto.setIdDuplicateRule( suspiciousIdentity.getIdDuplicateRule( ) );
+        dto.setDuplicationRuleCode( suspiciousIdentity.getDuplicateRuleCode( ) );
         return dto;
     }
 
