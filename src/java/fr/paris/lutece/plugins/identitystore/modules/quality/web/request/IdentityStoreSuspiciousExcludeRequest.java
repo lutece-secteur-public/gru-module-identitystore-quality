@@ -36,7 +36,7 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.IdentityRequestValidator;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.SuspiciousIdentityRequestValidator;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeResponse;
@@ -66,7 +66,7 @@ public class IdentityStoreSuspiciousExcludeRequest extends AbstractSuspiciousIde
     protected void validRequest( ) throws IdentityStoreException
     {
         SuspiciousIdentityRequestValidator.instance( ).checkClientApplication( _strClientCode );
-        IdentityRequestValidator.instance( ).checkOrigin( _suspiciousIdentityExcludeRequest );
+        IdentityRequestValidator.instance( ).checkOrigin( _suspiciousIdentityExcludeRequest.getOrigin() );
     }
 
     @Override
