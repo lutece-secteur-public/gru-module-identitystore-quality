@@ -39,6 +39,7 @@ import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.Susp
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousCreateRequest;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousExcludeRequest;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousLockRequest;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousSearchRequest;
 import fr.paris.lutece.plugins.identitystore.service.IdentityStoreService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.request.DuplicateRuleGetRequest;
@@ -74,69 +75,35 @@ public class SuspiciousIdentityRest
     protected static final String ERROR_NO_OBJECT_FOUND = "No object found";
     protected static final String ERROR_DURING_TREATMENT = "An error occured during the treatment.";
 
-    private Response getPaginatedSuspiciousIdentityListResponse( final Integer page, final Integer size,
-            final List<SuspiciousIdentity> listSuspiciousIdentities )
-    {
-        final SuspiciousIdentitySearchResponse searchResponse = new SuspiciousIdentitySearchResponse( );
-        if ( listSuspiciousIdentities.isEmpty( ) )
-        {
-            searchResponse.setStatus( SuspiciousIdentitySearchStatusType.NOT_FOUND );
-            searchResponse.setSuspiciousIdentities( Collections.emptyList( ) );
-        }
-        else
-        {
-            searchResponse.setStatus( SuspiciousIdentitySearchStatusType.SUCCESS );
-            if ( page != null && size != null )
-            {
-                int start = page * size;
-                int end = Math.min( start + size, listSuspiciousIdentities.size( ) );
-                searchResponse.setSuspiciousIdentities(
-                        listSuspiciousIdentities.subList( start, end ).stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) ) );
-            }
-            else
-            {
-                searchResponse
-                        .setSuspiciousIdentities( listSuspiciousIdentities.stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) ) );
-            }
-        }
-        return Response.status( searchResponse.getStatus( ).getCode( ) ).entity( searchResponse ).build( );
-    }
-
     /**
      * Get SuspiciousIdentity List
      *
      * @return the SuspiciousIdentity List
      */
-    @GET
-    @Path( Constants.SUSPICIONS_PATH )
+    @POST
+    @Path( Constants.SUSPICIONS_PATH + Constants.SEARCH_IDENTITIES_PATH )
+    @Consumes( MediaType.APPLICATION_JSON )
     @Produces( MediaType.APPLICATION_JSON )
-    @ApiOperation( value = "Get a list of suspicions, limited to max" )
-    public Response getAllSuspiciousIdentityList( @ApiParam( name = "max", value = "Maximum number of " ) @QueryParam( Constants.PARAM_MAX ) final int max,
-            @ApiParam( name = "page", value = "Page to return" ) @QueryParam( Constants.PARAM_PAGE ) Integer page,
-            @ApiParam( name = "size", value = "number of suspicious identity to return " ) @QueryParam( Constants.PARAM_SIZE ) Integer size,
-            @ApiParam( name = "priority", value = "minimal priority of the rules that identified the suspicious identities to return " ) @QueryParam( Constants.PARAM_RULE_PRIORITY ) Integer priority )
-    {
-        final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( null, max, priority );
-        return this.getPaginatedSuspiciousIdentityListResponse( page, size, listSuspiciousIdentities );
-    }
-
-    /**
-     * Get SuspiciousIdentity List
-     *
-     * @return the SuspiciousIdentity List
-     */
-    @GET
-    @Path( Constants.SUSPICIONS_PATH + "/{" + Constants.PARAM_RULE_CODE + "}" )
-    @Produces( MediaType.APPLICATION_JSON )
-    @ApiOperation( value = "Get a list of suspicions, limited to max" )
+    @ApiOperation( value = "Get a list of suspicions, limited to max", response = SuspiciousIdentitySearchResponse.class )
     public Response getSuspiciousIdentityList(
-            @ApiParam( name = Constants.PARAM_RULE_CODE, value = "The rule code to filter with" ) @PathParam( Constants.PARAM_RULE_CODE ) String ruleCode,
+            @ApiParam( name = "Request body.", value = "The suspicious identity search request", type = "SuspiciousIdentitySearchRequest" ) SuspiciousIdentitySearchRequest searchRequest,
+            @ApiParam( name = Constants.PARAM_CLIENT_CODE, value = SwaggerConstants.CLIENT_CLIENT_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_CLIENT_CODE ) String strHeaderClientAppCode,
             @ApiParam( name = Constants.PARAM_MAX, value = "Maximum number of " ) @QueryParam( Constants.PARAM_MAX ) final int max,
             @ApiParam( name = Constants.PARAM_PAGE, value = "Page to return" ) @QueryParam( Constants.PARAM_PAGE ) Integer page,
             @ApiParam( name = Constants.PARAM_SIZE, value = "number of suspicious identity to return " ) @QueryParam( Constants.PARAM_SIZE ) Integer size )
     {
-        final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( ruleCode, max, null );
-        return this.getPaginatedSuspiciousIdentityListResponse( page, size, listSuspiciousIdentities );
+        try
+        {
+            final IdentityStoreSuspiciousSearchRequest request = new IdentityStoreSuspiciousSearchRequest( searchRequest, max, page, size,
+                    strHeaderClientAppCode );
+            final SuspiciousIdentitySearchResponse searchResponse = (SuspiciousIdentitySearchResponse) request.doRequest( );
+
+            return Response.status( searchResponse.getStatus( ).getCode( ) ).entity( searchResponse ).build( );
+        }
+        catch( final Exception e )
+        {
+            return getErrorResponse( e );
+        }
     }
 
     @POST
