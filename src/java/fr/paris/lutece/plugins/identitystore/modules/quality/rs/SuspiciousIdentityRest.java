@@ -200,7 +200,7 @@ public class SuspiciousIdentityRest
     @Produces( MediaType.APPLICATION_JSON )
     @ApiOperation( value = "Get list of identities that are duplicates of the provided customer_id's identity, according to the provided rule ID.", response = DuplicateSearchResponse.class )
     public Response findDuplicates( @ApiParam( name = "customer_id", value = "the id of the customer" ) @PathParam( "customer_id" ) final String customer_id,
-            @ApiParam( name = Constants.PARAM_SIZE, value = "the id of the rule" ) @QueryParam( Constants.PARAM_RULE_CODE ) final String ruleCode,
+            @ApiParam( name = Constants.PARAM_RULE_CODE, value = "the code of the rule" ) @QueryParam( Constants.PARAM_RULE_CODE ) final String ruleCode,
             @HeaderParam( Constants.PARAM_CLIENT_CODE ) final String strHeaderClientAppCode )
     {
         try

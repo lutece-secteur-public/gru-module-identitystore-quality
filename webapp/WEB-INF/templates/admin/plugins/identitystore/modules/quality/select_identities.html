@@ -61,13 +61,21 @@
                     <td>Connection ID</td>
                     <#list identity_list as identity>
                         <td>
-                            <span>${identity.connectionId}</span>
+                            <span>${identity.connectionId!''}</span>
                         </td>
                     </#list>
                 </tr>
                 <#list readable_attribute_list as readableAttr>
                     <tr>
-                        <td>${readableAttr.name}</td>
+                        <td>
+                            <#if readableAttr.pivot>
+                            <strong>${readableAttr.name}*</strong>
+                            <#elseif readableAttr.keyName! == 'preferred_username'>
+                            <strong>${readableAttr.name}</strong>
+                            <#else>
+                            ${readableAttr.name}
+                            </#if>
+                        </td>
                         <#assign count = 1>
                         <#list identity_list as identity>
                             <td>

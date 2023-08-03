@@ -80,19 +80,22 @@ public class IdentityDuplicatesDaemon extends Daemon
         }
         catch( final DuplicateRuleNotFoundException e )
         {
-            AppLogService.error( "No duplicate rules found in database. Stopping daemon.", e );
-            logs.append( "No duplicate rules found in database. Stoping daemon. " ).append( e.getMessage( ) ).append( "\n" );
+            final String error = "No duplicate rules found in database. Stopping daemon.";
+            AppLogService.error( error, e );
+            logs.append( error ).append( e.getMessage( ) ).append( "\n" );
             return;
         }
         if ( CollectionUtils.isEmpty( rules ) )
         {
-            AppLogService.info( "No existing duplicate rules marked to be used in daemon. Stopping daemon." );
-            logs.append( "No existing duplicate rules marked to be used in daemon. Stopping daemon." );
+            final String empty = "No existing duplicate rules marked to be used in daemon. Stopping daemon.";
+            AppLogService.info( empty );
+            logs.append( empty );
             return;
         }
 
-        AppLogService.info( rules.size( ) + " applicable detection rules found. Starting process..." );
-        logs.append( rules.size( ) ).append( " applicable detection rules found. Starting process..." ).append( "\n" );
+        final String starting = rules.size( ) + " applicable detection rules found. Starting process...";
+        AppLogService.info( starting );
+        logs.append( starting ).append( "\n" );
         rules.sort( Comparator.comparingInt( DuplicateRule::getPriority ) );
 
         for ( final DuplicateRule rule : rules )
@@ -124,17 +127,21 @@ public class IdentityDuplicatesDaemon extends Daemon
      */
     private void search( final DuplicateRule rule, final StringBuilder logs ) throws IdentityStoreException
     {
-        AppLogService.info( "-- Processing Rule id = [" + rule.getId( ) + "] ..." );
-        logs.append( "-- Processing Rule id = [" ).append( rule.getId( ) ).append( "] ..." ).append( "\n" );
+        final String processing = "-- Processing Rule id = [" + rule.getId( ) + "] code = [" + rule.getCode( ) + "] priority = [" + rule.getPriority( )
+                + "] ...";
+        AppLogService.info( processing );
+        logs.append( processing ).append( "\n" );
         final Batch<String> cuidList = IdentityService.instance( ).getIdentitiesBatchForPotentialDuplicate( rule, 200 );
         if ( cuidList == null || cuidList.isEmpty( ) )
         {
-            AppLogService.info( "No identities having required attributes and not already suspicious found." );
-            logs.append( "No identities having required attributes and not already suspicious found." ).append( "\n" );
+            final String error = "No identities having required attributes and not already suspicious found.";
+            AppLogService.info( error );
+            logs.append( error ).append( "\n" );
             return;
         }
-        AppLogService.info( cuidList.totalSize( ) + " identities found. Searching for potential duplicates on those..." );
-        logs.append( cuidList.totalSize( ) ).append( " identities found. Searching for potential duplicates on those..." ).append( "\n" );
+        final String found = cuidList.totalSize( ) + " identities found. Searching for potential duplicates on those...";
+        AppLogService.info( found );
+        logs.append( found ).append( "\n" );
         int markedSuspicious = 0;
         for ( final List<String> cuids : cuidList )
         {
@@ -163,7 +170,8 @@ public class IdentityDuplicatesDaemon extends Daemon
                 }
             }
         }
-        AppLogService.info( markedSuspicious + " identities have been marked as suspicious." );
-        logs.append( markedSuspicious ).append( " identities have been marked as suspicious." ).append( "\n" );
+        final String marked = markedSuspicious + " identities have been marked as suspicious.";
+        AppLogService.info( marked );
+        logs.append( marked ).append( "\n" );
     }
 }

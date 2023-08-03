@@ -28,16 +28,25 @@
             <@table id='select-duplicate-type-table'>
                 <tr>
                     <th></th>
+                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.ruleCode}</th>
                     <th>#i18n{module.identitystore.quality.choose_duplicate_type.ruleColumn}</th>
                     <th>#i18n{module.identitystore.quality.choose_duplicate_type.descriptionColumn}</th>
+                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.priorityColumn}</th>
                     <th>#i18n{module.identitystore.quality.choose_duplicate_type.pendingColumn}</th>
                 </tr>
                 <@tableHeadBodySeparator />
                 <#list duplicate_rule_list as rule>
                     <tr class="rule-tr">
-                        <td><input type="radio" name="rule-code" value="${rule.id}"></td>
+                        <td><input type="radio" name="rule-code" value="${rule.code}"></td>
+                        <td>
+                            <a href="jsp/admin/plugins/identitystore/ManageDuplicateRules.jsp?view=displayDuplicateRule&id=${rule.id}"
+                                           title="#i18n{identitystore.manage_duplicaterules.buttonDisplay}" >
+                                ${rule.code}
+                            </a>
+                        </td>
                         <td>${rule.name}</td>
                         <td><pre>${rule.description}</pre></td>
+                        <td>${rule.priority}</td>
                         <td>${rule.duplicateCount}</td>
                     </tr>
                 </#list>
