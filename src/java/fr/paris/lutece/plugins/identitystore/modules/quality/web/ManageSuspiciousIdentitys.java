@@ -104,6 +104,8 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     private static final String MARK_IDENTITY_LIST = "identity_list";
     private static final String MARK_FIRST_CUSTOMER_ID = "first_customer_id";
     private static final String MARK_SECOND_CUSTOMER_ID = "second_customer_id";
+    private static final String MARK_DUPLICATE_RULE = "rule";
+    private static final String MARK_SUSPICIOUS_IDENTITY_CUID = "suspicious_cuid";
 
     private static final String JSP_MANAGE_SUSPICIOUSIDENTITYS = "jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp";
 
@@ -139,11 +141,14 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
 
     // Errors
     private static final String ERROR_RESOURCE_NOT_FOUND = "Resource not found";
+    private static final String PARAM_RULE_CODE = "rule-code";
+    private static final String PARAM_CUID = "cuid";
 
     // Session variable to store working values
     private SuspiciousIdentity _suspiciousidentity;
     private List<Integer> _listIdSuspiciousIdentitys;
     private String _currentRuleCode;
+    private DuplicateRule _currentRule;
 
     /**
      *
@@ -153,6 +158,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     @View( value = VIEW_CHOOSE_DUPLICATE_TYPE, defaultView = true )
     public String getDuplicateTypes( final HttpServletRequest request )
     {
+        _currentRule = null;
         final List<DuplicateRuleSummaryDto> duplicateRules = new ArrayList<>( );
         try
         {
@@ -181,16 +187,19 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     @View( value = VIEW_SEARCH_DUPLICATES )
     public String getSearchDuplicates( final HttpServletRequest request )
     {
-        _currentRuleCode = request.getParameter( "rule-code" );
+        _currentRule = null;
+        _currentRuleCode = request.getParameter( PARAM_RULE_CODE );
         if ( StringUtils.isBlank( _currentRuleCode ) )
         {
-            AppLogService.error( "Rule id must be specified in request." );
+            AppLogService.error( "Rule code must be specified in request." );
             return getDuplicateTypes( request );
         }
+
         final List<QualifiedIdentity> identities = new ArrayList<>( );
         final List<AttributeKey> readableAttributes = new ArrayList<>( );
         try
         {
+            _currentRule = DuplicateRuleService.instance( ).get( _currentRuleCode );
             final List<String> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentityCuidsList( _currentRuleCode );
             final List<QualifiedIdentity> qualifiedIdentityList = new ArrayList<>( );
             for ( final String cuid : listSuspiciousIdentities )
@@ -216,11 +225,12 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         }
 
         final Map<String, String> parameters = new HashMap<>( );
-        parameters.put( "rule-code", String.valueOf( _currentRuleCode ) );
+        parameters.put( PARAM_RULE_CODE, _currentRuleCode );
         parameters.put( "view_" + VIEW_SEARCH_DUPLICATES, "" );
 
         final Map<String, Object> model = getPaginatedListModel( request, MARK_DUPLICATE_HOLDER_LIST, identities, JSP_MANAGE_SUSPICIOUSIDENTITYS, parameters );
         model.put( MARK_READABLE_ATTRIBUTES, readableAttributes );
+        model.put( MARK_DUPLICATE_RULE, _currentRule );
 
         return getPage( PROPERTY_PAGE_TITLE_SEARCH_DUPLICATES, TEMPLATE_SEARCH_DUPLICATES, model );
     }
@@ -234,21 +244,22 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     @View( value = VIEW_SELECT_IDENTITIES )
     public String getSelectIdentities( final HttpServletRequest request )
     {
-        final QualifiedIdentity identity;
+        _currentRule = null;
+        final QualifiedIdentity suspiciousIdentity;
         final List<AttributeKey> readableAttributes = new ArrayList<>( );
         try
         {
-            final String customerId = request.getParameter( "cuid" );
+            final String customerId = request.getParameter( PARAM_CUID );
             if ( StringUtils.isEmpty( customerId ) )
             {
                 addError( "Customer ID must be specified in request " + customerId );
                 return getDuplicateTypes( request );
             }
 
-            identity = IdentityService.instance( ).getQualifiedIdentity( customerId );
-            if ( identity == null )
+            suspiciousIdentity = IdentityService.instance( ).getQualifiedIdentity( customerId );
+            if ( suspiciousIdentity == null )
             {
-                addError( "Could not find identity with customer ID " + customerId );
+                addError( "Could not find suspiciousIdentity with customer ID " + customerId );
                 return getDuplicateTypes( request );
             }
             readableAttributes.addAll( AttributeKeyHome.getAttributeKeysList( ) );
@@ -258,21 +269,22 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         }
         catch( final IdentityStoreException e )
         {
-            addError( "An error occurred when fetching identity : " + e.getMessage( ) );
+            addError( "An error occurred when fetching suspiciousIdentity : " + e.getMessage( ) );
             return getDuplicateTypes( request );
         }
 
         final List<QualifiedIdentity> identityList = new ArrayList<>( );
         try
         {
-            final List<QualifiedIdentity> duplicateList = IdentityService.instance( ).findDuplicates( identity, _currentRuleCode ).getIdentities( );
+            _currentRule = DuplicateRuleService.instance( ).get( _currentRuleCode );
+            final List<QualifiedIdentity> duplicateList = IdentityService.instance( ).findDuplicates( suspiciousIdentity, _currentRuleCode ).getIdentities( );
             if ( CollectionUtils.isEmpty( duplicateList ) )
             {
                 addError( "No duplicate could be found." );
                 return getDuplicateTypes( request );
             }
             identityList.addAll( duplicateList );
-            identityList.add( identity );
+            identityList.add( suspiciousIdentity );
             identityList.sort( Comparator.comparing( QualifiedIdentity::getQuality ).reversed( ) );
         }
         catch( final IdentityStoreException e )
@@ -284,6 +296,8 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         final Map<String, Object> model = getModel( );
         model.put( MARK_IDENTITY_LIST, identityList );
         model.put( MARK_READABLE_ATTRIBUTES, readableAttributes );
+        model.put( MARK_DUPLICATE_RULE, _currentRule );
+        model.put( MARK_SUSPICIOUS_IDENTITY_CUID, suspiciousIdentity.getCustomerId( ) );
 
         return getPage( PROPERTY_PAGE_TITLE_SELECT_IDENTITIES, TEMPLATE_SELECT_IDENTITIES, model );
     }
@@ -373,7 +387,6 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         model.put( MARK_IDENTITY_LIST, identities );
         model.put( MARK_FIRST_CUSTOMER_ID, firstCustomerId );
         model.put( MARK_SECOND_CUSTOMER_ID, secondCustomerId );
-        model.put( MARK_IDENTITY_LIST, identities );
         model.put( MARK_READABLE_ATTRIBUTES, readableAttributes );
 
         return getPage( PROPERTY_PAGE_TITLE_DISPLAY_IDENTITIES, TEMPLATE_DISPLAY_IDENTITIES, model );

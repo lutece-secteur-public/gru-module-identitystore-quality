@@ -1,37 +1,35 @@
-<style>
-    #select-identities-table th, #select-identities-table .rounded-pill {
-        text-transform: uppercase;
-    }
-    span.non-matching-value {
-        font-weight: bold;
-        color: red;
-    }
-</style>
-<script type="text/javascript">
-    $(function() {
-        $('span[id^="id-1-"]').each(function() {
-            let value = $(this).text().trim().toUpperCase();
-            let key = $(this).prop('id').replace('id-1-', '').replace('-value', '');
-            let countIds = $('span[id^="id-"]').size();
-            for(let i = 2; i <= countIds; i++ )
-            {
-                $('#id-' + i + '-'+key+'-value').each(function() {
-                    if ($(this).text().trim().toUpperCase() !== value) {
-                        $(this).addClass('non-matching-value');
-                    }
-                });
-            }
-
-        });
-    });
-</script>
-
 <form class="form-inline" action="jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp">
     <@rowBox>
+        <@boxHeader i18nTitleKey="module.identitystore.quality.select_identities.pageTitle"></@boxHeader>
         <@boxBody>
             <@messages infos=infos />
             <@messages errors=errors />
             <@messages warnings=warnings />
+
+            <@table>
+                <tr>
+                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.ruleCode}</th>
+                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.ruleColumn}</th>
+                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.descriptionColumn}</th>
+                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.priorityColumn}</th>
+                </tr>
+                <@tableHeadBodySeparator />
+                <tr class="rule-tr">
+                    <td>
+                        <a href="jsp/admin/plugins/identitystore/ManageDuplicateRules.jsp?view=displayDuplicateRule&id=${rule.id}"
+                           title="#i18n{identitystore.manage_duplicaterules.buttonDisplay}" >
+                            ${rule.code}
+                        </a>
+                    </td>
+                    <td>${rule.name}</td>
+                    <td><pre>${rule.description}</pre></td>
+                    <td>${rule.priority}</td>
+                </tr>
+            </@table>
+        </@boxBody>
+    </@rowBox>
+    <@rowBox>
+        <@boxBody>
             <@table id="select-identities-table">
                 <tr>
                     <th>&nbsp;</th>
@@ -42,6 +40,9 @@
                             <div class="col-12"><span class="quality-span">${identity.quality}</span> %</div>
                             <#if identity.monParisActive >
                                 <span class="badge mon-paris-badge">MON PARIS</span>
+                            </#if>
+                            <#if identity.customerId == suspicious_cuid >
+                                <span class="badge suspicious-badge">SUSPICIOUS</span>
                             </#if>
                             <input type="hidden" name="identity-cuid-${count}" value="${identity.customerId}" disabled >
                         </th>
@@ -104,3 +105,53 @@
         </@boxBody>
     </@rowBox>
 </form>
+
+<style>
+    pre {
+        background: inherit !important;
+        color: inherit !important;
+        font-family: inherit !important;
+        padding: 0 !important;
+        border-radius: unset !important;
+        font-size: inherit !important;
+    }
+
+    .mon-paris-badge {
+        background-color: indianred;
+        color: white;
+    }
+
+    .suspicious-badge {
+        background-color: forestgreen;
+        color: white;
+    }
+
+    #select-identities-table th, #select-identities-table .rounded-pill {
+        text-transform: uppercase;
+    }
+    span.non-matching-value {
+        font-weight: bold;
+        color: red;
+    }
+</style>
+<script type="text/javascript">
+    $(function() {
+        $('span[id^="id-1-"]').each(function() {
+            let value = $(this).text().trim().toUpperCase();
+            let key = $(this).prop('id').replace('id-1-', '').replace('-value', '');
+            let countIds = $('span[id^="id-"]').size();
+            for(let i = 2; i <= countIds; i++ )
+            {
+                $('#id-' + i + '-'+key+'-value').each(function() {
+                    if ($(this).text().trim().toUpperCase() !== value) {
+                        $(this).addClass('non-matching-value');
+                    }
+                    if ($(this).text().trim().toUpperCase() === '') {
+                        $(this).text('<!attribut vide!>');
+                    }
+                });
+            }
+
+        });
+    });
+</script>

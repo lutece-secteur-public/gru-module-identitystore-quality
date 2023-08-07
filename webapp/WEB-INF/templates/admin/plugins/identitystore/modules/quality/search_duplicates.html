@@ -7,14 +7,36 @@
 </style>
 <form class="form-inline" action="jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp">
     <@rowBox>
-        <@boxHeader i18nTitleKey="module.identitystore.quality.search_duplicates.pageTitle">
-            <@headerButtons>
-            </@headerButtons>
-        </@boxHeader>
+        <@boxHeader i18nTitleKey="module.identitystore.quality.search_duplicates.pageTitle"></@boxHeader>
         <@boxBody>
             <@messages infos=infos />
             <@messages errors=errors />
             <@messages warnings=warnings />
+
+            <@table>
+                <tr>
+                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.ruleCode}</th>
+                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.ruleColumn}</th>
+                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.descriptionColumn}</th>
+                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.priorityColumn}</th>
+                </tr>
+                <@tableHeadBodySeparator />
+                <tr class="rule-tr">
+                    <td>
+                        <a href="jsp/admin/plugins/identitystore/ManageDuplicateRules.jsp?view=displayDuplicateRule&id=${rule.id}"
+                           title="#i18n{identitystore.manage_duplicaterules.buttonDisplay}" >
+                            ${rule.code}
+                        </a>
+                    </td>
+                    <td>${rule.name}</td>
+                    <td><pre>${rule.description}</pre></td>
+                    <td>${rule.priority}</td>
+                </tr>
+            </@table>
+        </@boxBody>
+    </@rowBox>
+    <@rowBox>
+        <@boxBody>
             <@paginationAdmin paginator=paginator combo=1 />
             <@table id='search-duplicates-table'>
                 <tr>
@@ -53,3 +75,14 @@
         </@boxBody>
     </@rowBox>
 </form>
+
+<style>
+    pre {
+        background: inherit !important;
+        color: inherit !important;
+        font-family: inherit !important;
+        padding: 0 !important;
+        border-radius: unset !important;
+        font-size: inherit !important;
+    }
+</style>

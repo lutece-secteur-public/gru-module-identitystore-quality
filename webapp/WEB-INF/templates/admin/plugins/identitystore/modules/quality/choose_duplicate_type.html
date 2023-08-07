@@ -1,76 +1,47 @@
 <#include "managequality_tabs.html" />
 <@tabs tab="suspiciousidentity" />
 
-<!--<@boxHeader title='#i18n{module.identitystore.quality.manage_suspiciousidentity.title}' boxTools=true>-->
-<!--    <@tform class='form-inline pull-right' name='manage_suspiciousidentity' action='jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp'>-->
-<!--        <@button type='submit' name='view_createSuspiciousIdentity' buttonIcon='plus' title='#i18n{module.identitystore.quality.manage_suspiciousidentitys.buttonAdd}' />-->
-<!--    </@tform>-->
-<!--</@boxHeader>-->
-<form class="form-inline" action="jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp">
-    <@rowBox boxClass="action-box" >
-        <@boxBody>
-            <button id="search-btn-up" class="btn btn-warning" name="view_searchDuplicates" >
-                #i18n{module.identitystore.quality.choose_duplicate_type.buttonSearch}
-            </button>
-        </@boxBody>
-    </@rowBox>
+<@rowBox>
+    <@boxHeader i18nTitleKey="module.identitystore.quality.choose_duplicate_type.pageTitle">
+        <@headerButtons>
+        </@headerButtons>
+    </@boxHeader>
+    <@boxBody>
+        <@messages infos=infos />
+        <@messages errors=errors />
+        <@messages warnings=warnings />
 
-    <@rowBox>
-        <@boxHeader i18nTitleKey="module.identitystore.quality.choose_duplicate_type.pageTitle">
-            <@headerButtons>
-            </@headerButtons>
-        </@boxHeader>
-        <@boxBody>
-            <@messages infos=infos />
-            <@messages errors=errors />
-            <@messages warnings=warnings />
-
-            <@table id='select-duplicate-type-table'>
-                <tr>
-                    <th></th>
-                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.ruleCode}</th>
-                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.ruleColumn}</th>
-                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.descriptionColumn}</th>
-                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.priorityColumn}</th>
-                    <th>#i18n{module.identitystore.quality.choose_duplicate_type.pendingColumn}</th>
+        <@table id='select-duplicate-type-table'>
+            <tr>
+                <th>#i18n{module.identitystore.quality.choose_duplicate_type.ruleCode}</th>
+                <th>#i18n{module.identitystore.quality.choose_duplicate_type.ruleColumn}</th>
+                <th>#i18n{module.identitystore.quality.choose_duplicate_type.descriptionColumn}</th>
+                <th>#i18n{module.identitystore.quality.choose_duplicate_type.priorityColumn}</th>
+                <th>#i18n{module.identitystore.quality.choose_duplicate_type.pendingColumn}</th>
+                <th></th>
+            </tr>
+            <@tableHeadBodySeparator />
+            <#list duplicate_rule_list as rule>
+                <tr class="rule-tr">
+                    <td>
+                        <a href="jsp/admin/plugins/identitystore/ManageDuplicateRules.jsp?view=displayDuplicateRule&id=${rule.id}"
+                                       title="#i18n{identitystore.manage_duplicaterules.buttonDisplay}" >
+                            ${rule.code}
+                        </a>
+                    </td>
+                    <td>${rule.name}</td>
+                    <td><pre>${rule.description}</pre></td>
+                    <td>${rule.priority}</td>
+                    <td>${rule.duplicateCount}</td>
+                    <td><@aButton  href='jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp?view_searchDuplicates&rule-code=${rule.code}'
+                        title='#i18n{module.identitystore.quality.choose_duplicate_type.buttonSearch}'
+                        buttonIcon='search' />
+                    </td>
                 </tr>
-                <@tableHeadBodySeparator />
-                <#list duplicate_rule_list as rule>
-                    <tr class="rule-tr">
-                        <td><input type="radio" name="rule-code" value="${rule.code}"></td>
-                        <td>
-                            <a href="jsp/admin/plugins/identitystore/ManageDuplicateRules.jsp?view=displayDuplicateRule&id=${rule.id}"
-                                           title="#i18n{identitystore.manage_duplicaterules.buttonDisplay}" >
-                                ${rule.code}
-                            </a>
-                        </td>
-                        <td>${rule.name}</td>
-                        <td><pre>${rule.description}</pre></td>
-                        <td>${rule.priority}</td>
-                        <td>${rule.duplicateCount}</td>
-                    </tr>
-                </#list>
-            </@table>
-        </@boxBody>
-    </@rowBox>
-    <@rowBox boxClass="action-box" >
-        <@boxBody>
-            <button id="search-btn-down" class="btn btn-warning" name="view_searchDuplicates" >
-                #i18n{module.identitystore.quality.choose_duplicate_type.buttonSearch}
-            </button>
-        </@boxBody>
-    </@rowBox>
-</form>
-
-<script type="text/javascript">
-    $(function () {
-        $('.action-box').hide();
-        $('#select-duplicate-type-table tr.rule-tr').click(function () {
-            $(this).find('input:radio').prop('checked', true);
-            $('.action-box').show();
-        });
-    });
-</script>
+            </#list>
+        </@table>
+    </@boxBody>
+</@rowBox>
 
 <style>
     pre {
