@@ -120,7 +120,7 @@ public class IdentityDuplicatesDaemon extends Daemon
     }
 
     /**
-     * Search potential duplicates according to the provided rule.
+     * Search for potential duplicates according to the provided rule.
      * 
      * @param rule
      *            the rule used to search duplicates
@@ -159,10 +159,11 @@ public class IdentityDuplicatesDaemon extends Daemon
                     {
                         final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
                         final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
-                        final QualifiedIdentity bestIdentity = processedIdentities.stream( ).max( Comparator.comparing( QualifiedIdentity::getQuality ) )
-                                .orElseThrow( ( ) -> new IdentityStoreException( "Could not find best quality" ) );
+                        // final QualifiedIdentity bestIdentity = processedIdentities.stream( ).max( Comparator.comparing( QualifiedIdentity::getQuality ) )
+                        // .orElseThrow( ( ) -> new IdentityStoreException( "Could not find best quality" ) );
                         request.setSuspiciousIdentity( new SuspiciousIdentityDto( ) );
-                        request.getSuspiciousIdentity( ).setCustomerId( bestIdentity.getCustomerId( ) );
+                        // request.getSuspiciousIdentity( ).setCustomerId( bestIdentity.getCustomerId( ) );
+                        request.getSuspiciousIdentity( ).setCustomerId( cuid );
                         request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
                         SuspiciousIdentityService.instance( ).create( request, null, response );
                         markedSuspicious++;
