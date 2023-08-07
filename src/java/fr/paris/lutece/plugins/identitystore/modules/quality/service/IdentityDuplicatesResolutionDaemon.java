@@ -97,7 +97,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
                 logs.append( ruleMessage ).append( "\n" );
 
                 /* Get a batch of suspicious identities that match the rule */
-                final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( processedRule.getCode( ), limit,
+                final List<SuspiciousIdentity> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentitysList( processedRule.getCode( ), 0,
                         null );
                 for ( final SuspiciousIdentity suspiciousIdentity : listSuspiciousIdentities )
                 {
