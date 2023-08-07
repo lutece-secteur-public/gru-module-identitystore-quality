@@ -73,6 +73,7 @@ public class IdentityDuplicatesDaemon extends Daemon
         final String startingMessage = "Starting IdentityDuplicatesDaemon...";
         AppLogService.info( startingMessage );
         logs.append( startingMessage ).append( "\n" );
+        setLastRunLogs( logs.toString( ) );
         final List<DuplicateRule> rules;
         try
         {
@@ -83,6 +84,7 @@ public class IdentityDuplicatesDaemon extends Daemon
             final String error = "No duplicate rules found in database. Stopping daemon.";
             AppLogService.error( error, e );
             logs.append( error ).append( e.getMessage( ) ).append( "\n" );
+            setLastRunLogs( logs.toString( ) );
             return;
         }
         if ( CollectionUtils.isEmpty( rules ) )
@@ -90,12 +92,14 @@ public class IdentityDuplicatesDaemon extends Daemon
             final String empty = "No existing duplicate rules marked to be used in daemon. Stopping daemon.";
             AppLogService.info( empty );
             logs.append( empty );
+            setLastRunLogs( logs.toString( ) );
             return;
         }
 
         final String starting = rules.size( ) + " applicable detection rules found. Starting process...";
         AppLogService.info( starting );
         logs.append( starting ).append( "\n" );
+        setLastRunLogs( logs.toString( ) );
         rules.sort( Comparator.comparingInt( DuplicateRule::getPriority ) );
 
         for ( final DuplicateRule rule : rules )
@@ -108,6 +112,7 @@ public class IdentityDuplicatesDaemon extends Daemon
             {
                 AppLogService.error( e );
                 logs.append( e.getMessage( ) ).append( "\n" );
+                setLastRunLogs( logs.toString( ) );
             }
         }
 
@@ -131,17 +136,20 @@ public class IdentityDuplicatesDaemon extends Daemon
                 + "] ...";
         AppLogService.info( processing );
         logs.append( processing ).append( "\n" );
+        setLastRunLogs( logs.toString( ) );
         final Batch<String> cuidList = IdentityService.instance( ).getIdentitiesBatchForPotentialDuplicate( rule, 200 );
         if ( cuidList == null || cuidList.isEmpty( ) )
         {
             final String error = "No identities having required attributes and not already suspicious found.";
             AppLogService.info( error );
             logs.append( error ).append( "\n" );
+            setLastRunLogs( logs.toString( ) );
             return;
         }
         final String found = cuidList.totalSize( ) + " identities found. Searching for potential duplicates on those...";
         AppLogService.info( found );
         logs.append( found ).append( "\n" );
+        setLastRunLogs( logs.toString( ) );
         int markedSuspicious = 0;
         for ( final List<String> cuids : cuidList )
         {
@@ -159,10 +167,8 @@ public class IdentityDuplicatesDaemon extends Daemon
                     {
                         final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
                         final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
-                        final QualifiedIdentity bestIdentity = processedIdentities.stream( ).max( Comparator.comparing( QualifiedIdentity::getQuality ) )
-                        .orElseThrow( ( ) -> new IdentityStoreException( "Could not find best quality" ) );
                         request.setSuspiciousIdentity( new SuspiciousIdentityDto( ) );
-                        request.getSuspiciousIdentity( ).setCustomerId( bestIdentity.getCustomerId( ) );
+                        request.getSuspiciousIdentity( ).setCustomerId( cuid );
                         request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
                         SuspiciousIdentityService.instance( ).create( request, null, response );
                         markedSuspicious++;
@@ -173,5 +179,6 @@ public class IdentityDuplicatesDaemon extends Daemon
         final String marked = markedSuspicious + " identities have been marked as suspicious.";
         AppLogService.info( marked );
         logs.append( marked ).append( "\n" );
+        setLastRunLogs( logs.toString( ) );
     }
 }

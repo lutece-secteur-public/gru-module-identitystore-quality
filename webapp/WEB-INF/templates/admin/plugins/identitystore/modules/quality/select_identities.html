@@ -146,12 +146,13 @@
                     if ($(this).text().trim().toUpperCase() !== value) {
                         $(this).addClass('non-matching-value');
                     }
-                    if ($(this).text().trim().toUpperCase() === '') {
-                        $(this).text('<!attribut vide!>');
-                    }
                 });
             }
-
+        });
+        $('span[id^="id-"]').each(function() {
+            if ($(this).text().trim().toUpperCase() === '') {
+                $(this).text('<!attribut vide!>');
+            }
         });
     });
 </script>

@@ -44,7 +44,9 @@ import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotF
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummaryDto;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.CertifiedAttribute;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentity;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.admin.AccessDeniedException;
 import fr.paris.lutece.portal.service.message.AdminMessage;
@@ -145,6 +147,9 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     private static final String PARAM_CUID = "cuid";
 
     // Session variable to store working values
+    private final Comparator<QualifiedIdentity> connectedComparator = Comparator.comparing( QualifiedIdentity::isMonParisActive ).reversed( );
+    private final Comparator<QualifiedIdentity> qualityComparator = Comparator.comparingDouble( QualifiedIdentity::getQuality ).reversed( );
+    private final Comparator<QualifiedIdentity> orderingComparator = connectedComparator.thenComparing( qualityComparator );
     private SuspiciousIdentity _suspiciousidentity;
     private List<Integer> _listIdSuspiciousIdentitys;
     private String _currentRuleCode;
@@ -212,6 +217,8 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
                 addInfo( "No suspicous identities found for rule id " + _currentRuleCode );
                 return getDuplicateTypes( request );
             }
+            identities.sort( getAttributeComparator( Constants.PARAM_FAMILY_NAME ).thenComparing( getAttributeComparator( Constants.PARAM_FIRST_NAME ) )
+                    .thenComparing( getAttributeComparator( Constants.PARAM_BIRTH_DATE ) ) );
 
             final List<AttributeKey> pivotAttributes = AttributeKeyHome.getAttributeKeysList( ).stream( ).filter( AttributeKey::getPivot )
                     .collect( Collectors.toList( ) );
@@ -233,6 +240,15 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         model.put( MARK_DUPLICATE_RULE, _currentRule );
 
         return getPage( PROPERTY_PAGE_TITLE_SEARCH_DUPLICATES, TEMPLATE_SEARCH_DUPLICATES, model );
+    }
+
+    private Comparator<QualifiedIdentity> getAttributeComparator( final String attributeKey )
+    {
+        return Comparator.comparing( qualifiedIdentity -> {
+            final CertifiedAttribute attribute = qualifiedIdentity.getAttributes( ).stream( ).filter( attr -> attr.getKey( ).equals( attributeKey ) )
+                    .findFirst( ).orElse( null );
+            return attribute != null ? attribute.getValue( ) : null;
+        } );
     }
 
     /**
@@ -285,7 +301,8 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
             }
             identityList.addAll( duplicateList );
             identityList.add( suspiciousIdentity );
-            identityList.sort( Comparator.comparing( QualifiedIdentity::getQuality ).reversed( ) );
+            /* Order identity list by connected identities, then best quality */
+            identityList.sort( orderingComparator );
         }
         catch( final IdentityStoreException e )
         {
