@@ -55,10 +55,7 @@ import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.time.StopWatch;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -106,8 +103,8 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
                     {
                         /* Get and sort identities to process */
                         final QualifiedIdentity identity = IdentityService.instance( ).getQualifiedIdentity( suspiciousIdentity.getCustomerId( ) );
-                        final DuplicateSearchResponse duplicateSearchResponse = IdentityService.instance( ).findDuplicates( identity,
-                                processedRule.getCode( ) );
+                        final DuplicateSearchResponse duplicateSearchResponse = SearchDuplicatesService.instance( ).findDuplicates( identity,
+                                Collections.singletonList( processedRule.getCode( ) ) );
                         final List<QualifiedIdentity> processedIdentities = new ArrayList<>( duplicateSearchResponse.getIdentities( ) );
                         processedIdentities.add( identity );
 

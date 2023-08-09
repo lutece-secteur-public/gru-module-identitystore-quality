@@ -40,11 +40,13 @@ import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.Excl
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
+import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDuplicatesService;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummaryDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.CertifiedAttribute;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentity;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
@@ -293,13 +295,15 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         try
         {
             _currentRule = DuplicateRuleService.instance( ).get( _currentRuleCode );
-            final List<QualifiedIdentity> duplicateList = IdentityService.instance( ).findDuplicates( suspiciousIdentity, _currentRuleCode ).getIdentities( );
-            if ( CollectionUtils.isEmpty( duplicateList ) )
+            final DuplicateSearchResponse duplicateSearchResponse = SearchDuplicatesService.instance( ).findDuplicates( suspiciousIdentity,
+                    Collections.singletonList( _currentRuleCode ) );
+
+            if ( CollectionUtils.isEmpty( duplicateSearchResponse.getIdentities( ) ) )
             {
                 addError( "No duplicate could be found." );
                 return getDuplicateTypes( request );
             }
-            identityList.addAll( duplicateList );
+            identityList.addAll( duplicateSearchResponse.getIdentities( ) );
             identityList.add( suspiciousIdentity );
             /* Order identity list by connected identities, then best quality */
             identityList.sort( orderingComparator );

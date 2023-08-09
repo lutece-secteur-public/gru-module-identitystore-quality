@@ -52,6 +52,7 @@ import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.time.StopWatch;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -156,7 +157,8 @@ public class IdentityDuplicatesDaemon extends Daemon
             for ( final String cuid : cuids )
             {
                 final QualifiedIdentity identity = IdentityService.instance( ).getQualifiedIdentity( cuid );
-                final DuplicateSearchResponse duplicates = IdentityService.instance( ).findDuplicates( identity, rule.getCode( ) );
+                final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( identity,
+                        Collections.singletonList( rule.getCode( ) ) );
                 final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
                 if ( duplicateCount > 0 )
                 {

@@ -36,10 +36,8 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.rs;
 
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousCreateRequest;
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousExcludeRequest;
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousLockRequest;
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousSearchRequest;
+import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDuplicatesService;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.*;
 import fr.paris.lutece.plugins.identitystore.service.IdentityStoreService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.request.DuplicateRuleGetRequest;
@@ -205,9 +203,9 @@ public class SuspiciousIdentityRest
     {
         try
         {
-            final QualifiedIdentity identity = IdentityService.instance( ).getQualifiedIdentity( customer_id );
-            final DuplicateSearchResponse identities = IdentityService.instance( ).findDuplicates( identity, ruleCode );
-            return Response.status( Response.Status.OK ).entity( identities ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
+            final IdentityStoreFindDuplicatesRequest request = new IdentityStoreFindDuplicatesRequest( strHeaderClientAppCode, ruleCode, customer_id );
+            final DuplicateSearchResponse duplicateSearchResponse = (DuplicateSearchResponse) request.doRequest( );
+            return Response.status( Response.Status.OK ).entity( duplicateSearchResponse ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
         }
         catch( final Exception exception )
         {

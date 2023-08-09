@@ -34,19 +34,16 @@
 
 package fr.paris.lutece.plugins.identitystore.modules.quality.web;
 
-import com.drew.lang.StringUtil;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import fr.paris.lutece.portal.util.mvc.admin.MVCAdminJspBean;
 import fr.paris.lutece.portal.web.util.LocalizedPaginator;
 import fr.paris.lutece.util.html.AbstractPaginator;
 import fr.paris.lutece.util.url.UrlItem;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
-import org.apache.commons.lang3.StringUtils;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * ManageQuality JSP Bean abstract class for JSP Bean
@@ -54,7 +51,6 @@ import javax.servlet.http.HttpServletRequest;
 public abstract class AbstractManageQualityJspBean<S, T> extends MVCAdminJspBean
 {
     // Rights
-    public static final String RIGHT_MANAGEQUALITY = "IDENTITYSTORE_QUALITY_MANAGEMENT";
 
     // Properties
     private static final String PROPERTY_DEFAULT_LIST_ITEM_PER_PAGE = "identitystore-quality.listItems.itemsPerPage";
