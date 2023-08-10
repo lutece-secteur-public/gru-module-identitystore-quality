@@ -66,6 +66,8 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
 {
     private final String clientCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.client.code" );
     private final String authorName = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.author.name" );
+    final String ruleCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.rule.code" );
+    final int limit = AppPropertiesService.getPropertyInt( "daemon.identityDuplicatesResolutionDaemon.suspicious.limite", 1 );
     private int nbIdentitiesMerged = 0;
 
     @Override
@@ -80,8 +82,6 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
         logs.append( startingMessage ).append( "\n" );
 
         nbIdentitiesMerged = 0;
-        final String ruleCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.rule.code" );
-        final int limit = AppPropertiesService.getPropertyInt( "daemon.identityDuplicatesResolutionDaemon.suspicious.limite", 1 );
 
         try
         {
@@ -201,6 +201,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
             request.setOrigin( author );
             request.setPrimaryCuid( primaryIdentity.getCustomerId( ) );
             request.setSecondaryCuid( candidate.getCustomerId( ) );
+            request.setDuplicateRuleCode( ruleCode );
 
             /* Get all attributes of secondary that do not exist in primary */
             final Predicate<CertifiedAttribute> selectNonExistingAttribute = candidateAttribute -> primaryIdentity.getAttributes( ).stream( )

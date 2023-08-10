@@ -249,7 +249,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         return Comparator.comparing( qualifiedIdentity -> {
             final CertifiedAttribute attribute = qualifiedIdentity.getAttributes( ).stream( ).filter( attr -> attr.getKey( ).equals( attributeKey ) )
                     .findFirst( ).orElse( null );
-            return attribute != null ? attribute.getValue( ) : null;
+            return attribute != null ? attribute.getValue( ) : "";
         } );
     }
 
