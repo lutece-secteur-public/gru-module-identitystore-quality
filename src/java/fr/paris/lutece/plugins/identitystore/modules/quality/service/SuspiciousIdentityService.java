@@ -193,7 +193,7 @@ public class SuspiciousIdentityService
 
             if ( SuspiciousIdentityHome.excluded( request.getIdentityCuid1( ), request.getIdentityCuid2( ) ) )
             {
-                response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_CONFLICT );
+                response.setStatus( SuspiciousIdentityExcludeStatus.CONFLICT );
                 response.setMessage( "Identities are already excluded from duplicate suspicions." );
                 return;
             }
@@ -205,7 +205,7 @@ public class SuspiciousIdentityService
             SuspiciousIdentityHome.remove( request.getIdentityCuid1( ) );
             SuspiciousIdentityHome.remove( request.getIdentityCuid2( ) );
 
-            response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_SUCCESS );
+            response.setStatus( SuspiciousIdentityExcludeStatus.SUCCESS );
             response.setMessage( "Identities excluded from duplicate suspicions." );
             // First identity history
             final IdentityChange identityChange1 = IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.EXCLUDED, firstIdentity,
@@ -225,7 +225,59 @@ public class SuspiciousIdentityService
         {
             TransactionManager.rollBack( null );
             response.setMessage( e.getMessage( ) );
-            response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_FAILURE );
+            response.setStatus( SuspiciousIdentityExcludeStatus.FAILURE );
+        }
+    }
+
+    public void cancelExclusion( final SuspiciousIdentityExcludeRequest request, final String clientCode, final SuspiciousIdentityExcludeResponse response )
+            throws IdentityStoreException
+    {
+        TransactionManager.beginTransaction( null );
+        try
+        {
+            final Identity firstIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid1( ) );
+            final Identity secondIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid2( ) );
+
+            if ( firstIdentity == null )
+            {
+                throw new IdentityStoreException( "Cannot find identity with cuid " + request.getIdentityCuid1( ) );
+            }
+
+            if ( secondIdentity == null )
+            {
+                throw new IdentityStoreException( "Cannot find identity with cuid " + request.getIdentityCuid2( ) );
+            }
+
+            if ( !SuspiciousIdentityHome.excluded( request.getIdentityCuid1( ), request.getIdentityCuid2( ) ) )
+            {
+                response.setStatus( SuspiciousIdentityExcludeStatus.CONFLICT );
+                response.setMessage( "Identities are not excluded from duplicate suspicions." );
+                return;
+            }
+
+            // remove the exclusion
+            SuspiciousIdentityHome.removeExcludedIdentities( request.getIdentityCuid1( ), request.getIdentityCuid2( ) );
+            response.setStatus( SuspiciousIdentityExcludeStatus.SUCCESS );
+            response.setMessage( "Identities exclusion has been cancelled." );
+            // First identity history
+            final IdentityChange identityChange1 = IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.EXCLUSION_CANCELLED,
+                    firstIdentity, response.getStatus( ).name( ), response.getMessage( ), request.getOrigin( ), clientCode );
+            identityChange1.getMetadata( ).put( Constants.METADATA_EXCLUDED_CUID_KEY, secondIdentity.getCustomerId( ) );
+            _identityStoreNotifyListenerService.notifyListenersIdentityChange( new IndexIdentityChange( identityChange1, firstIdentity ) );
+            // Second identity history
+            final IdentityChange identityChange2 = IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.EXCLUSION_CANCELLED,
+                    secondIdentity, response.getStatus( ).name( ), response.getMessage( ), request.getOrigin( ), clientCode );
+            identityChange2.getMetadata( ).put( Constants.METADATA_EXCLUDED_CUID_KEY, firstIdentity.getCustomerId( ) );
+            _identityStoreNotifyListenerService.notifyListenersIdentityChange( new IndexIdentityChange( identityChange2, secondIdentity ) );
+            TransactionManager.commitTransaction( null );
+            AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY, EXCLUDE_SUSPICIOUS_IDENTITY_EVENT_CODE,
+                    _internalUserService.getApiUser( request, clientCode ), request, SPECIFIC_ORIGIN );
+        }
+        catch( Exception e )
+        {
+            TransactionManager.rollBack( null );
+            response.setMessage( e.getMessage( ) );
+            response.setStatus( SuspiciousIdentityExcludeStatus.FAILURE );
         }
     }
 

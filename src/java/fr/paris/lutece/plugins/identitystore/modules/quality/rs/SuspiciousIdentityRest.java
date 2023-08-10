@@ -34,11 +34,7 @@
 
 package fr.paris.lutece.plugins.identitystore.modules.quality.rs;
 
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreFindDuplicatesRequest;
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousCreateRequest;
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousExcludeRequest;
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousLockRequest;
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousSearchRequest;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.*;
 import fr.paris.lutece.plugins.identitystore.service.IdentityStoreService;
 import fr.paris.lutece.plugins.identitystore.v3.web.request.DuplicateRuleGetRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.ResponseDto;
@@ -156,6 +152,32 @@ public class SuspiciousIdentityRest
         {
             final String trustedClientCode = IdentityStoreService.getTrustedClientCode( strHeaderClientCode, null );
             final IdentityStoreSuspiciousExcludeRequest request = new IdentityStoreSuspiciousExcludeRequest( suspiciousIdentityExcludeRequest,
+                    trustedClientCode );
+            final SuspiciousIdentityExcludeResponse response = (SuspiciousIdentityExcludeResponse) request.doRequest( );
+            return Response.status( response.getStatus( ).getCode( ) ).entity( response ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
+        }
+        catch( Exception exception )
+        {
+            return getErrorResponse( exception );
+        }
+
+    }
+
+    @POST
+    @Path( Constants.CANCEL_IDENTITIES_EXCLUSION_PATH )
+    @Consumes( MediaType.APPLICATION_JSON )
+    @ApiOperation( value = "Cancel identities exclusion", notes = "Cancel identities exclusion from duplicate suspicions.", response = SuspiciousIdentityExcludeResponse.class )
+    @ApiResponses( value = {
+            @ApiResponse( code = 201, message = "Success" ), @ApiResponse( code = 403, message = "Failure" )
+    } )
+    public Response cancelSuspiciousIdentityExclusion(
+            @ApiParam( name = "Request body", value = "An Identity exclusion cancel request" ) SuspiciousIdentityExcludeRequest suspiciousIdentityExcludeRequest,
+            @ApiParam( name = Constants.PARAM_CLIENT_CODE, value = SwaggerConstants.CLIENT_CLIENT_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_CLIENT_CODE ) final String strHeaderClientCode )
+    {
+        try
+        {
+            final String trustedClientCode = IdentityStoreService.getTrustedClientCode( strHeaderClientCode, null );
+            final IdentityStoreSuspiciousCancelExclusionRequest request = new IdentityStoreSuspiciousCancelExclusionRequest( suspiciousIdentityExcludeRequest,
                     trustedClientCode );
             final SuspiciousIdentityExcludeResponse response = (SuspiciousIdentityExcludeResponse) request.doRequest( );
             return Response.status( response.getStatus( ).getCode( ) ).entity( response ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
