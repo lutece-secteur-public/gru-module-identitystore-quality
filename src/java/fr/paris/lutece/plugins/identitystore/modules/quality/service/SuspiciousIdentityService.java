@@ -130,6 +130,11 @@ public class SuspiciousIdentityService
 
                 response.setSuspiciousIdentity( SuspiciousIdentityMapper.toDto( suspiciousIdentity ) );
                 response.setStatus( IdentityChangeStatus.CREATE_SUCCESS );
+
+                final IdentityChange identityChange = IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.MARKED_SUSPICIOUS, identity,
+                        response.getStatus( ).name( ), response.getMessage( ), request.getOrigin( ), clientCode );
+                identityChange.getMetadata( ).put( Constants.METADATA_DUPLICATE_RULE_CODE, ruleCode );
+                _identityStoreNotifyListenerService.notifyListenersIdentityChange( identityChange );
             }
             TransactionManager.commitTransaction( null );
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_CREATE, CREATE_SUSPICIOUS_IDENTITY_EVENT_CODE,

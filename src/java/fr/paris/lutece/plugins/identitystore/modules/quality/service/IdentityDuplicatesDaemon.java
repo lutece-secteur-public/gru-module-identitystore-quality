@@ -40,6 +40,8 @@ import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotF
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.utils.Batch;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AuthorType;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.RequestAuthor;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityDto;
@@ -48,7 +50,9 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdent
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.daemon.Daemon;
 import fr.paris.lutece.portal.service.util.AppLogService;
+import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.time.StopWatch;
 
@@ -66,6 +70,9 @@ import java.util.stream.Collectors;
  */
 public class IdentityDuplicatesDaemon extends Daemon
 {
+    private final String authorName = AppPropertiesService.getProperty( "daemon.identityDuplicatesDaemon.author.name" );
+    private final String clientCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesDaemon.client.code" );
+
     /**
      * {@inheritDoc}
      */
@@ -74,6 +81,7 @@ public class IdentityDuplicatesDaemon extends Daemon
     {
         final StopWatch stopWatch = new StopWatch( );
         stopWatch.start( );
+        final RequestAuthor author = this.buildAuthor( stopWatch.getStartTime( ) );
         final StringBuilder logs = new StringBuilder( );
         final String startingMessage = "Starting IdentityDuplicatesDaemon...";
         AppLogService.info( startingMessage );
@@ -111,7 +119,7 @@ public class IdentityDuplicatesDaemon extends Daemon
         {
             try
             {
-                this.search( rule, logs );
+                this.search( rule, logs, author );
             }
             catch( IdentityStoreException e )
             {
@@ -138,7 +146,7 @@ public class IdentityDuplicatesDaemon extends Daemon
      * @param rule
      *            the rule used to search duplicates
      */
-    private void search( final DuplicateRule rule, final StringBuilder logs ) throws IdentityStoreException
+    private void search( final DuplicateRule rule, final StringBuilder logs, final RequestAuthor author ) throws IdentityStoreException
     {
         final String processing = "-- Processing Rule id = [" + rule.getId( ) + "] code = [" + rule.getCode( ) + "] priority = [" + rule.getPriority( )
                 + "] ...";
@@ -179,7 +187,8 @@ public class IdentityDuplicatesDaemon extends Daemon
                         request.setSuspiciousIdentity( new SuspiciousIdentityDto( ) );
                         request.getSuspiciousIdentity( ).setCustomerId( cuid );
                         request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
-                        SuspiciousIdentityService.instance( ).create( request, null, response );
+                        request.setOrigin( author );
+                        SuspiciousIdentityService.instance( ).create( request, clientCode, response );
                         markedSuspicious++;
                     }
                 }
@@ -189,5 +198,13 @@ public class IdentityDuplicatesDaemon extends Daemon
         AppLogService.info( marked );
         logs.append( marked ).append( "\n" );
         setLastRunLogs( logs.toString( ) );
+    }
+
+    private RequestAuthor buildAuthor( long time )
+    {
+        final RequestAuthor author = new RequestAuthor( );
+        author.setType( AuthorType.application );
+        author.setName( authorName + DateFormatUtils.ISO_8601_EXTENDED_DATETIME_FORMAT.format( time ) );
+        return author;
     }
 }
