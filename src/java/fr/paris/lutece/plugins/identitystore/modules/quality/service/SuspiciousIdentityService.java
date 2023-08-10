@@ -46,10 +46,12 @@ import fr.paris.lutece.plugins.identitystore.service.indexer.elastic.index.liste
 import fr.paris.lutece.plugins.identitystore.service.listeners.IdentityStoreNotifyListenerService;
 import fr.paris.lutece.plugins.identitystore.service.user.InternalUserService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.*;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.history.IdentityChange;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.history.IdentityChangeType;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockStatus;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.security.AccessLogService;
 import fr.paris.lutece.portal.service.security.AccessLoggerConstants;
@@ -189,6 +191,13 @@ public class SuspiciousIdentityService
                 throw new IdentityStoreException( "Cannot find identity with cuid " + request.getIdentityCuid2( ) );
             }
 
+            if ( SuspiciousIdentityHome.excluded( request.getIdentityCuid1( ), request.getIdentityCuid2( ) ) )
+            {
+                response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_CONFLICT );
+                response.setMessage( "Identities are already excluded from duplicate suspicions." );
+                return;
+            }
+
             // flag the 2 identities: manage the list of identities to exclude (supposed to be a field at the identity level)
             SuspiciousIdentityHome.exclude( request.getIdentityCuid1( ), request.getIdentityCuid2( ), request.getOrigin( ).getType( ).name( ),
                     request.getOrigin( ).getName( ) );
@@ -198,18 +207,16 @@ public class SuspiciousIdentityService
 
             response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_SUCCESS );
             response.setMessage( "Identities excluded from duplicate suspicions." );
-            // CUID 1 history
-            final IndexIdentityChange identityChange1 = new IndexIdentityChange(
-                    IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.CREATE, firstIdentity, response.getStatus( ).name( ),
-                            response.getMessage( ), request.getOrigin( ), clientCode ),
-                    firstIdentity );
-            _identityStoreNotifyListenerService.notifyListenersIdentityChange( identityChange1 );
-            // CUID 2 history
-            final IndexIdentityChange identityChange2 = new IndexIdentityChange(
-                    IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.CREATE, secondIdentity, response.getStatus( ).name( ),
-                            response.getMessage( ), request.getOrigin( ), clientCode ),
-                    secondIdentity );
-            _identityStoreNotifyListenerService.notifyListenersIdentityChange( identityChange2 );
+            // First identity history
+            final IdentityChange identityChange1 = IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.EXCLUDED, firstIdentity,
+                    response.getStatus( ).name( ), response.getMessage( ), request.getOrigin( ), clientCode );
+            identityChange1.getMetadata( ).put( Constants.METADATA_EXCLUDED_CUID_KEY, secondIdentity.getCustomerId( ) );
+            _identityStoreNotifyListenerService.notifyListenersIdentityChange( new IndexIdentityChange( identityChange1, firstIdentity ) );
+            // Second identity history
+            final IdentityChange identityChange2 = IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.EXCLUDED, secondIdentity,
+                    response.getStatus( ).name( ), response.getMessage( ), request.getOrigin( ), clientCode );
+            identityChange2.getMetadata( ).put( Constants.METADATA_EXCLUDED_CUID_KEY, firstIdentity.getCustomerId( ) );
+            _identityStoreNotifyListenerService.notifyListenersIdentityChange( new IndexIdentityChange( identityChange2, secondIdentity ) );
             TransactionManager.commitTransaction( null );
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY, EXCLUDE_SUSPICIOUS_IDENTITY_EVENT_CODE,
                     _internalUserService.getApiUser( request, clientCode ), request, SPECIFIC_ORIGIN );
