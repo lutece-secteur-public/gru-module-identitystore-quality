@@ -42,8 +42,11 @@ import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.modules.quality.rs.SuspiciousIdentityMapper;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
+import fr.paris.lutece.plugins.identitystore.service.indexer.elastic.index.listener.IndexIdentityChange;
+import fr.paris.lutece.plugins.identitystore.service.listeners.IdentityStoreNotifyListenerService;
 import fr.paris.lutece.plugins.identitystore.service.user.InternalUserService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.*;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.history.IdentityChangeType;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockStatus;
@@ -67,6 +70,7 @@ public class SuspiciousIdentityService
 
     // SERVICES
     private final String externalDeclarationRuleCode = AppPropertiesService.getProperty( "identitystore-quality.external.duplicates.rule.code" );
+    private final IdentityStoreNotifyListenerService _identityStoreNotifyListenerService = IdentityStoreNotifyListenerService.instance( );
     private final InternalUserService _internalUserService = InternalUserService.getInstance( );
     private static SuspiciousIdentityService _instance;
 
@@ -167,10 +171,24 @@ public class SuspiciousIdentityService
     }
 
     public void exclude( final SuspiciousIdentityExcludeRequest request, final String clientCode, final SuspiciousIdentityExcludeResponse response )
+            throws IdentityStoreException
     {
         TransactionManager.beginTransaction( null );
         try
         {
+            final Identity firstIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid1( ) );
+            final Identity secondIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid2( ) );
+
+            if ( firstIdentity == null )
+            {
+                throw new IdentityStoreException( "Cannot find identity with cuid " + request.getIdentityCuid1( ) );
+            }
+
+            if ( secondIdentity == null )
+            {
+                throw new IdentityStoreException( "Cannot find identity with cuid " + request.getIdentityCuid2( ) );
+            }
+
             // flag the 2 identities: manage the list of identities to exclude (supposed to be a field at the identity level)
             SuspiciousIdentityHome.exclude( request.getIdentityCuid1( ), request.getIdentityCuid2( ), request.getOrigin( ).getType( ).name( ),
                     request.getOrigin( ).getName( ) );
@@ -180,6 +198,18 @@ public class SuspiciousIdentityService
 
             response.setStatus( SuspiciousIdentityExcludeStatus.EXCLUDE_SUCCESS );
             response.setMessage( "Identities excluded from duplicate suspicions." );
+            // CUID 1 history
+            final IndexIdentityChange identityChange1 = new IndexIdentityChange(
+                    IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.CREATE, firstIdentity, response.getStatus( ).name( ),
+                            response.getMessage( ), request.getOrigin( ), clientCode ),
+                    firstIdentity );
+            _identityStoreNotifyListenerService.notifyListenersIdentityChange( identityChange1 );
+            // CUID 2 history
+            final IndexIdentityChange identityChange2 = new IndexIdentityChange(
+                    IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.CREATE, secondIdentity, response.getStatus( ).name( ),
+                            response.getMessage( ), request.getOrigin( ), clientCode ),
+                    secondIdentity );
+            _identityStoreNotifyListenerService.notifyListenersIdentityChange( identityChange2 );
             TransactionManager.commitTransaction( null );
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY, EXCLUDE_SUSPICIOUS_IDENTITY_EVENT_CODE,
                     _internalUserService.getApiUser( request, clientCode ), request, SPECIFIC_ORIGIN );
