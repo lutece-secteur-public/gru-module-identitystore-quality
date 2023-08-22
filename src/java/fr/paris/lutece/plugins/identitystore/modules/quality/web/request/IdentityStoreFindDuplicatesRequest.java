@@ -58,7 +58,7 @@ public class IdentityStoreFindDuplicatesRequest extends AbstractSuspiciousIdenti
     @Override
     protected void validRequest( ) throws IdentityStoreException
     {
-        SuspiciousIdentityRequestValidator.instance( ).checkClientApplication( _strClientCode );
+        SuspiciousIdentityRequestValidator.instance( ).checkClientCode( _strClientCode );
         SuspiciousIdentityRequestValidator.instance( ).checkCustomerId( _strCustomerId );
     }
 

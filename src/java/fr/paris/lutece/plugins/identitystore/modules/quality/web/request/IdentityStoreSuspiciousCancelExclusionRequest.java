@@ -61,7 +61,7 @@ public class IdentityStoreSuspiciousCancelExclusionRequest extends AbstractSuspi
     @Override
     protected void validRequest( ) throws IdentityStoreException
     {
-        SuspiciousIdentityRequestValidator.instance( ).checkClientApplication( _strClientCode );
+        SuspiciousIdentityRequestValidator.instance( ).checkClientCode( _strClientCode );
         SuspiciousIdentityRequestValidator.instance( ).checkSuspiciousIdentityChange( _suspiciousIdentityExcludeRequest );
     }
 

@@ -63,7 +63,7 @@ public class IdentityStoreSuspiciousCreateRequest extends AbstractSuspiciousIden
     @Override
     protected void validRequest( ) throws IdentityStoreException
     {
-        SuspiciousIdentityRequestValidator.instance( ).checkClientApplication( _strClientCode );
+        SuspiciousIdentityRequestValidator.instance( ).checkClientCode( _strClientCode );
         SuspiciousIdentityRequestValidator.instance( ).checkSuspiciousIdentityChange( _suspiciousIdentityChangeRequest );
         SuspiciousIdentityRequestValidator.instance( ).checkCustomerId( _suspiciousIdentityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) );
     }
