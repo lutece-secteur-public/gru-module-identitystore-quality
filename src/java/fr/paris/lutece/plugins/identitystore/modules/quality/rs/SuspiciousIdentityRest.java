@@ -34,10 +34,14 @@
 
 package fr.paris.lutece.plugins.identitystore.modules.quality.rs;
 
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.*;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreFindDuplicatesRequest;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousCancelExclusionRequest;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousCreateRequest;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousExcludeRequest;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousLockRequest;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousSearchRequest;
 import fr.paris.lutece.plugins.identitystore.service.IdentityStoreService;
 import fr.paris.lutece.plugins.identitystore.v3.web.request.DuplicateRuleGetRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.ResponseDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeRequest;
@@ -45,6 +49,8 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdenti
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummarySearchResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.error.ErrorResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.error.ErrorStatusType;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.swagger.SwaggerConstants;
@@ -282,7 +288,7 @@ public class SuspiciousIdentityRest
     {
         // For security purpose, send a generic message
         String strMessage;
-        Response.StatusType status;
+        Response.Status status;
 
         AppLogService.error( "IdentityQualityRestService getErrorResponse : " + exception, exception );
 
@@ -309,10 +315,10 @@ public class SuspiciousIdentityRest
      *            the status
      * @return the {@code Response} object
      */
-    private Response buildResponse( final String strMessage, final Response.StatusType status )
+    private Response buildResponse( final String strMessage, final Response.Status status )
     {
-        final ResponseDto response = new ResponseDto( );
-        response.setStatus( status.toString( ) );
+        final ErrorResponse response = new ErrorResponse( );
+        response.setStatus( ErrorStatusType.valueOf( status.name( ) ) );
         response.setMessage( strMessage );
         return Response.status( status ).type( MediaType.APPLICATION_JSON ).entity( response ).build( );
     }
