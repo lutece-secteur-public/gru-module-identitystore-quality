@@ -41,7 +41,6 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdenti
  */
 public class SuspiciousIdentityMapper
 {
-
     public static SuspiciousIdentityDto toDto( final SuspiciousIdentity suspiciousIdentity )
     {
         if ( suspiciousIdentity == null )
@@ -53,6 +52,7 @@ public class SuspiciousIdentityMapper
         dto.setCustomerId( suspiciousIdentity.getCustomerId( ) );
         dto.setLastUpdateDate( suspiciousIdentity.getLastUpdateDate( ) );
         dto.setDuplicationRuleCode( suspiciousIdentity.getDuplicateRuleCode( ) );
+        dto.getMetadata( ).putAll( suspiciousIdentity.getMetadata( ) );
         return dto;
     }
 

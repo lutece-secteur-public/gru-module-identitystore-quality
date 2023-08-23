@@ -35,6 +35,7 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.business;
 
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
+import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.test.LuteceTestCase;
 
 import java.util.Optional;
@@ -50,7 +51,7 @@ public class SuspiciousIdentityBusinessTest extends LuteceTestCase
     /**
      * test SuspiciousIdentity
      */
-    public void testBusiness( )
+    public void testBusiness( ) throws IdentityStoreException
     {
         // Initialize an object
         SuspiciousIdentity suspiciousIdentity = new SuspiciousIdentity( );

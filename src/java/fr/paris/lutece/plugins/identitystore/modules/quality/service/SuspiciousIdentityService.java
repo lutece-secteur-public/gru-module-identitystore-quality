@@ -61,7 +61,9 @@ import fr.paris.lutece.util.sql.TransactionManager;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class SuspiciousIdentityService
 {
@@ -136,6 +138,7 @@ public class SuspiciousIdentityService
 
                 final IdentityChange identityChange = IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.MARKED_SUSPICIOUS, identity,
                         response.getStatus( ).name( ), response.getMessage( ), request.getOrigin( ), clientCode );
+                identityChange.getMetadata( ).putAll( request.getSuspiciousIdentity( ).getMetadata( ) );
                 identityChange.getMetadata( ).put( Constants.METADATA_DUPLICATE_RULE_CODE, ruleCode );
                 _identityStoreNotifyListenerService.notifyListenersIdentityChange( identityChange );
             }
@@ -149,6 +152,25 @@ public class SuspiciousIdentityService
             response.setStatus( IdentityChangeStatus.FAILURE );
             response.setI18nMessageKey( Constants.PROPERTY_REST_ERROR_DURING_TREATMENT );
             response.setMessage( e.getMessage( ) );
+        }
+    }
+
+    public void search( final SuspiciousIdentitySearchRequest request, String clientCode, int max, final SuspiciousIdentitySearchResponse response )
+            throws IdentityStoreException
+    {
+        // TODO check if the application has the right to search a suspicious identity
+        final List<SuspiciousIdentity> suspiciousIdentitysList = SuspiciousIdentityHome.getSuspiciousIdentitysList( request.getRuleCode( ),
+                request.getAttributes( ), max, request.getRulePriority( ) );
+
+        if ( suspiciousIdentitysList == null || suspiciousIdentitysList.isEmpty( ) )
+        {
+            response.setStatus( SuspiciousIdentitySearchStatusType.NOT_FOUND );
+            response.setSuspiciousIdentities( Collections.emptyList( ) );
+        }
+        else
+        {
+            response.setStatus( SuspiciousIdentitySearchStatusType.SUCCESS );
+            response.setSuspiciousIdentities( suspiciousIdentitysList.stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) ) );
         }
     }
 

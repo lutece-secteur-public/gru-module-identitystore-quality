@@ -33,19 +33,11 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
-import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
-import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
-import fr.paris.lutece.plugins.identitystore.modules.quality.rs.SuspiciousIdentityMapper;
+import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchStatusType;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class IdentityStoreSuspiciousSearchRequest extends AbstractSuspiciousIdentityStoreRequest
 {
@@ -74,35 +66,17 @@ public class IdentityStoreSuspiciousSearchRequest extends AbstractSuspiciousIden
     }
 
     @Override
-    protected SuspiciousIdentitySearchResponse doSpecificRequest( )
+    protected SuspiciousIdentitySearchResponse doSpecificRequest( ) throws IdentityStoreException
     {
-        final List<SuspiciousIdentity> suspiciousIdentitysList = SuspiciousIdentityHome.getSuspiciousIdentitysList( _request.getRuleCode( ),
-                _request.getAttributes( ), max, _request.getRulePriority( ) );
+        final SuspiciousIdentitySearchResponse response = new SuspiciousIdentitySearchResponse( );
+        SuspiciousIdentityService.instance( ).search( _request, _strClientCode, max, response );
 
-        final SuspiciousIdentitySearchResponse searchResponse = new SuspiciousIdentitySearchResponse( );
-        if ( suspiciousIdentitysList == null || suspiciousIdentitysList.isEmpty( ) )
+        if ( page != null && size != null )
         {
-            searchResponse.setStatus( SuspiciousIdentitySearchStatusType.NOT_FOUND );
-            searchResponse.setI18nMessageKey( Constants.PROPERTY_REST_ERROR_NO_SUSPICIOUS_IDENTITY_FOUND );
-            searchResponse.setSuspiciousIdentities( Collections.emptyList( ) );
+            int start = page * size;
+            int end = Math.min( start + size, response.getSuspiciousIdentities( ).size( ) );
+            response.setSuspiciousIdentities( response.getSuspiciousIdentities( ).subList( start, end ) );
         }
-        else
-        {
-            searchResponse.setStatus( SuspiciousIdentitySearchStatusType.SUCCESS );
-            searchResponse.setI18nMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION );
-            if ( page != null && size != null )
-            {
-                int start = page * size;
-                int end = Math.min( start + size, suspiciousIdentitysList.size( ) );
-                searchResponse.setSuspiciousIdentities(
-                        suspiciousIdentitysList.subList( start, end ).stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) ) );
-            }
-            else
-            {
-                searchResponse
-                        .setSuspiciousIdentities( suspiciousIdentitysList.stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) ) );
-            }
-        }
-        return searchResponse;
+        return response;
     }
 }

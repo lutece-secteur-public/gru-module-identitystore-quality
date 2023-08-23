@@ -187,6 +187,7 @@ public class IdentityDuplicatesDaemon extends Daemon
                         request.setSuspiciousIdentity( new SuspiciousIdentityDto( ) );
                         request.getSuspiciousIdentity( ).setCustomerId( cuid );
                         request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
+                        request.getSuspiciousIdentity( ).getMetadata( ).putAll( duplicates.getMetadata( ) );
                         request.setOrigin( author );
                         SuspiciousIdentityService.instance( ).create( request, clientCode, response );
                         markedSuspicious++;
