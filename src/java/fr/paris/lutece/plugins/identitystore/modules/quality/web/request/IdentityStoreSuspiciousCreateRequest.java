@@ -39,6 +39,7 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequest
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.IdentityChangeStatus;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 
 /**
@@ -77,6 +78,7 @@ public class IdentityStoreSuspiciousCreateRequest extends AbstractSuspiciousIden
         {
             response.setStatus( IdentityChangeStatus.CONFLICT );
             response.setMessage( "already reported" );
+            response.setI18nMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_ALREADY_SUSPICIOUS );
             return response;
         }
 

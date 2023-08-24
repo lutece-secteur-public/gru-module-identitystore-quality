@@ -40,6 +40,7 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequest
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchStatusType;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 
 import java.util.Collections;
@@ -82,11 +83,13 @@ public class IdentityStoreSuspiciousSearchRequest extends AbstractSuspiciousIden
         if ( suspiciousIdentitysList == null || suspiciousIdentitysList.isEmpty( ) )
         {
             searchResponse.setStatus( SuspiciousIdentitySearchStatusType.NOT_FOUND );
+            searchResponse.setI18nMessageKey( Constants.PROPERTY_REST_ERROR_NO_SUSPICIOUS_IDENTITY_FOUND );
             searchResponse.setSuspiciousIdentities( Collections.emptyList( ) );
         }
         else
         {
             searchResponse.setStatus( SuspiciousIdentitySearchStatusType.SUCCESS );
+            searchResponse.setI18nMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION );
             if ( page != null && size != null )
             {
                 int start = page * size;
