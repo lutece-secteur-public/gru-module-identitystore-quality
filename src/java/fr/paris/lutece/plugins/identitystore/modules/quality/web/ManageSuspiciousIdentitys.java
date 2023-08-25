@@ -44,10 +44,11 @@ import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDupli
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.QualityDefinition;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummaryDto;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.CertifiedAttribute;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentity;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.admin.AccessDeniedException;
@@ -149,9 +150,9 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     private static final String PARAM_CUID = "cuid";
 
     // Session variable to store working values
-    private final Comparator<QualifiedIdentity> connectedComparator = Comparator.comparing( QualifiedIdentity::isMonParisActive ).reversed( );
-    private final Comparator<QualifiedIdentity> qualityComparator = Comparator.comparingDouble( QualifiedIdentity::getQuality ).reversed( );
-    private final Comparator<QualifiedIdentity> orderingComparator = connectedComparator.thenComparing( qualityComparator );
+    private final Comparator<IdentityDto> connectedComparator = Comparator.comparing( IdentityDto::isMonParisActive ).reversed( );
+    private final Comparator<QualityDefinition> qualityComparator = Comparator.comparingDouble( QualityDefinition::getQuality ).reversed( );
+    private final Comparator<IdentityDto> orderingComparator = connectedComparator.thenComparing( IdentityDto::getQuality, qualityComparator );
     private SuspiciousIdentity _suspiciousidentity;
     private List<Integer> _listIdSuspiciousIdentitys;
     private String _currentRuleCode;
@@ -202,13 +203,13 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
             return getDuplicateTypes( request );
         }
 
-        final List<QualifiedIdentity> identities = new ArrayList<>( );
+        final List<IdentityDto> identities = new ArrayList<>( );
         final List<AttributeKey> readableAttributes = new ArrayList<>( );
         try
         {
             _currentRule = DuplicateRuleService.instance( ).get( _currentRuleCode );
             final List<String> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentityCuidsList( _currentRuleCode );
-            final List<QualifiedIdentity> qualifiedIdentityList = new ArrayList<>( );
+            final List<IdentityDto> qualifiedIdentityList = new ArrayList<>( );
             for ( final String cuid : listSuspiciousIdentities )
             {
                 qualifiedIdentityList.add( IdentityService.instance( ).getQualifiedIdentity( cuid ) );
@@ -244,11 +245,11 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         return getPage( PROPERTY_PAGE_TITLE_SEARCH_DUPLICATES, TEMPLATE_SEARCH_DUPLICATES, model );
     }
 
-    private Comparator<QualifiedIdentity> getAttributeComparator( final String attributeKey )
+    private Comparator<IdentityDto> getAttributeComparator( final String attributeKey )
     {
         return Comparator.comparing( qualifiedIdentity -> {
-            final CertifiedAttribute attribute = qualifiedIdentity.getAttributes( ).stream( ).filter( attr -> attr.getKey( ).equals( attributeKey ) )
-                    .findFirst( ).orElse( null );
+            final AttributeDto attribute = qualifiedIdentity.getAttributes( ).stream( ).filter( attr -> attr.getKey( ).equals( attributeKey ) ).findFirst( )
+                    .orElse( null );
             return attribute != null ? attribute.getValue( ) : "";
         } );
     }
@@ -263,7 +264,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     public String getSelectIdentities( final HttpServletRequest request )
     {
         _currentRule = null;
-        final QualifiedIdentity suspiciousIdentity;
+        final IdentityDto suspiciousIdentity;
         final List<AttributeKey> readableAttributes = new ArrayList<>( );
         try
         {
@@ -291,7 +292,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
             return getDuplicateTypes( request );
         }
 
-        final List<QualifiedIdentity> identityList = new ArrayList<>( );
+        final List<IdentityDto> identityList = new ArrayList<>( );
         try
         {
             _currentRule = DuplicateRuleService.instance( ).get( _currentRuleCode );
@@ -356,9 +357,9 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     @View( value = VIEW_DISPLAY_EXCLUDED_IDENTITIES )
     public String getDisplayExcludedIdentities( final HttpServletRequest request )
     {
-        final QualifiedIdentity firstIdentity;
-        final QualifiedIdentity secondIdentity;
-        final List<QualifiedIdentity> identities = new ArrayList<>( );
+        final IdentityDto firstIdentity;
+        final IdentityDto secondIdentity;
+        final List<IdentityDto> identities = new ArrayList<>( );
         final List<AttributeKey> readableAttributes = new ArrayList<>( );
         String firstCustomerId;
         String secondCustomerId;

@@ -39,14 +39,10 @@ import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateR
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AuthorType;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.RequestAuthor;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.Identity;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.*;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.merge.IdentityMergeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.merge.IdentityMergeResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.CertifiedAttribute;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentity;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.daemon.Daemon;
 import fr.paris.lutece.portal.service.util.AppLogService;
@@ -102,18 +98,19 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
                     if ( suspiciousIdentity.getLock( ) == null || !suspiciousIdentity.getLock( ).isLocked( ) )
                     {
                         /* Get and sort identities to process */
-                        final QualifiedIdentity identity = IdentityService.instance( ).getQualifiedIdentity( suspiciousIdentity.getCustomerId( ) );
+                        final IdentityDto identity = IdentityService.instance( ).getQualifiedIdentity( suspiciousIdentity.getCustomerId( ) );
                         final DuplicateSearchResponse duplicateSearchResponse = SearchDuplicatesService.instance( ).findDuplicates( identity,
                                 Collections.singletonList( processedRule.getCode( ) ) );
-                        final List<QualifiedIdentity> processedIdentities = new ArrayList<>( duplicateSearchResponse.getIdentities( ) );
+                        final List<IdentityDto> processedIdentities = new ArrayList<>( duplicateSearchResponse.getIdentities( ) );
                         processedIdentities.add( identity );
 
                         if ( processedIdentities.size( ) >= 2 )
                         {
                             /* Order identity list by connected identities, then best quality */
-                            final Comparator<QualifiedIdentity> connectedComparator = Comparator.comparing( QualifiedIdentity::isMonParisActive ).reversed( );
-                            final Comparator<QualifiedIdentity> qualityComparator = Comparator.comparingDouble( QualifiedIdentity::getQuality ).reversed( );
-                            final Comparator<QualifiedIdentity> orderingComparator = connectedComparator.thenComparing( qualityComparator );
+                            final Comparator<IdentityDto> connectedComparator = Comparator.comparing( IdentityDto::isMonParisActive ).reversed( );
+                            final Comparator<QualityDefinition> qualityComparator = Comparator.comparingDouble( QualityDefinition::getQuality ).reversed( );
+                            final Comparator<IdentityDto> orderingComparator = connectedComparator.thenComparing( IdentityDto::getQuality, qualityComparator );
+
                             processedIdentities.sort( orderingComparator );
 
                             final String log = "Found " + processedIdentities.size( ) + " to process";
@@ -121,12 +118,12 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
                             logs.append( log ).append( "\n" );
 
                             /* The first identity of the list is the base identity */
-                            final QualifiedIdentity primaryIdentity = processedIdentities.get( 0 );
+                            final IdentityDto primaryIdentity = processedIdentities.get( 0 );
                             processedIdentities.remove( 0 );
 
                             /* Then find the first identity in the list that is not connected */
                             /* Try to merge */
-                            for ( final QualifiedIdentity candidate : processedIdentities )
+                            for ( final IdentityDto candidate : processedIdentities )
                             {
                                 logs.append( this.merge( primaryIdentity, candidate, suspiciousIdentity.getCustomerId( ), author ) );
                             }
@@ -184,8 +181,8 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
         return author;
     }
 
-    private String merge( final QualifiedIdentity primaryIdentity, final QualifiedIdentity candidate, final String suspiciousCustomerId,
-            final RequestAuthor author ) throws IdentityStoreException
+    private String merge( final IdentityDto primaryIdentity, final IdentityDto candidate, final String suspiciousCustomerId, final RequestAuthor author )
+            throws IdentityStoreException
     {
         final StringBuilder logs = new StringBuilder( );
         /* Cannot merge connected identity */
@@ -204,39 +201,38 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
             request.setDuplicateRuleCode( ruleCode );
 
             /* Get all attributes of secondary that do not exist in primary */
-            final Predicate<CertifiedAttribute> selectNonExistingAttribute = candidateAttribute -> primaryIdentity.getAttributes( ).stream( )
+            final Predicate<AttributeDto> selectNonExistingAttribute = candidateAttribute -> primaryIdentity.getAttributes( ).stream( )
                     .noneMatch( primaryAttribute -> Objects.equals( primaryAttribute.getKey( ), candidateAttribute.getKey( ) ) );
-            final List<CertifiedAttribute> attributesToCreate = candidate.getAttributes( ).stream( ).filter( selectNonExistingAttribute )
+            final List<AttributeDto> attributesToCreate = candidate.getAttributes( ).stream( ).filter( selectNonExistingAttribute )
                     .collect( Collectors.toList( ) );
             if ( !attributesToCreate.isEmpty( ) )
             {
-                final String log = "Attribute list to create "
-                        + attributesToCreate.stream( ).map( CertifiedAttribute::getKey ).collect( Collectors.joining( "," ) );
+                final String log = "Attribute list to create " + attributesToCreate.stream( ).map( AttributeDto::getKey ).collect( Collectors.joining( "," ) );
                 AppLogService.info( log );
                 logs.append( log ).append( "\n" );
             }
 
             /* Get all attributes of secondary that exist with higher certificate */
-            final Predicate<CertifiedAttribute> selectAttributesToOverride = candidateAttribute -> primaryIdentity.getAttributes( ).stream( )
+            final Predicate<AttributeDto> selectAttributesToOverride = candidateAttribute -> primaryIdentity.getAttributes( ).stream( )
                     .anyMatch( primaryAttribute -> primaryAttribute.getKey( ).equals( candidateAttribute.getKey( ) )
                             && primaryAttribute.getValue( ).equalsIgnoreCase( candidateAttribute.getValue( ) )
                             && primaryAttribute.getCertificationLevel( ) < candidateAttribute.getCertificationLevel( ) );
-            final List<CertifiedAttribute> attributesToOverride = candidate.getAttributes( ).stream( ).filter( selectAttributesToOverride )
+            final List<AttributeDto> attributesToOverride = candidate.getAttributes( ).stream( ).filter( selectAttributesToOverride )
                     .collect( Collectors.toList( ) );
             if ( !attributesToOverride.isEmpty( ) )
             {
                 final String log = "Attribute list to create "
-                        + attributesToOverride.stream( ).map( CertifiedAttribute::getKey ).collect( Collectors.joining( "," ) );
+                        + attributesToOverride.stream( ).map( AttributeDto::getKey ).collect( Collectors.joining( "," ) );
                 AppLogService.info( log );
                 logs.append( log ).append( "\n" );
             }
 
             if ( !attributesToCreate.isEmpty( ) || !attributesToOverride.isEmpty( ) )
             {
-                final Identity identity = new Identity( );
+                final IdentityDto identity = new IdentityDto( );
                 request.setIdentity( identity );
-                identity.getAttributes( ).addAll( this.convertAttributeList( attributesToCreate ) );
-                identity.getAttributes( ).addAll( this.convertAttributeList( attributesToOverride ) );
+                identity.getAttributes( ).addAll( attributesToCreate );
+                identity.getAttributes( ).addAll( attributesToOverride );
             }
             final IdentityMergeResponse response = new IdentityMergeResponse( );
             IdentityService.instance( ).merge( request, clientCode, response );
@@ -260,7 +256,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
         return logs.toString( );
     }
 
-    private boolean canMerge( final QualifiedIdentity primaryIdentity, final QualifiedIdentity candidate )
+    private boolean canMerge( final IdentityDto primaryIdentity, final IdentityDto candidate )
     {
         if ( candidate.isMonParisActive( ) )
         {
@@ -269,24 +265,11 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
         return isStrictDuplicate( primaryIdentity, candidate );
     }
 
-    private boolean isStrictDuplicate( final QualifiedIdentity primaryIdentity, final QualifiedIdentity candidate )
+    private boolean isStrictDuplicate( final IdentityDto primaryIdentity, final IdentityDto candidate )
     {
-        final Predicate<CertifiedAttribute> selectNotEqualAttributes = primaryAttribute -> candidate.getAttributes( ).stream( )
+        final Predicate<AttributeDto> selectNotEqualAttributes = primaryAttribute -> candidate.getAttributes( ).stream( )
                 .anyMatch( candidateAttribute -> candidateAttribute.getKey( ).equals( primaryAttribute.getKey( ) )
                         && !candidateAttribute.getValue( ).equalsIgnoreCase( primaryAttribute.getValue( ) ) );
         return primaryIdentity.getAttributes( ).stream( ).noneMatch( selectNotEqualAttributes );
-    }
-
-    private List<fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.CertifiedAttribute> convertAttributeList(
-            List<CertifiedAttribute> attributesToOverride )
-    {
-        return attributesToOverride.stream( ).map( attributeToOverride -> {
-            final fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.CertifiedAttribute requestAttribute = new fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.CertifiedAttribute( );
-            requestAttribute.setKey( attributeToOverride.getKey( ) );
-            requestAttribute.setValue( attributeToOverride.getValue( ) );
-            requestAttribute.setCertificationProcess( attributeToOverride.getCertifier( ) );
-            requestAttribute.setCertificationDate( attributeToOverride.getCertificationDate( ) );
-            return requestAttribute;
-        } ).collect( Collectors.toList( ) );
     }
 }

@@ -37,7 +37,7 @@ import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDupli
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentity;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 
 import java.util.Collections;
@@ -65,7 +65,7 @@ public class IdentityStoreFindDuplicatesRequest extends AbstractSuspiciousIdenti
     @Override
     protected DuplicateSearchResponse doSpecificRequest( ) throws IdentityStoreException
     {
-        final QualifiedIdentity identity = IdentityService.instance( ).getQualifiedIdentity( _strCustomerId );
+        final IdentityDto identity = IdentityService.instance( ).getQualifiedIdentity( _strCustomerId );
         return SearchDuplicatesService.instance( ).findDuplicates( identity, Collections.singletonList( _strRuleCode ) );
     }
 }

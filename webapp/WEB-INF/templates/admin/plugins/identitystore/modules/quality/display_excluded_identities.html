@@ -37,7 +37,7 @@
                     <#list identity_list as identity>
                         <th class="fw-normal">
                             <div class="col-12">#i18n{module.identitystore.quality.select_identities.identity} ${count}</div>
-                            <div class="col-12"><span class="quality-span">${identity.quality}</span> %</div>
+                            <div class="col-12"><span class="quality-span">${identity.quality.quality}</span> %</div>
                             <#if identity.monParisActive >
                                 <span class="badge mon-paris-badge">MON PARIS</span>
                             </#if>

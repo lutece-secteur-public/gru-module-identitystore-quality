@@ -34,9 +34,9 @@
 package fr.paris.lutece.plugins.identitystore.modules.quality.service;
 
 import fr.paris.lutece.plugins.identitystore.service.duplicate.IDuplicateService;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.CertifiedAttribute;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentity;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.spring.SpringContextService;
 
@@ -58,10 +58,10 @@ public class SearchDuplicatesService
         return instance;
     }
 
-    public final DuplicateSearchResponse findDuplicates( final QualifiedIdentity identity, final List<String> ruleCodes ) throws IdentityStoreException
+    public final DuplicateSearchResponse findDuplicates( final IdentityDto identity, final List<String> ruleCodes ) throws IdentityStoreException
     {
         final Map<String, String> attributeMap = identity.getAttributes( ).stream( )
-                .collect( Collectors.toMap( CertifiedAttribute::getKey, CertifiedAttribute::getValue ) );
+                .collect( Collectors.toMap( AttributeDto::getKey, AttributeDto::getValue ) );
         return _duplicateServiceElasticSearch.findDuplicates( attributeMap, identity.getCustomerId( ), ruleCodes );
     }
 }

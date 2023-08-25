@@ -46,7 +46,7 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdenti
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentity;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.daemon.Daemon;
 import fr.paris.lutece.portal.service.util.AppLogService;
@@ -171,15 +171,15 @@ public class IdentityDuplicatesDaemon extends Daemon
         {
             for ( final String cuid : cuids )
             {
-                final QualifiedIdentity identity = IdentityService.instance( ).getQualifiedIdentity( cuid );
+                final IdentityDto identity = IdentityService.instance( ).getQualifiedIdentity( cuid );
                 final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( identity,
                         Collections.singletonList( rule.getCode( ) ) );
                 final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
                 if ( duplicateCount > 0 )
                 {
-                    final List<QualifiedIdentity> processedIdentities = new ArrayList<>( duplicates.getIdentities( ) );
+                    final List<IdentityDto> processedIdentities = new ArrayList<>( duplicates.getIdentities( ) );
                     processedIdentities.add( identity );
-                    final List<String> customerIds = processedIdentities.stream( ).map( QualifiedIdentity::getCustomerId ).collect( Collectors.toList( ) );
+                    final List<String> customerIds = processedIdentities.stream( ).map( IdentityDto::getCustomerId ).collect( Collectors.toList( ) );
                     if ( !SuspiciousIdentityService.instance( ).hasSuspicious( customerIds ) )
                     {
                         final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
