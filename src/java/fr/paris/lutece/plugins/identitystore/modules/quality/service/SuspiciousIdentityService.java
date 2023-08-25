@@ -165,11 +165,13 @@ public class SuspiciousIdentityService
         if ( suspiciousIdentitysList == null || suspiciousIdentitysList.isEmpty( ) )
         {
             response.setStatus( SuspiciousIdentitySearchStatusType.NOT_FOUND );
+            response.setI18nMessageKey( Constants.PROPERTY_REST_ERROR_NO_SUSPICIOUS_IDENTITY_FOUND );
             response.setSuspiciousIdentities( Collections.emptyList( ) );
         }
         else
         {
             response.setStatus( SuspiciousIdentitySearchStatusType.SUCCESS );
+            response.setI18nMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION );
             response.setSuspiciousIdentities( suspiciousIdentitysList.stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) ) );
         }
     }
