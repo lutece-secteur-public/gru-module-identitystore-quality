@@ -49,16 +49,12 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdenti
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummarySearchResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.error.ErrorResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.error.ErrorStatusType;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.swagger.SwaggerConstants;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
-import fr.paris.lutece.plugins.identitystore.web.exception.IdentityNotFoundException;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.plugins.rest.service.RestConstants;
-import fr.paris.lutece.portal.service.util.AppLogService;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
