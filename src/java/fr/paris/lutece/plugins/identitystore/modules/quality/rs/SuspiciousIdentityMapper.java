@@ -34,7 +34,11 @@
 package fr.paris.lutece.plugins.identitystore.modules.quality.rs;
 
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityLock;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AuthorType;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.RequestAuthor;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityDto;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityLockDto;
 
 /**
  * This is the business class for the object SuspiciousIdentity
@@ -52,6 +56,19 @@ public class SuspiciousIdentityMapper
         dto.setCustomerId( suspiciousIdentity.getCustomerId( ) );
         dto.setLastUpdateDate( suspiciousIdentity.getLastUpdateDate( ) );
         dto.setDuplicationRuleCode( suspiciousIdentity.getDuplicateRuleCode( ) );
+        final SuspiciousIdentityLockDto lock = new SuspiciousIdentityLockDto( );
+        final SuspiciousIdentityLock beanLock = suspiciousIdentity.getLock( );
+        final boolean isLocked = beanLock != null && beanLock.isLocked( );
+        lock.setLocked( isLocked );
+        if ( isLocked )
+        {
+            lock.setLockEndDate( beanLock.getLockEndDate( ) );
+            final RequestAuthor origin = new RequestAuthor( );
+            origin.setType( AuthorType.valueOf( beanLock.getAuthorType( ) ) );
+            origin.setName( beanLock.getAuthorName( ) );
+            lock.setOrigin( origin );
+        }
+        dto.setLock( lock );
         dto.getMetadata( ).putAll( suspiciousIdentity.getMetadata( ) );
         return dto;
     }

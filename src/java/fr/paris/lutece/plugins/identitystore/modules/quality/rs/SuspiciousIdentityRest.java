@@ -123,7 +123,6 @@ public class SuspiciousIdentityRest
                 trustedClientCode );
         final SuspiciousIdentityChangeResponse response = (SuspiciousIdentityChangeResponse) suspiciousIdentityStoreRequest.doRequest( );
         return Response.status( response.getStatus( ).getCode( ) ).entity( response ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
-
     }
 
     @PUT
