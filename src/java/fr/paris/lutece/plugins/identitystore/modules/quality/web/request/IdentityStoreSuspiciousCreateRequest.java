@@ -36,7 +36,7 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.ResponseStatusType;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.ResponseStatus;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
@@ -76,9 +76,8 @@ public class IdentityStoreSuspiciousCreateRequest extends AbstractSuspiciousIden
         if ( _suspiciousIdentityChangeRequest.getSuspiciousIdentity( ) != null
                 && SuspiciousIdentityHome.selectByCustomerID( _suspiciousIdentityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) ) != null )
         {
-            response.setStatus( ResponseStatusType.CONFLICT );
-            response.setMessage( "already reported" );
-            response.setI18nMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_ALREADY_SUSPICIOUS );
+            response.setStatus(
+                    ResponseStatus.conflict( ).setMessage( "already reported" ).setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_ALREADY_SUSPICIOUS ) );
             return response;
         }
 
