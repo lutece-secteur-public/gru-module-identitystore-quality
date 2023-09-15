@@ -42,7 +42,6 @@ import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.modules.quality.rs.SuspiciousIdentityMapper;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
-import fr.paris.lutece.plugins.identitystore.service.indexer.elastic.index.listener.IndexIdentityChange;
 import fr.paris.lutece.plugins.identitystore.service.listeners.IdentityStoreNotifyListenerService;
 import fr.paris.lutece.plugins.identitystore.service.user.InternalUserService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.ResponseStatus;
@@ -142,7 +141,7 @@ public class SuspiciousIdentityService
 
                 final Map<String, String> metadata = new HashMap<>(request.getSuspiciousIdentity().getMetadata());
                 metadata.put( Constants.METADATA_DUPLICATE_RULE_CODE, ruleCode );
-                _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.MARKED_SUSPICIOUS, identity, response.getStatus( ).getName( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode, metadata );
+                _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.MARKED_SUSPICIOUS, identity, response.getStatus( ).getStatus( ).name(), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode, metadata );
             }
             TransactionManager.commitTransaction( null );
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_CREATE, CREATE_SUSPICIOUS_IDENTITY_EVENT_CODE,
@@ -246,11 +245,11 @@ public class SuspiciousIdentityService
             // First identity history
             final Map<String, String> metadata = new HashMap<>();
             metadata.put( Constants.METADATA_EXCLUDED_CUID_KEY, secondIdentity.getCustomerId( ) );
-            _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUDED, firstIdentity, response.getStatus( ).getName( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode, metadata );
+            _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUDED, firstIdentity, response.getStatus( ).getStatus( ).name(), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode, metadata );
             // Second identity history
             final Map<String, String> metadata2 = new HashMap<>();
             metadata2.put( Constants.METADATA_EXCLUDED_CUID_KEY, firstIdentity.getCustomerId( ) );
-            _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUDED, secondIdentity, response.getStatus( ).getName( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode, metadata2 );
+            _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUDED, secondIdentity, response.getStatus( ).getStatus( ).name(), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode, metadata2 );
             TransactionManager.commitTransaction( null );
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY, EXCLUDE_SUSPICIOUS_IDENTITY_EVENT_CODE,
                     _internalUserService.getApiUser( request, clientCode ), request, SPECIFIC_ORIGIN );
@@ -295,11 +294,11 @@ public class SuspiciousIdentityService
             // First identity history
             final Map<String, String> metadata = new HashMap<>();
             metadata.put( Constants.METADATA_EXCLUDED_CUID_KEY, secondIdentity.getCustomerId( ) );
-            _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUSION_CANCELLED, firstIdentity, response.getStatus( ).getName( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode, metadata);
+            _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUSION_CANCELLED, firstIdentity, response.getStatus( ).getStatus( ).name(), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode, metadata);
             // Second identity history
             final Map<String, String> metadata2 = new HashMap<>();
             metadata2.put( Constants.METADATA_EXCLUDED_CUID_KEY, firstIdentity.getCustomerId( ) );
-            _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUSION_CANCELLED, secondIdentity, response.getStatus( ).getName( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode, metadata2 );
+            _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUSION_CANCELLED, secondIdentity, response.getStatus( ).getStatus( ).name(), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode, metadata2 );
             TransactionManager.commitTransaction( null );
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY, EXCLUDE_SUSPICIOUS_IDENTITY_EVENT_CODE,
                     _internalUserService.getApiUser( request, clientCode ), request, SPECIFIC_ORIGIN );
