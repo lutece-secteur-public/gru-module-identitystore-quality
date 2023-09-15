@@ -60,7 +60,8 @@ public class SuspiciousIdentityListener implements IdentityChangeListener
     private static final Logger _logger = Logger.getLogger( LOGGER_NAME );
 
     @Override
-    public void processIdentityChange(IdentityChangeType identityChangeType, Identity identity, String statusCode, String statusMessage, RequestAuthor author, String clientCode, Map<String, String> metadata )
+    public void processIdentityChange( IdentityChangeType identityChangeType, Identity identity, String statusCode, String statusMessage, RequestAuthor author,
+            String clientCode, Map<String, String> metadata )
     {
         switch( identityChangeType )
         {
@@ -68,28 +69,37 @@ public class SuspiciousIdentityListener implements IdentityChangeListener
             case CONSOLIDATED:
             case DELETE:
             case MERGED:
-                this.handleSuspicion(identity);
+                this.handleSuspicion( identity );
             default:
                 break;
         }
     }
 
     /**
-     * Check if the given {@link Identity} is a {@link fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity} or not.
-     * <br> If it is suspicious, delete from suspicions.
-     * @param identity the {@link Identity} to handle
+     * Check if the given {@link Identity} is a {@link fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity} or not. <br>
+     * If it is suspicious, delete from suspicions.
+     * 
+     * @param identity
+     *            the {@link Identity} to handle
      */
-    private void handleSuspicion(final Identity identity) {
-        final boolean suspicious = SuspiciousIdentityHome.hasSuspicious(Collections.singletonList(identity.getCustomerId()));
-        if(suspicious){
-            try{
-                final SuspiciousIdentity suspiciousIdentity = SuspiciousIdentityHome.selectByCustomerID(identity.getCustomerId());
-                final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance().findDuplicates(IdentityMapper.toDto(identity), Collections.singletonList(suspiciousIdentity.getDuplicateRuleCode()));
-                if (duplicates.getIdentities().isEmpty()){
-                    SuspiciousIdentityHome.remove(identity.getCustomerId());
+    private void handleSuspicion( final Identity identity )
+    {
+        final boolean suspicious = SuspiciousIdentityHome.hasSuspicious( Collections.singletonList( identity.getCustomerId( ) ) );
+        if ( suspicious )
+        {
+            try
+            {
+                final SuspiciousIdentity suspiciousIdentity = SuspiciousIdentityHome.selectByCustomerID( identity.getCustomerId( ) );
+                final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( IdentityMapper.toDto( identity ),
+                        Collections.singletonList( suspiciousIdentity.getDuplicateRuleCode( ) ) );
+                if ( duplicates.getIdentities( ).isEmpty( ) )
+                {
+                    SuspiciousIdentityHome.remove( identity.getCustomerId( ) );
                 }
-            } catch (Exception e) {
-                _logger.error("Could not handle identity " + identity.getCustomerId() + " : " + e.getMessage());
+            }
+            catch( Exception e )
+            {
+                _logger.error( "Could not handle identity " + identity.getCustomerId( ) + " : " + e.getMessage( ) );
             }
         }
     }
