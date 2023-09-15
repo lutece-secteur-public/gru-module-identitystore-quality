@@ -140,7 +140,7 @@ public class SuspiciousIdentityService
                 response.setStatus( ResponseStatus.success( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
 
                 final IdentityChange identityChange = IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.MARKED_SUSPICIOUS, identity,
-                        response.getStatus( ).getName( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode );
+                        response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode );
                 identityChange.getMetadata( ).putAll( request.getSuspiciousIdentity( ).getMetadata( ) );
                 identityChange.getMetadata( ).put( Constants.METADATA_DUPLICATE_RULE_CODE, ruleCode );
                 _identityStoreNotifyListenerService.notifyListenersIdentityChange( identityChange );
@@ -246,12 +246,12 @@ public class SuspiciousIdentityService
                     .setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
             // First identity history
             final IdentityChange identityChange1 = IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.EXCLUDED, firstIdentity,
-                    response.getStatus( ).getName( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode );
+                    response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode );
             identityChange1.getMetadata( ).put( Constants.METADATA_EXCLUDED_CUID_KEY, secondIdentity.getCustomerId( ) );
             _identityStoreNotifyListenerService.notifyListenersIdentityChange( new IndexIdentityChange( identityChange1, firstIdentity ) );
             // Second identity history
             final IdentityChange identityChange2 = IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.EXCLUDED, secondIdentity,
-                    response.getStatus( ).getName( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode );
+                    response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode );
             identityChange2.getMetadata( ).put( Constants.METADATA_EXCLUDED_CUID_KEY, firstIdentity.getCustomerId( ) );
             _identityStoreNotifyListenerService.notifyListenersIdentityChange( new IndexIdentityChange( identityChange2, secondIdentity ) );
             TransactionManager.commitTransaction( null );
@@ -297,12 +297,12 @@ public class SuspiciousIdentityService
                     .setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
             // First identity history
             final IdentityChange identityChange1 = IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.EXCLUSION_CANCELLED,
-                    firstIdentity, response.getStatus( ).getName( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode );
+                    firstIdentity, response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode );
             identityChange1.getMetadata( ).put( Constants.METADATA_EXCLUDED_CUID_KEY, secondIdentity.getCustomerId( ) );
             _identityStoreNotifyListenerService.notifyListenersIdentityChange( new IndexIdentityChange( identityChange1, firstIdentity ) );
             // Second identity history
             final IdentityChange identityChange2 = IdentityStoreNotifyListenerService.buildIdentityChange( IdentityChangeType.EXCLUSION_CANCELLED,
-                    secondIdentity, response.getStatus( ).getName( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode );
+                    secondIdentity, response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode );
             identityChange2.getMetadata( ).put( Constants.METADATA_EXCLUDED_CUID_KEY, firstIdentity.getCustomerId( ) );
             _identityStoreNotifyListenerService.notifyListenersIdentityChange( new IndexIdentityChange( identityChange2, secondIdentity ) );
             TransactionManager.commitTransaction( null );

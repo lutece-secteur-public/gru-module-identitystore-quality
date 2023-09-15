@@ -102,7 +102,7 @@ public class SuspiciousIdentityRest
         final IdentityStoreSuspiciousSearchRequest request = new IdentityStoreSuspiciousSearchRequest( searchRequest, max, page, size, strHeaderClientAppCode );
         final SuspiciousIdentitySearchResponse searchResponse = (SuspiciousIdentitySearchResponse) request.doRequest( );
 
-        return Response.status( searchResponse.getStatus( ).getCode( ) ).entity( searchResponse ).build( );
+        return Response.status( searchResponse.getStatus( ).getHttpCode( ) ).entity( searchResponse ).build( );
     }
 
     @POST
@@ -122,7 +122,7 @@ public class SuspiciousIdentityRest
         final IdentityStoreSuspiciousCreateRequest suspiciousIdentityStoreRequest = new IdentityStoreSuspiciousCreateRequest( suspiciousIdentityChangeRequest,
                 trustedClientCode );
         final SuspiciousIdentityChangeResponse response = (SuspiciousIdentityChangeResponse) suspiciousIdentityStoreRequest.doRequest( );
-        return Response.status( response.getStatus( ).getCode( ) ).entity( response ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
+        return Response.status( response.getStatus( ).getHttpCode( ) ).entity( response ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
     }
 
     @PUT
@@ -140,7 +140,7 @@ public class SuspiciousIdentityRest
         final String trustedClientCode = IdentityStoreService.getTrustedClientCode( strHeaderClientCode, null );
         final IdentityStoreSuspiciousExcludeRequest request = new IdentityStoreSuspiciousExcludeRequest( suspiciousIdentityExcludeRequest, trustedClientCode );
         final SuspiciousIdentityExcludeResponse response = (SuspiciousIdentityExcludeResponse) request.doRequest( );
-        return Response.status( response.getStatus( ).getCode( ) ).entity( response ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
+        return Response.status( response.getStatus( ).getHttpCode( ) ).entity( response ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
 
     }
 
@@ -160,7 +160,7 @@ public class SuspiciousIdentityRest
         final IdentityStoreSuspiciousCancelExclusionRequest request = new IdentityStoreSuspiciousCancelExclusionRequest( suspiciousIdentityExcludeRequest,
                 trustedClientCode );
         final SuspiciousIdentityExcludeResponse response = (SuspiciousIdentityExcludeResponse) request.doRequest( );
-        return Response.status( response.getStatus( ).getCode( ) ).entity( response ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
+        return Response.status( response.getStatus( ).getHttpCode( ) ).entity( response ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
 
     }
 
@@ -184,7 +184,7 @@ public class SuspiciousIdentityRest
         final String trustedClientCode = IdentityStoreService.getTrustedClientCode( strHeaderClientCode, strQueryClientCode );
         final DuplicateRuleGetRequest request = new DuplicateRuleGetRequest( trustedClientCode, priority );
         final DuplicateRuleSummarySearchResponse entity = (DuplicateRuleSummarySearchResponse) request.doRequest( );
-        return Response.status( entity.getStatus( ).getCode( ) ).entity( entity ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
+        return Response.status( entity.getStatus( ).getHttpCode( ) ).entity( entity ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
     }
 
     /**

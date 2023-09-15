@@ -245,7 +245,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
             final IdentityMergeResponse response = new IdentityMergeResponse( );
             IdentityService.instance( ).merge( request, clientCode, response );
             nbIdentitiesMerged++;
-            final String log = "Identities merged with status " + response.getStatus( ).getName( );
+            final String log = "Identities merged with status " + response.getStatus( ).getStatus( ).name( );
             AppLogService.info( log );
             logs.append( log ).append( "\n" );
 
