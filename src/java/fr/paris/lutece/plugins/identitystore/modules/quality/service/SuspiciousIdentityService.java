@@ -212,7 +212,6 @@ public class SuspiciousIdentityService
     }
 
     public void exclude( final SuspiciousIdentityExcludeRequest request, final String clientCode, final SuspiciousIdentityExcludeResponse response )
-            throws IdentityStoreException
     {
         TransactionManager.beginTransaction( null );
         try
@@ -240,9 +239,6 @@ public class SuspiciousIdentityService
             // flag the 2 identities: manage the list of identities to exclude (supposed to be a field at the identity level)
             SuspiciousIdentityHome.exclude( request.getIdentityCuid1( ), request.getIdentityCuid2( ), request.getOrigin( ).getType( ).name( ),
                     request.getOrigin( ).getName( ) );
-            // clean the consolidated identities from suspicious identities
-            SuspiciousIdentityHome.remove( request.getIdentityCuid1( ) );
-            SuspiciousIdentityHome.remove( request.getIdentityCuid2( ) );
 
             response.setStatus( ResponseStatusFactory.success( ).setMessage( "Identities excluded from duplicate suspicions." )
                     .setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
@@ -269,7 +265,6 @@ public class SuspiciousIdentityService
     }
 
     public void cancelExclusion( final SuspiciousIdentityExcludeRequest request, final String clientCode, final SuspiciousIdentityExcludeResponse response )
-            throws IdentityStoreException
     {
         TransactionManager.beginTransaction( null );
         try
