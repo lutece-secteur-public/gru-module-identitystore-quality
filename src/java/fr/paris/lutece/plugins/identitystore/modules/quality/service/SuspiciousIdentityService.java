@@ -155,12 +155,12 @@ public class SuspiciousIdentityService
         }
     }
 
-    public void search( final SuspiciousIdentitySearchRequest request, String clientCode, int max, final SuspiciousIdentitySearchResponse response )
+    public void search( final SuspiciousIdentitySearchRequest request, String clientCode, final SuspiciousIdentitySearchResponse response )
             throws IdentityStoreException
     {
         // TODO check if the application has the right to search a suspicious identity
         final List<SuspiciousIdentity> suspiciousIdentitysList = SuspiciousIdentityHome.getSuspiciousIdentitysList( request.getRuleCode( ),
-                request.getAttributes( ), max, request.getRulePriority( ) );
+                request.getAttributes( ), request.getMax( ), request.getRulePriority( ) );
 
         if ( suspiciousIdentitysList == null || suspiciousIdentitysList.isEmpty( ) )
         {

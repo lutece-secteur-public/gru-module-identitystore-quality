@@ -93,13 +93,10 @@ public class SuspiciousIdentityRest
     @ApiOperation( value = "Get a list of suspicions, limited to max", response = SuspiciousIdentitySearchResponse.class )
     public Response getSuspiciousIdentityList(
             @ApiParam( name = "Request body.", value = "The suspicious identity search request", type = "SuspiciousIdentitySearchRequest" ) SuspiciousIdentitySearchRequest searchRequest,
-            @ApiParam( name = Constants.PARAM_CLIENT_CODE, value = SwaggerConstants.CLIENT_CLIENT_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_CLIENT_CODE ) String strHeaderClientAppCode,
-            @ApiParam( name = Constants.PARAM_MAX, value = "Maximum number of " ) @QueryParam( Constants.PARAM_MAX ) final int max,
-            @ApiParam( name = Constants.PARAM_PAGE, value = "Page to return" ) @QueryParam( Constants.PARAM_PAGE ) Integer page,
-            @ApiParam( name = Constants.PARAM_SIZE, value = "number of suspicious identity to return " ) @QueryParam( Constants.PARAM_SIZE ) Integer size )
+            @ApiParam( name = Constants.PARAM_CLIENT_CODE, value = SwaggerConstants.CLIENT_CLIENT_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_CLIENT_CODE ) String strHeaderClientAppCode )
             throws IdentityStoreException
     {
-        final IdentityStoreSuspiciousSearchRequest request = new IdentityStoreSuspiciousSearchRequest( searchRequest, max, page, size, strHeaderClientAppCode );
+        final IdentityStoreSuspiciousSearchRequest request = new IdentityStoreSuspiciousSearchRequest( searchRequest, strHeaderClientAppCode );
         final SuspiciousIdentitySearchResponse searchResponse = (SuspiciousIdentitySearchResponse) request.doRequest( );
 
         return Response.status( searchResponse.getStatus( ).getHttpCode( ) ).entity( searchResponse ).build( );

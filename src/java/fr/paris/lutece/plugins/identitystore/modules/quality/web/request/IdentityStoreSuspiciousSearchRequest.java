@@ -35,27 +35,21 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.Page;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.ResponseStatus;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 
 public class IdentityStoreSuspiciousSearchRequest extends AbstractSuspiciousIdentityStoreRequest
 {
-
     private final SuspiciousIdentitySearchRequest _request;
-    private final int max;
 
-    private final Integer page;
-    private final Integer size;
-
-    public IdentityStoreSuspiciousSearchRequest( final SuspiciousIdentitySearchRequest request, final int max, final Integer page, final Integer size,
-            final String strClientAppCode )
+    public IdentityStoreSuspiciousSearchRequest( final SuspiciousIdentitySearchRequest request, final String strClientAppCode )
     {
         super( strClientAppCode );
         this._request = request;
-        this.max = max;
-        this.page = page;
-        this.size = size;
     }
 
     @Override
@@ -69,13 +63,42 @@ public class IdentityStoreSuspiciousSearchRequest extends AbstractSuspiciousIden
     protected SuspiciousIdentitySearchResponse doSpecificRequest( ) throws IdentityStoreException
     {
         final SuspiciousIdentitySearchResponse response = new SuspiciousIdentitySearchResponse( );
-        SuspiciousIdentityService.instance( ).search( _request, _strClientCode, max, response );
 
-        if ( page != null && size != null )
+        if ( _request.getPage( ) != null && _request.getPage( ) < 1 )
         {
-            int start = page * size;
-            int end = Math.min( start + size, response.getSuspiciousIdentities( ).size( ) );
+            response.setStatus( ResponseStatus.badRequest( ) );
+            response.getStatus( ).setMessage( "Pagination should start at index 1" );
+            response.getStatus( ).setMessageKey( Constants.PROPERTY_REST_PAGINATION_START_ERROR );
+            return response;
+        }
+        SuspiciousIdentityService.instance( ).search( _request, _strClientCode, response );
+
+        if ( _request.getPage( ) != null && _request.getSize( ) != null )
+        {
+
+            final int totalRecords = response.getSuspiciousIdentities( ).size( );
+            final int totalPages = (int) Math.ceil( (double) totalRecords / _request.getSize( ) );
+
+            if ( _request.getPage( ) > totalPages )
+            {
+                response.setStatus( ResponseStatus.badRequest( ) );
+                response.getStatus( ).setMessage( "Pagination index should not exceed total number of pages." );
+                response.getStatus( ).setMessageKey( Constants.PROPERTY_REST_PAGINATION_END_ERROR );
+                response.setSuspiciousIdentities( null );
+                return response;
+            }
+
+            final int start = ( _request.getPage( ) - 1 ) * _request.getSize( );
+            final int end = Math.min( start + _request.getSize( ), totalRecords );
             response.setSuspiciousIdentities( response.getSuspiciousIdentities( ).subList( start, end ) );
+
+            final Page pagination = new Page( );
+            pagination.setTotalPages( totalPages );
+            pagination.setTotalRecords( totalRecords );
+            pagination.setCurrentPage( _request.getPage( ) );
+            pagination.setNextPage( _request.getPage( ) == totalPages ? null : _request.getPage( ) + 1 );
+            pagination.setPreviousPage( _request.getPage( ) > 1 ? _request.getPage( ) - 1 : null );
+            response.setPagination( pagination );
         }
         return response;
     }
