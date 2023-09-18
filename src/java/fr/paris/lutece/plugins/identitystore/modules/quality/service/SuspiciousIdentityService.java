@@ -44,7 +44,6 @@ import fr.paris.lutece.plugins.identitystore.modules.quality.rs.SuspiciousIdenti
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.listeners.IdentityStoreNotifyListenerService;
 import fr.paris.lutece.plugins.identitystore.service.user.InternalUserService;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.ResponseStatus;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeRequest;
@@ -55,6 +54,7 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.history.IdentityChang
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.ResponseStatusFactory;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityNotFoundException;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.security.AccessLogService;
@@ -120,7 +120,7 @@ public class SuspiciousIdentityService
             final Identity identity = IdentityHome.findByCustomerId( request.getSuspiciousIdentity( ).getCustomerId( ) );
             if ( identity == null )
             {
-                response.setStatus( ResponseStatus.notFound( ).setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
+                response.setStatus( ResponseStatusFactory.notFound( ).setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
             }
             else
             {
@@ -137,7 +137,7 @@ public class SuspiciousIdentityService
                 SuspiciousIdentityHome.create( suspiciousIdentity );
 
                 response.setSuspiciousIdentity( SuspiciousIdentityMapper.toDto( suspiciousIdentity ) );
-                response.setStatus( ResponseStatus.success( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
+                response.setStatus( ResponseStatusFactory.success( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
 
                 final Map<String, String> metadata = new HashMap<>( request.getSuspiciousIdentity( ).getMetadata( ) );
                 metadata.put( Constants.METADATA_DUPLICATE_RULE_CODE, ruleCode );
@@ -151,7 +151,8 @@ public class SuspiciousIdentityService
         catch( Exception e )
         {
             TransactionManager.rollBack( null );
-            response.setStatus( ResponseStatus.failure( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_DURING_TREATMENT ) );
+            response.setStatus(
+                    ResponseStatusFactory.failure( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_DURING_TREATMENT ) );
         }
     }
 
@@ -164,12 +165,12 @@ public class SuspiciousIdentityService
 
         if ( suspiciousIdentitysList == null || suspiciousIdentitysList.isEmpty( ) )
         {
-            response.setStatus( ResponseStatus.notFound( ).setMessageKey( Constants.PROPERTY_REST_ERROR_NO_SUSPICIOUS_IDENTITY_FOUND ) );
+            response.setStatus( ResponseStatusFactory.notFound( ).setMessageKey( Constants.PROPERTY_REST_ERROR_NO_SUSPICIOUS_IDENTITY_FOUND ) );
             response.setSuspiciousIdentities( Collections.emptyList( ) );
         }
         else
         {
-            response.setStatus( ResponseStatus.ok( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
+            response.setStatus( ResponseStatusFactory.ok( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
             response.setSuspiciousIdentities( suspiciousIdentitysList.stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) ) );
         }
     }
@@ -182,7 +183,7 @@ public class SuspiciousIdentityService
             final boolean locked = SuspiciousIdentityHome.manageLock( request.getCustomerId( ), request.getOrigin( ).getName( ),
                     request.getOrigin( ).getType( ).name( ), request.isLocked( ) );
             response.setLocked( locked );
-            response.setStatus( ResponseStatus.success( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
+            response.setStatus( ResponseStatusFactory.success( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
             TransactionManager.commitTransaction( null );
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY, LOCK_SUSPICIOUS_IDENTITY_EVENT_CODE,
                     _internalUserService.getApiUser( request, strClientCode ), request, SPECIFIC_ORIGIN );
@@ -191,19 +192,21 @@ public class SuspiciousIdentityService
         {
             response.setLocked( false );
             response.setStatus(
-                    ResponseStatus.conflict( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_UNAUTHORIZED_OPERATION ) );
+                    ResponseStatusFactory.conflict( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_UNAUTHORIZED_OPERATION ) );
             TransactionManager.rollBack( null );
         }
         catch( final IdentityNotFoundException e )
         {
             response.setLocked( false );
-            response.setStatus( ResponseStatus.notFound( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
+            response.setStatus(
+                    ResponseStatusFactory.notFound( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
             TransactionManager.rollBack( null );
         }
         catch( final Exception e )
         {
             response.setLocked( false );
-            response.setStatus( ResponseStatus.failure( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_DURING_TREATMENT ) );
+            response.setStatus(
+                    ResponseStatusFactory.failure( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_DURING_TREATMENT ) );
             TransactionManager.rollBack( null );
         }
     }
@@ -229,7 +232,7 @@ public class SuspiciousIdentityService
 
             if ( SuspiciousIdentityHome.excluded( request.getIdentityCuid1( ), request.getIdentityCuid2( ) ) )
             {
-                response.setStatus( ResponseStatus.conflict( ).setMessage( "Identities are already excluded from duplicate suspicions." )
+                response.setStatus( ResponseStatusFactory.conflict( ).setMessage( "Identities are already excluded from duplicate suspicions." )
                         .setMessageKey( Constants.PROPERTY_REST_ERROR_ALREADY_EXCLUDED ) );
                 return;
             }
@@ -241,7 +244,7 @@ public class SuspiciousIdentityService
             SuspiciousIdentityHome.remove( request.getIdentityCuid1( ) );
             SuspiciousIdentityHome.remove( request.getIdentityCuid2( ) );
 
-            response.setStatus( ResponseStatus.success( ).setMessage( "Identities excluded from duplicate suspicions." )
+            response.setStatus( ResponseStatusFactory.success( ).setMessage( "Identities excluded from duplicate suspicions." )
                     .setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
             // First identity history
             final Map<String, String> metadata = new HashMap<>( );
@@ -260,7 +263,8 @@ public class SuspiciousIdentityService
         catch( Exception e )
         {
             TransactionManager.rollBack( null );
-            response.setStatus( ResponseStatus.failure( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_DURING_TREATMENT ) );
+            response.setStatus(
+                    ResponseStatusFactory.failure( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_DURING_TREATMENT ) );
         }
     }
 
@@ -285,14 +289,14 @@ public class SuspiciousIdentityService
 
             if ( !SuspiciousIdentityHome.excluded( request.getIdentityCuid1( ), request.getIdentityCuid2( ) ) )
             {
-                response.setStatus( ResponseStatus.conflict( ).setMessage( "Identities are not excluded from duplicate suspicions." )
+                response.setStatus( ResponseStatusFactory.conflict( ).setMessage( "Identities are not excluded from duplicate suspicions." )
                         .setMessageKey( Constants.PROPERTY_REST_ERROR_NOT_EXCLUDED ) );
                 return;
             }
 
             // remove the exclusion
             SuspiciousIdentityHome.removeExcludedIdentities( request.getIdentityCuid1( ), request.getIdentityCuid2( ) );
-            response.setStatus( ResponseStatus.success( ).setMessage( "Identities exclusion has been cancelled." )
+            response.setStatus( ResponseStatusFactory.success( ).setMessage( "Identities exclusion has been cancelled." )
                     .setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
             // First identity history
             final Map<String, String> metadata = new HashMap<>( );
@@ -311,7 +315,8 @@ public class SuspiciousIdentityService
         catch( Exception e )
         {
             TransactionManager.rollBack( null );
-            response.setStatus( ResponseStatus.failure( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_DURING_TREATMENT ) );
+            response.setStatus(
+                    ResponseStatusFactory.failure( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_DURING_TREATMENT ) );
         }
     }
 

@@ -36,10 +36,10 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.Page;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.ResponseStatus;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.ResponseStatusFactory;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 
 public class IdentityStoreSuspiciousSearchRequest extends AbstractSuspiciousIdentityStoreRequest
@@ -66,7 +66,7 @@ public class IdentityStoreSuspiciousSearchRequest extends AbstractSuspiciousIden
 
         if ( _request.getPage( ) != null && _request.getPage( ) < 1 )
         {
-            response.setStatus( ResponseStatus.badRequest( ) );
+            response.setStatus( ResponseStatusFactory.badRequest( ) );
             response.getStatus( ).setMessage( "Pagination should start at index 1" );
             response.getStatus( ).setMessageKey( Constants.PROPERTY_REST_PAGINATION_START_ERROR );
             return response;
@@ -81,7 +81,7 @@ public class IdentityStoreSuspiciousSearchRequest extends AbstractSuspiciousIden
 
             if ( _request.getPage( ) > totalPages )
             {
-                response.setStatus( ResponseStatus.badRequest( ) );
+                response.setStatus( ResponseStatusFactory.badRequest( ) );
                 response.getStatus( ).setMessage( "Pagination index should not exceed total number of pages." );
                 response.getStatus( ).setMessageKey( Constants.PROPERTY_REST_PAGINATION_END_ERROR );
                 response.setSuspiciousIdentities( null );
