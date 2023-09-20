@@ -171,26 +171,9 @@ public class IdentityDuplicatesDaemon extends Daemon
         {
             for ( final String cuid : cuids )
             {
-                final IdentityDto identity = IdentityService.instance( ).getQualifiedIdentity( cuid );
-                final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( identity,
-                        Collections.singletonList( rule.getCode( ) ) );
-                final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
-                if ( duplicateCount > 0 )
+                if ( processIdentity( cuid, rule, author ) )
                 {
-                    final List<IdentityDto> processedIdentities = new ArrayList<>( duplicates.getIdentities( ) );
-                    processedIdentities.add( identity );
-                    final List<String> customerIds = processedIdentities.stream( ).map( IdentityDto::getCustomerId ).collect( Collectors.toList( ) );
-                    if ( !SuspiciousIdentityService.instance( ).hasSuspicious( customerIds ) )
-                    {
-                        final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
-                        final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
-                        request.setSuspiciousIdentity( new SuspiciousIdentityDto( ) );
-                        request.getSuspiciousIdentity( ).setCustomerId( cuid );
-                        request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
-                        request.getSuspiciousIdentity( ).getMetadata( ).putAll( duplicates.getMetadata( ) );
-                        SuspiciousIdentityService.instance( ).create( request, clientCode, author, response );
-                        markedSuspicious++;
-                    }
+                    markedSuspicious++;
                 }
             }
         }
@@ -198,6 +181,39 @@ public class IdentityDuplicatesDaemon extends Daemon
         AppLogService.info( marked );
         logs.append( marked ).append( "\n" );
         setLastRunLogs( logs.toString( ) );
+    }
+
+    private boolean processIdentity( final String cuid, final DuplicateRule rule, final RequestAuthor author )
+    {
+        try
+        {
+            final IdentityDto identity = IdentityService.instance( ).getQualifiedIdentity( cuid );
+            final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( identity,
+                    Collections.singletonList( rule.getCode( ) ) );
+            final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
+            if ( duplicateCount > 0 )
+            {
+                final List<IdentityDto> processedIdentities = new ArrayList<>( duplicates.getIdentities( ) );
+                processedIdentities.add( identity );
+                final List<String> customerIds = processedIdentities.stream( ).map( IdentityDto::getCustomerId ).collect( Collectors.toList( ) );
+                if ( !SuspiciousIdentityService.instance( ).hasSuspicious( customerIds ) )
+                {
+                    final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
+                    final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
+                    request.setSuspiciousIdentity( new SuspiciousIdentityDto( ) );
+                    request.getSuspiciousIdentity( ).setCustomerId( cuid );
+                    request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
+                    request.getSuspiciousIdentity( ).getMetadata( ).putAll( duplicates.getMetadata( ) );
+                    SuspiciousIdentityService.instance( ).create( request, clientCode, author, response );
+                    return true;
+                }
+            }
+        }
+        catch( Exception e )
+        {
+            AppLogService.error( e.getMessage( ), e );
+        }
+        return false;
     }
 
     private RequestAuthor buildAuthor( long time )
