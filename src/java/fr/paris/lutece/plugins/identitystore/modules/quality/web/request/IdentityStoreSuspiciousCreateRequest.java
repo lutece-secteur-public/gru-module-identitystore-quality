@@ -35,6 +35,7 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
@@ -45,7 +46,7 @@ import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreExceptio
 /**
  * This class represents a create request for IdentityStoreRestServive
  */
-public class IdentityStoreSuspiciousCreateRequest extends AbstractSuspiciousIdentityStoreRequest
+public class IdentityStoreSuspiciousCreateRequest extends AbstractIdentityStoreRequest
 {
     private final SuspiciousIdentityChangeRequest _suspiciousIdentityChangeRequest;
 
@@ -55,16 +56,16 @@ public class IdentityStoreSuspiciousCreateRequest extends AbstractSuspiciousIden
      * @param suspiciousIdentityChangeRequest
      *            the dto of identity's change
      */
-    public IdentityStoreSuspiciousCreateRequest( SuspiciousIdentityChangeRequest suspiciousIdentityChangeRequest, String strClientAppCode )
+    public IdentityStoreSuspiciousCreateRequest( SuspiciousIdentityChangeRequest suspiciousIdentityChangeRequest, String strClientAppCode, String authorName,
+            String authorType ) throws IdentityStoreException
     {
-        super( strClientAppCode );
+        super( strClientAppCode, authorName, authorType );
         this._suspiciousIdentityChangeRequest = suspiciousIdentityChangeRequest;
     }
 
     @Override
-    protected void validRequest( ) throws IdentityStoreException
+    protected void validateSpecificRequest( ) throws IdentityStoreException
     {
-        SuspiciousIdentityRequestValidator.instance( ).checkClientCode( _strClientCode );
         SuspiciousIdentityRequestValidator.instance( ).checkSuspiciousIdentityChange( _suspiciousIdentityChangeRequest );
         SuspiciousIdentityRequestValidator.instance( ).checkCustomerId( _suspiciousIdentityChangeRequest.getSuspiciousIdentity( ).getCustomerId( ) );
     }
@@ -81,7 +82,7 @@ public class IdentityStoreSuspiciousCreateRequest extends AbstractSuspiciousIden
             return response;
         }
 
-        SuspiciousIdentityService.instance( ).create( _suspiciousIdentityChangeRequest, _strClientCode, response );
+        SuspiciousIdentityService.instance( ).create( _suspiciousIdentityChangeRequest, _strClientCode, _author, response );
 
         return response;
     }

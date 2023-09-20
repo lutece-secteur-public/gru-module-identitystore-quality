@@ -35,6 +35,7 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDuplicatesService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
@@ -42,24 +43,25 @@ import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreExceptio
 
 import java.util.Collections;
 
-public class IdentityStoreFindDuplicatesRequest extends AbstractSuspiciousIdentityStoreRequest
+public class IdentityStoreFindDuplicatesRequest extends AbstractIdentityStoreRequest
 {
 
     private final String _strRuleCode;
     private final String _strCustomerId;
 
-    public IdentityStoreFindDuplicatesRequest( String strClientCode, String ruleCode, String customerId )
+    public IdentityStoreFindDuplicatesRequest( String strClientCode, String ruleCode, String customerId, String authorName, String authorType )
+            throws IdentityStoreException
     {
-        super( strClientCode );
+        super( strClientCode, authorName, authorType );
         this._strRuleCode = ruleCode;
         this._strCustomerId = customerId;
     }
 
     @Override
-    protected void validRequest( ) throws IdentityStoreException
+    protected void validateSpecificRequest( ) throws IdentityStoreException
     {
-        SuspiciousIdentityRequestValidator.instance( ).checkClientCode( _strClientCode );
         SuspiciousIdentityRequestValidator.instance( ).checkCustomerId( _strCustomerId );
+        SuspiciousIdentityRequestValidator.instance( ).checkRuleCode( _strRuleCode );
     }
 
     @Override

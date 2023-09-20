@@ -34,6 +34,7 @@
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeResponse;
@@ -42,7 +43,7 @@ import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreExceptio
 /**
  * This class represents a create request for IdentityStoreRestServive
  */
-public class IdentityStoreSuspiciousExcludeRequest extends AbstractSuspiciousIdentityStoreRequest
+public class IdentityStoreSuspiciousExcludeRequest extends AbstractIdentityStoreRequest
 {
     private final SuspiciousIdentityExcludeRequest _suspiciousIdentityExcludeRequest;
 
@@ -52,16 +53,16 @@ public class IdentityStoreSuspiciousExcludeRequest extends AbstractSuspiciousIde
      * @param suspiciousIdentityExcludeRequest
      *            the dto of identity's change
      */
-    public IdentityStoreSuspiciousExcludeRequest( SuspiciousIdentityExcludeRequest suspiciousIdentityExcludeRequest, String strClientAppCode )
+    public IdentityStoreSuspiciousExcludeRequest( SuspiciousIdentityExcludeRequest suspiciousIdentityExcludeRequest, String strClientAppCode, String authorName,
+            String authorType ) throws IdentityStoreException
     {
-        super( strClientAppCode );
+        super( strClientAppCode, authorName, authorType );
         this._suspiciousIdentityExcludeRequest = suspiciousIdentityExcludeRequest;
     }
 
     @Override
-    protected void validRequest( ) throws IdentityStoreException
+    protected void validateSpecificRequest( ) throws IdentityStoreException
     {
-        SuspiciousIdentityRequestValidator.instance( ).checkClientCode( _strClientCode );
         SuspiciousIdentityRequestValidator.instance( ).checkSuspiciousIdentityChange( _suspiciousIdentityExcludeRequest );
     }
 
@@ -69,7 +70,7 @@ public class IdentityStoreSuspiciousExcludeRequest extends AbstractSuspiciousIde
     public SuspiciousIdentityExcludeResponse doSpecificRequest( ) throws IdentityStoreException
     {
         final SuspiciousIdentityExcludeResponse response = new SuspiciousIdentityExcludeResponse( );
-        SuspiciousIdentityService.instance( ).exclude( _suspiciousIdentityExcludeRequest, _strClientCode, response );
+        SuspiciousIdentityService.instance( ).exclude( _suspiciousIdentityExcludeRequest, _strClientCode, _author, response );
         return response;
     }
 

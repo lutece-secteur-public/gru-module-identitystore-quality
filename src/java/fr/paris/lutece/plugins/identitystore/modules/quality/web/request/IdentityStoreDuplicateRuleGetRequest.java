@@ -33,45 +33,57 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
-import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
+import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummaryDto;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummarySearchResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.ResponseStatusFactory;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
+import org.apache.commons.collections.CollectionUtils;
 
-/**
- * This class represents a create request for IdentityStoreRestServive
- */
-public class IdentityStoreSuspiciousCancelExclusionRequest extends AbstractIdentityStoreRequest
+import java.util.Collections;
+import java.util.List;
+
+public class IdentityStoreDuplicateRuleGetRequest extends AbstractIdentityStoreRequest
 {
-    private final SuspiciousIdentityExcludeRequest _suspiciousIdentityExcludeRequest;
+    private final Integer _nPriority;
 
     /**
-     * Constructor of IdentityStoreCreateRequest
-     *
-     * @param suspiciousIdentityExcludeRequest
-     *            the dto of identity's change
+     * Constructor.
+     * 
+     * @param strClientCode
+     *            the client application Code
      */
-    public IdentityStoreSuspiciousCancelExclusionRequest( SuspiciousIdentityExcludeRequest suspiciousIdentityExcludeRequest, String strClientAppCode,
-            String authorName, String authorType ) throws IdentityStoreException
+    public IdentityStoreDuplicateRuleGetRequest( final String strClientCode, final Integer _nPriority, final String authorName, final String authorType )
+            throws IdentityStoreException
     {
-        super( strClientAppCode, authorName, authorType );
-        this._suspiciousIdentityExcludeRequest = suspiciousIdentityExcludeRequest;
+        super( strClientCode, authorName, authorType );
+        this._nPriority = _nPriority;
     }
 
     @Override
     protected void validateSpecificRequest( ) throws IdentityStoreException
     {
-        SuspiciousIdentityRequestValidator.instance( ).checkSuspiciousIdentityChange( _suspiciousIdentityExcludeRequest );
     }
 
     @Override
-    public SuspiciousIdentityExcludeResponse doSpecificRequest( ) throws IdentityStoreException
+    protected DuplicateRuleSummarySearchResponse doSpecificRequest( ) throws IdentityStoreException
     {
-        final SuspiciousIdentityExcludeResponse response = new SuspiciousIdentityExcludeResponse( );
-        SuspiciousIdentityService.instance( ).cancelExclusion( _suspiciousIdentityExcludeRequest, _strClientCode, _author, response );
+        final DuplicateRuleSummarySearchResponse response = new DuplicateRuleSummarySearchResponse( );
+
+        final List<DuplicateRuleSummaryDto> rules = DuplicateRuleService.instance( ).findSummaries( _nPriority );
+        if ( CollectionUtils.isEmpty( rules ) )
+        {
+            response.setDuplicateRuleSummaries( Collections.emptyList( ) );
+            response.setStatus( ResponseStatusFactory.notFound( ).setMessageKey( Constants.PROPERTY_REST_ERROR_NO_DUPLICATE_RULE_FOUND ) );
+        }
+        else
+        {
+            response.setDuplicateRuleSummaries( rules );
+            response.setStatus( ResponseStatusFactory.ok( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
+        }
         return response;
     }
-
 }

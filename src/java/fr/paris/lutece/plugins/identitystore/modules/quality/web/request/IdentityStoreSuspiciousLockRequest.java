@@ -34,16 +34,19 @@
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.IdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 
 /**
  * This class represents a create request for IdentityStoreRestServive
  */
-public class IdentityStoreSuspiciousLockRequest extends AbstractSuspiciousIdentityStoreRequest
+public class IdentityStoreSuspiciousLockRequest extends AbstractIdentityStoreRequest
 {
-    private fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest _request;
+    private final SuspiciousIdentityLockRequest _request;
 
     /**
      * Constructor of IdentityStoreCreateRequest
@@ -51,17 +54,17 @@ public class IdentityStoreSuspiciousLockRequest extends AbstractSuspiciousIdenti
      * @param request
      *            the dto of lock's change
      */
-    public IdentityStoreSuspiciousLockRequest( String strClientAppCode,
-            fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest request )
+    public IdentityStoreSuspiciousLockRequest( String strClientAppCode, SuspiciousIdentityLockRequest request, String authorName, String authorType )
+            throws IdentityStoreException
     {
-        super( strClientAppCode );
+        super( strClientAppCode, authorName, authorType );
         this._request = request;
     }
 
     @Override
-    protected void validRequest( ) throws IdentityStoreException
+    protected void validateSpecificRequest( ) throws IdentityStoreException
     {
-        SuspiciousIdentityRequestValidator.instance( ).checkClientCode( _strClientCode );
+        SuspiciousIdentityRequestValidator.instance( ).checkLockRequest( _request );
     }
 
     @Override
@@ -69,7 +72,7 @@ public class IdentityStoreSuspiciousLockRequest extends AbstractSuspiciousIdenti
     {
         final SuspiciousIdentityLockResponse response = new SuspiciousIdentityLockResponse( );
 
-        SuspiciousIdentityService.instance( ).lock( _request, _strClientCode, response );
+        SuspiciousIdentityService.instance( ).lock( _request, _strClientCode, _author, response );
 
         return response;
     }

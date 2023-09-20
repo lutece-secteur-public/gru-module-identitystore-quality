@@ -203,7 +203,6 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
             logs.append( lock ).append( "\n" );
 
             final IdentityMergeRequest request = new IdentityMergeRequest( );
-            request.setOrigin( author );
             request.setPrimaryCuid( primaryIdentity.getCustomerId( ) );
             request.setSecondaryCuid( candidate.getCustomerId( ) );
             request.setDuplicateRuleCode( ruleCode );
@@ -243,7 +242,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
                 identity.getAttributes( ).addAll( attributesToOverride );
             }
             final IdentityMergeResponse response = new IdentityMergeResponse( );
-            IdentityService.instance( ).merge( request, clientCode, response );
+            IdentityService.instance( ).merge( request, author, clientCode, response );
             nbIdentitiesMerged++;
             final String log = "Identities merged with status " + response.getStatus( ).getStatus( ).name( );
             AppLogService.info( log );

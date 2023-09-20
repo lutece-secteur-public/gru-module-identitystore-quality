@@ -41,12 +41,12 @@ import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleServ
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.utils.Batch;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AuthorType;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.RequestAuthor;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.daemon.Daemon;
 import fr.paris.lutece.portal.service.util.AppLogService;
@@ -188,8 +188,7 @@ public class IdentityDuplicatesDaemon extends Daemon
                         request.getSuspiciousIdentity( ).setCustomerId( cuid );
                         request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
                         request.getSuspiciousIdentity( ).getMetadata( ).putAll( duplicates.getMetadata( ) );
-                        request.setOrigin( author );
-                        SuspiciousIdentityService.instance( ).create( request, clientCode, response );
+                        SuspiciousIdentityService.instance( ).create( request, clientCode, author, response );
                         markedSuspicious++;
                     }
                 }

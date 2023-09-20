@@ -34,6 +34,7 @@
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.Page;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchRequest;
@@ -42,20 +43,20 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.ResponseStatusFactory;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 
-public class IdentityStoreSuspiciousSearchRequest extends AbstractSuspiciousIdentityStoreRequest
+public class IdentityStoreSuspiciousSearchRequest extends AbstractIdentityStoreRequest
 {
     private final SuspiciousIdentitySearchRequest _request;
 
-    public IdentityStoreSuspiciousSearchRequest( final SuspiciousIdentitySearchRequest request, final String strClientAppCode )
+    public IdentityStoreSuspiciousSearchRequest( final SuspiciousIdentitySearchRequest request, final String strClientAppCode, final String authorName,
+            final String authorType ) throws IdentityStoreException
     {
-        super( strClientAppCode );
+        super( strClientAppCode, authorName, authorType );
         this._request = request;
     }
 
     @Override
-    protected void validRequest( ) throws IdentityStoreException
+    protected void validateSpecificRequest( ) throws IdentityStoreException
     {
-        SuspiciousIdentityRequestValidator.instance( ).checkClientCode( _strClientCode );
         SuspiciousIdentityRequestValidator.instance( ).checkSuspiciousIdentitySearch( _request );
     }
 
@@ -71,7 +72,7 @@ public class IdentityStoreSuspiciousSearchRequest extends AbstractSuspiciousIden
             response.getStatus( ).setMessageKey( Constants.PROPERTY_REST_PAGINATION_START_ERROR );
             return response;
         }
-        SuspiciousIdentityService.instance( ).search( _request, _strClientCode, response );
+        SuspiciousIdentityService.instance( ).search( _request, _strClientCode, _author, response );
 
         if ( _request.getPage( ) != null && _request.getSize( ) != null )
         {

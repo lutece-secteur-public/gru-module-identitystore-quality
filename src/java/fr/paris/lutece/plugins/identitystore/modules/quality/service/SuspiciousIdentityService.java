@@ -44,8 +44,10 @@ import fr.paris.lutece.plugins.identitystore.modules.quality.rs.SuspiciousIdenti
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.listeners.IdentityStoreNotifyListenerService;
 import fr.paris.lutece.plugins.identitystore.service.user.InternalUserService;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.RequestAuthor;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchRequest;
@@ -74,7 +76,9 @@ public class SuspiciousIdentityService
 {
     // EVENTS FOR ACCESS LOGGING
     private static final String CREATE_SUSPICIOUS_IDENTITY_EVENT_CODE = "CREATE_SUSPICIOUS_IDENTITY";
+    private static final String SEARCH_SUSPICIOUS_IDENTITY_EVENT_CODE = "SEARCH_SUSPICIOUS_IDENTITY";
     private static final String LOCK_SUSPICIOUS_IDENTITY_EVENT_CODE = "LOCK_SUSPICIOUS_IDENTITY";
+    private static final String UNLOCK_SUSPICIOUS_IDENTITY_EVENT_CODE = "UNLOCK_SUSPICIOUS_IDENTITY";
     private static final String EXCLUDE_SUSPICIOUS_IDENTITY_EVENT_CODE = "EXCLUDE_SUSPICIOUS_IDENTITY";
     private static final String SPECIFIC_ORIGIN = "BO";
 
@@ -106,8 +110,8 @@ public class SuspiciousIdentityService
      * @throws IdentityStoreException
      *             in case of error
      */
-    public void create( final SuspiciousIdentityChangeRequest request, final String clientCode, final SuspiciousIdentityChangeResponse response )
-            throws IdentityStoreException
+    public void create( final SuspiciousIdentityChangeRequest request, final String clientCode, final RequestAuthor author,
+            final SuspiciousIdentityChangeResponse response ) throws IdentityStoreException
     {
         // TODO check if the application has the right to create a suspicious identity
         /*
@@ -142,11 +146,11 @@ public class SuspiciousIdentityService
                 final Map<String, String> metadata = new HashMap<>( request.getSuspiciousIdentity( ).getMetadata( ) );
                 metadata.put( Constants.METADATA_DUPLICATE_RULE_CODE, ruleCode );
                 _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.MARKED_SUSPICIOUS, identity,
-                        response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode, metadata );
+                        response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata );
             }
             TransactionManager.commitTransaction( null );
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_CREATE, CREATE_SUSPICIOUS_IDENTITY_EVENT_CODE,
-                    _internalUserService.getApiUser( request, clientCode ), request, SPECIFIC_ORIGIN );
+                    _internalUserService.getApiUser( author, clientCode ), request, SPECIFIC_ORIGIN );
         }
         catch( Exception e )
         {
@@ -156,8 +160,8 @@ public class SuspiciousIdentityService
         }
     }
 
-    public void search( final SuspiciousIdentitySearchRequest request, String clientCode, final SuspiciousIdentitySearchResponse response )
-            throws IdentityStoreException
+    public void search( final SuspiciousIdentitySearchRequest request, String clientCode, final RequestAuthor author,
+            final SuspiciousIdentitySearchResponse response ) throws IdentityStoreException
     {
         // TODO check if the application has the right to search a suspicious identity
         final List<SuspiciousIdentity> suspiciousIdentitysList = SuspiciousIdentityHome.getSuspiciousIdentitysList( request.getRuleCode( ),
@@ -173,20 +177,26 @@ public class SuspiciousIdentityService
             response.setStatus( ResponseStatusFactory.ok( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
             response.setSuspiciousIdentities( suspiciousIdentitysList.stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) ) );
         }
+        for ( final SuspiciousIdentityDto suspiciousIdentity : response.getSuspiciousIdentities( ) )
+        {
+            AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_READ, SEARCH_SUSPICIOUS_IDENTITY_EVENT_CODE,
+                    _internalUserService.getApiUser( author, clientCode ), request, SPECIFIC_ORIGIN );
+        }
     }
 
-    public void lock( SuspiciousIdentityLockRequest request, String strClientCode, SuspiciousIdentityLockResponse response )
+    public void lock( SuspiciousIdentityLockRequest request, String strClientCode, final RequestAuthor author, SuspiciousIdentityLockResponse response )
     {
         TransactionManager.beginTransaction( null );
         try
         {
-            final boolean locked = SuspiciousIdentityHome.manageLock( request.getCustomerId( ), request.getOrigin( ).getName( ),
-                    request.getOrigin( ).getType( ).name( ), request.isLocked( ) );
+            final boolean locked = SuspiciousIdentityHome.manageLock( request.getCustomerId( ), author.getName( ), author.getType( ).name( ),
+                    request.isLocked( ) );
             response.setLocked( locked );
             response.setStatus( ResponseStatusFactory.success( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
             TransactionManager.commitTransaction( null );
-            AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY, LOCK_SUSPICIOUS_IDENTITY_EVENT_CODE,
-                    _internalUserService.getApiUser( request, strClientCode ), request, SPECIFIC_ORIGIN );
+            AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY,
+                    request.isLocked( ) ? LOCK_SUSPICIOUS_IDENTITY_EVENT_CODE : UNLOCK_SUSPICIOUS_IDENTITY_EVENT_CODE,
+                    _internalUserService.getApiUser( author, strClientCode ), request, SPECIFIC_ORIGIN );
         }
         catch( final SuspiciousIdentityLockedException e )
         {
@@ -211,7 +221,8 @@ public class SuspiciousIdentityService
         }
     }
 
-    public void exclude( final SuspiciousIdentityExcludeRequest request, final String clientCode, final SuspiciousIdentityExcludeResponse response )
+    public void exclude( final SuspiciousIdentityExcludeRequest request, final String clientCode, final RequestAuthor author,
+            final SuspiciousIdentityExcludeResponse response )
     {
         TransactionManager.beginTransaction( null );
         try
@@ -237,8 +248,7 @@ public class SuspiciousIdentityService
             }
 
             // flag the 2 identities: manage the list of identities to exclude (supposed to be a field at the identity level)
-            SuspiciousIdentityHome.exclude( request.getIdentityCuid1( ), request.getIdentityCuid2( ), request.getOrigin( ).getType( ).name( ),
-                    request.getOrigin( ).getName( ) );
+            SuspiciousIdentityHome.exclude( request.getIdentityCuid1( ), request.getIdentityCuid2( ), author.getType( ).name( ), author.getName( ) );
 
             response.setStatus( ResponseStatusFactory.success( ).setMessage( "Identities excluded from duplicate suspicions." )
                     .setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
@@ -246,15 +256,15 @@ public class SuspiciousIdentityService
             final Map<String, String> metadata = new HashMap<>( );
             metadata.put( Constants.METADATA_EXCLUDED_CUID_KEY, secondIdentity.getCustomerId( ) );
             _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUDED, firstIdentity,
-                    response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode, metadata );
+                    response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata );
             // Second identity history
             final Map<String, String> metadata2 = new HashMap<>( );
             metadata2.put( Constants.METADATA_EXCLUDED_CUID_KEY, firstIdentity.getCustomerId( ) );
             _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUDED, secondIdentity,
-                    response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode, metadata2 );
+                    response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata2 );
             TransactionManager.commitTransaction( null );
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY, EXCLUDE_SUSPICIOUS_IDENTITY_EVENT_CODE,
-                    _internalUserService.getApiUser( request, clientCode ), request, SPECIFIC_ORIGIN );
+                    _internalUserService.getApiUser( author, clientCode ), request, SPECIFIC_ORIGIN );
         }
         catch( Exception e )
         {
@@ -264,7 +274,8 @@ public class SuspiciousIdentityService
         }
     }
 
-    public void cancelExclusion( final SuspiciousIdentityExcludeRequest request, final String clientCode, final SuspiciousIdentityExcludeResponse response )
+    public void cancelExclusion( final SuspiciousIdentityExcludeRequest request, final String clientCode, final RequestAuthor author,
+            final SuspiciousIdentityExcludeResponse response )
     {
         TransactionManager.beginTransaction( null );
         try
@@ -297,15 +308,15 @@ public class SuspiciousIdentityService
             final Map<String, String> metadata = new HashMap<>( );
             metadata.put( Constants.METADATA_EXCLUDED_CUID_KEY, secondIdentity.getCustomerId( ) );
             _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUSION_CANCELLED, firstIdentity,
-                    response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode, metadata );
+                    response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata );
             // Second identity history
             final Map<String, String> metadata2 = new HashMap<>( );
             metadata2.put( Constants.METADATA_EXCLUDED_CUID_KEY, firstIdentity.getCustomerId( ) );
             _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUSION_CANCELLED, secondIdentity,
-                    response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), request.getOrigin( ), clientCode, metadata2 );
+                    response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata2 );
             TransactionManager.commitTransaction( null );
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY, EXCLUDE_SUSPICIOUS_IDENTITY_EVENT_CODE,
-                    _internalUserService.getApiUser( request, clientCode ), request, SPECIFIC_ORIGIN );
+                    _internalUserService.getApiUser( author, clientCode ), request, SPECIFIC_ORIGIN );
         }
         catch( Exception e )
         {
