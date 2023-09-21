@@ -215,7 +215,8 @@ public class SuspiciousIdentityRest
         final IdentityStoreFindDuplicatesRequest request = new IdentityStoreFindDuplicatesRequest( strHeaderClientCode, ruleCode, customer_id, authorName,
                 authorType );
         final DuplicateSearchResponse duplicateSearchResponse = (DuplicateSearchResponse) request.doRequest( );
-        return Response.status( Response.Status.OK ).entity( duplicateSearchResponse ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
+        return Response.status( duplicateSearchResponse.getStatus( ).getHttpCode( ) ).entity( duplicateSearchResponse ).type( MediaType.APPLICATION_JSON_TYPE )
+                .build( );
     }
 
     @POST
