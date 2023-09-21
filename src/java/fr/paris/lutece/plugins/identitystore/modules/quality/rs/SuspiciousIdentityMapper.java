@@ -63,10 +63,10 @@ public class SuspiciousIdentityMapper
         if ( isLocked )
         {
             lock.setLockEndDate( beanLock.getLockEndDate( ) );
-            final RequestAuthor origin = new RequestAuthor( );
-            origin.setType( AuthorType.valueOf( beanLock.getAuthorType( ) ) );
-            origin.setName( beanLock.getAuthorName( ) );
-            lock.setOrigin( origin );
+            final RequestAuthor author = new RequestAuthor( );
+            author.setType( AuthorType.valueOf( beanLock.getAuthorType( ) ) );
+            author.setName( beanLock.getAuthorName( ) );
+            lock.setAuthor( author );
         }
         dto.setLock( lock );
         dto.getMetadata( ).putAll( suspiciousIdentity.getMetadata( ) );
