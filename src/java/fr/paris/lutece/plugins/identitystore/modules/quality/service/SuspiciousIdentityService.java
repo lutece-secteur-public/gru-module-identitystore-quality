@@ -152,7 +152,7 @@ public class SuspiciousIdentityService
                 final Map<String, String> metadata = new HashMap<>( request.getSuspiciousIdentity( ).getMetadata( ) );
                 metadata.put( Constants.METADATA_DUPLICATE_RULE_CODE, ruleCode );
                 _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.MARKED_SUSPICIOUS, identity,
-                        response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata );
+                        response.getStatus( ).getType( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata );
             }
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_CREATE, CREATE_SUSPICIOUS_IDENTITY_EVENT_CODE,
                     _internalUserService.getApiUser( author, clientCode ), request, SPECIFIC_ORIGIN );
@@ -263,13 +263,13 @@ public class SuspiciousIdentityService
             final Map<String, String> metadata = new HashMap<>( );
             metadata.put( Constants.METADATA_EXCLUDED_CUID_KEY, secondIdentity.getCustomerId( ) );
             _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUDED, firstIdentity,
-                    response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata );
+                    response.getStatus( ).getType( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata );
 
             // Second identity history
             final Map<String, String> metadata2 = new HashMap<>( );
             metadata2.put( Constants.METADATA_EXCLUDED_CUID_KEY, firstIdentity.getCustomerId( ) );
             _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUDED, secondIdentity,
-                    response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata2 );
+                    response.getStatus( ).getType( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata2 );
 
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY, EXCLUDE_SUSPICIOUS_IDENTITY_EVENT_CODE,
                     _internalUserService.getApiUser( author, clientCode ), request, SPECIFIC_ORIGIN );
@@ -318,13 +318,13 @@ public class SuspiciousIdentityService
             final Map<String, String> metadata = new HashMap<>( );
             metadata.put( Constants.METADATA_EXCLUDED_CUID_KEY, secondIdentity.getCustomerId( ) );
             _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUSION_CANCELLED, firstIdentity,
-                    response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata );
+                    response.getStatus( ).getType( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata );
 
             // Second identity history
             final Map<String, String> metadata2 = new HashMap<>( );
             metadata2.put( Constants.METADATA_EXCLUDED_CUID_KEY, firstIdentity.getCustomerId( ) );
             _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUSION_CANCELLED, secondIdentity,
-                    response.getStatus( ).getStatus( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata2 );
+                    response.getStatus( ).getType( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata2 );
 
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY, EXCLUDE_SUSPICIOUS_IDENTITY_EVENT_CODE,
                     _internalUserService.getApiUser( author, clientCode ), request, SPECIFIC_ORIGIN );
