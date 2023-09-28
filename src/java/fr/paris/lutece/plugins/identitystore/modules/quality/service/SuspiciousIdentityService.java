@@ -237,12 +237,18 @@ public class SuspiciousIdentityService
 
             if ( firstIdentity == null )
             {
-                throw new IdentityStoreException( "Cannot find identity with cuid " + request.getIdentityCuid1( ) );
+                response.setStatus(ResponseStatusFactory.notFound()
+                                                        .setMessage( "Cannot find identity with cuid " + request.getIdentityCuid1( ) )
+                                                        .setMessageKey(Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND));
+                return;
             }
 
             if ( secondIdentity == null )
             {
-                throw new IdentityStoreException( "Cannot find identity with cuid " + request.getIdentityCuid2( ) );
+                response.setStatus(ResponseStatusFactory.notFound()
+                                                        .setMessage( "Cannot find identity with cuid " + request.getIdentityCuid2( ) )
+                                                        .setMessageKey(Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND));
+                return;
             }
 
             if ( SuspiciousIdentityHome.excluded( request.getIdentityCuid1( ), request.getIdentityCuid2( ) ) )
@@ -293,12 +299,18 @@ public class SuspiciousIdentityService
 
             if ( firstIdentity == null )
             {
-                throw new IdentityStoreException( "Cannot find identity with cuid " + request.getIdentityCuid1( ) );
+                response.setStatus(ResponseStatusFactory.notFound()
+                                                        .setMessage( "Cannot find identity with cuid " + request.getIdentityCuid1( ) )
+                                                        .setMessageKey(Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND));
+                return;
             }
 
             if ( secondIdentity == null )
             {
-                throw new IdentityStoreException( "Cannot find identity with cuid " + request.getIdentityCuid2( ) );
+                response.setStatus(ResponseStatusFactory.notFound()
+                                                        .setMessage( "Cannot find identity with cuid " + request.getIdentityCuid2( ) )
+                                                        .setMessageKey(Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND));
+                return;
             }
 
             if ( !SuspiciousIdentityHome.excluded( request.getIdentityCuid1( ), request.getIdentityCuid2( ) ) )
