@@ -38,6 +38,7 @@ import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateR
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRuleHome;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
+import fr.paris.lutece.plugins.identitystore.service.identity.IdentityQualityService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.utils.Batch;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AuthorType;
@@ -198,10 +199,13 @@ public class IdentityDuplicatesDaemon extends Daemon
                 final List<String> customerIds = processedIdentities.stream( ).map( IdentityDto::getCustomerId ).collect( Collectors.toList( ) );
                 if ( !SuspiciousIdentityService.instance( ).hasSuspicious( customerIds ) )
                 {
+                    final String bestQualityCuid = processedIdentities.stream( ).sorted( Comparator.comparingDouble( i -> i.getQuality( ).getQuality( ) ) )
+                            .map( IdentityDto::getCustomerId ).findFirst( ).get( );
+
                     final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
                     final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
                     request.setSuspiciousIdentity( new SuspiciousIdentityDto( ) );
-                    request.getSuspiciousIdentity( ).setCustomerId( cuid );
+                    request.getSuspiciousIdentity( ).setCustomerId( bestQualityCuid );
                     request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
                     request.getSuspiciousIdentity( ).getMetadata( ).putAll( duplicates.getMetadata( ) );
                     SuspiciousIdentityService.instance( ).create( request, clientCode, author, response );
