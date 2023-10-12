@@ -83,4 +83,11 @@
         <jiraProjectName>IDENTITYSTOREQUALITY</jiraProjectName>
         <jiraComponentId></jiraComponentId>
     </properties>
+
+    <scm>
+        <connection>scm:git:https://github.com/lutece-secteur-public/gru-module-identitystore-quality.git</connection>
+        <developerConnection>scm:git:https://github.com/lutece-secteur-public/gru-module-identitystore-quality.git</developerConnection>
+        <url>https://github.com/lutece-secteur-public/gru-module-identitystore-quality.git</url>
+    </scm>
+
 </project>
