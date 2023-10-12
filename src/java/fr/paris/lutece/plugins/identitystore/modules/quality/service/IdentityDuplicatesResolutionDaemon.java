@@ -68,7 +68,7 @@ import java.util.stream.Collectors;
  */
 public class IdentityDuplicatesResolutionDaemon extends Daemon
 {
-    private final static Logger _logger = Logger.getLogger(IdentityDuplicatesResolutionDaemon.class);
+    private final static Logger _logger = Logger.getLogger( IdentityDuplicatesResolutionDaemon.class );
     private final String clientCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.client.code" );
     private final String authorName = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.author.name" );
     final String ruleCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.rule.code" );

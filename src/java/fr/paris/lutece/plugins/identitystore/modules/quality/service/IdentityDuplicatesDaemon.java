@@ -70,7 +70,7 @@ import java.util.stream.Collectors;
  */
 public class IdentityDuplicatesDaemon extends Daemon
 {
-    private final static Logger _logger = Logger.getLogger(IdentityDuplicatesDaemon.class);
+    private final static Logger _logger = Logger.getLogger( IdentityDuplicatesDaemon.class );
     private final String authorName = AppPropertiesService.getProperty( "daemon.identityDuplicatesDaemon.author.name" );
     private final String clientCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesDaemon.client.code" );
 

@@ -81,7 +81,7 @@ import java.util.stream.Collectors;
 @Controller( controllerJsp = "ManageSuspiciousIdentitys.jsp", controllerPath = "jsp/admin/plugins/identitystore/modules/quality/", right = "IDENTITYSTORE_QUALITY_MANAGEMENT" )
 public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
 {
-    private static final Logger _logger = Logger.getLogger(ManageSuspiciousIdentitys.class);
+    private static final Logger _logger = Logger.getLogger( ManageSuspiciousIdentitys.class );
     // Templates
     private static final String TEMPLATE_MANAGE_SUSPICIOUSIDENTITYS = "/admin/plugins/identitystore/modules/quality/manage_suspiciousidentitys.html";
     private static final String TEMPLATE_CREATE_SUSPICIOUSIDENTITY = "/admin/plugins/identitystore/modules/quality/create_suspiciousidentity.html";
