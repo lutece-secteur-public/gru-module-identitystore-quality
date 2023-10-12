@@ -49,11 +49,11 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.merge.IdentityMergeRe
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.daemon.Daemon;
-import fr.paris.lutece.portal.service.util.AppLogService;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.time.StopWatch;
+import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -68,6 +68,7 @@ import java.util.stream.Collectors;
  */
 public class IdentityDuplicatesResolutionDaemon extends Daemon
 {
+    private final static Logger _logger = Logger.getLogger(IdentityDuplicatesResolutionDaemon.class);
     private final String clientCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.client.code" );
     private final String authorName = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.author.name" );
     final String ruleCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.rule.code" );
@@ -82,7 +83,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
         final RequestAuthor author = this.buildAuthor( stopWatch.getStartTime( ) );
         final StringBuilder logs = new StringBuilder( );
         final String startingMessage = "Starting IdentityDuplicatesResolutionDaemon...";
-        AppLogService.info( startingMessage );
+        _logger.info( startingMessage );
         logs.append( startingMessage ).append( "\n" );
 
         nbIdentitiesMerged = 0;
@@ -94,7 +95,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
             if ( processedRule != null )
             {
                 final String ruleMessage = "Processing rule " + ruleCode;
-                AppLogService.info( ruleMessage );
+                _logger.info( ruleMessage );
                 logs.append( ruleMessage ).append( "\n" );
 
                 /* Get a batch of suspicious identities that match the rule */
@@ -122,7 +123,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
                             processedIdentities.sort( orderingComparator );
 
                             final String log = "Found " + processedIdentities.size( ) + " to process";
-                            AppLogService.info( log );
+                            _logger.info( log );
                             logs.append( log ).append( "\n" );
 
                             /* The first identity of the list is the base identity */
@@ -140,7 +141,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
                         {
                             final String log = "There is no duplicates to process for suspicious identity with customer ID "
                                     + suspiciousIdentity.getCustomerId( ) + ". Suspicious identity removed from database";
-                            AppLogService.info( log );
+                            _logger.info( log );
                             logs.append( log ).append( "\n" );
                             SuspiciousIdentityHome.remove( suspiciousIdentity.getId( ) );
                         }
@@ -148,7 +149,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
                     else
                     {
                         final String log = "Suspicious identity with customer ID " + suspiciousIdentity.getCustomerId( ) + " is locked";
-                        AppLogService.info( log );
+                        _logger.info( log );
                         logs.append( log ).append( "\n" );
                     }
                 }
@@ -156,27 +157,27 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
             else
             {
                 final String ruleMessage = "No rule found with name " + ruleCode;
-                AppLogService.info( ruleMessage );
+                _logger.info( ruleMessage );
                 logs.append( ruleMessage ).append( "\n" );
             }
         }
         catch( DuplicateRuleNotFoundException e )
         {
             final String log = "Could not fetch rule " + ruleCode + " :" + e.getMessage( );
-            AppLogService.info( log );
+            _logger.info( log );
             logs.append( log );
         }
         catch( IdentityStoreException e )
         {
             final String log = "Could not resolve suspicious identity :" + e.getMessage( );
-            AppLogService.info( log );
+            _logger.info( log );
             logs.append( log );
         }
 
         stopWatch.stop( );
         final String duration = DurationFormatUtils.formatDurationWords( stopWatch.getTime( ), true, true );
         final String log = nbIdentitiesMerged + " identities merged. Execution time " + duration;
-        AppLogService.info( log );
+        _logger.info( log );
         logs.append( log );
         setLastRunLogs( logs.toString( ) );
     }
@@ -199,7 +200,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
             /* Lock current */
             SuspiciousIdentityHome.manageLock( suspiciousCustomerId, "IdentityDuplicatesResolutionDaemon", AuthorType.admin.name( ), true );
             final String lock = "Lock suspicious identity with customer ID " + suspiciousCustomerId;
-            AppLogService.info( lock );
+            _logger.info( lock );
             logs.append( lock ).append( "\n" );
 
             final IdentityMergeRequest request = new IdentityMergeRequest( );
@@ -215,7 +216,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
             if ( !attributesToCreate.isEmpty( ) )
             {
                 final String log = "Attribute list to create " + attributesToCreate.stream( ).map( AttributeDto::getKey ).collect( Collectors.joining( "," ) );
-                AppLogService.info( log );
+                _logger.info( log );
                 logs.append( log ).append( "\n" );
             }
 
@@ -230,7 +231,7 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
             {
                 final String log = "Attribute list to create "
                         + attributesToOverride.stream( ).map( AttributeDto::getKey ).collect( Collectors.joining( "," ) );
-                AppLogService.info( log );
+                _logger.info( log );
                 logs.append( log ).append( "\n" );
             }
 
@@ -245,19 +246,19 @@ public class IdentityDuplicatesResolutionDaemon extends Daemon
             IdentityService.instance( ).merge( request, author, clientCode, response );
             nbIdentitiesMerged++;
             final String log = "Identities merged with status " + response.getStatus( ).getType( ).name( );
-            AppLogService.info( log );
+            _logger.info( log );
             logs.append( log ).append( "\n" );
 
             /* Unlock current */
             SuspiciousIdentityHome.manageLock( suspiciousCustomerId, "IdentityDuplicatesResolutionDaemon", AuthorType.admin.name( ), false );
             final String unlock = "Unlock suspicious identity with customer ID " + suspiciousCustomerId;
-            AppLogService.info( unlock );
+            _logger.info( unlock );
             logs.append( unlock ).append( "\n" );
         }
         else
         {
             final String err = "Candidate identity with customer ID " + candidate.getCustomerId( ) + " is not eligible to automatic merge.";
-            AppLogService.info( err );
+            _logger.info( err );
             logs.append( err ).append( "\n" );
         }
         return logs.toString( );

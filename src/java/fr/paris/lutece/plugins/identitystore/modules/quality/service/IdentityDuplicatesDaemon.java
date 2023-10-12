@@ -38,7 +38,6 @@ import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateR
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRuleHome;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
-import fr.paris.lutece.plugins.identitystore.service.identity.IdentityQualityService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.utils.Batch;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AuthorType;
@@ -50,12 +49,12 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdenti
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.daemon.Daemon;
-import fr.paris.lutece.portal.service.util.AppLogService;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.time.StopWatch;
+import org.apache.log4j.Logger;
 
 import java.sql.Timestamp;
 import java.time.ZoneId;
@@ -71,6 +70,7 @@ import java.util.stream.Collectors;
  */
 public class IdentityDuplicatesDaemon extends Daemon
 {
+    private final static Logger _logger = Logger.getLogger(IdentityDuplicatesDaemon.class);
     private final String authorName = AppPropertiesService.getProperty( "daemon.identityDuplicatesDaemon.author.name" );
     private final String clientCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesDaemon.client.code" );
 
@@ -85,7 +85,7 @@ public class IdentityDuplicatesDaemon extends Daemon
         final RequestAuthor author = this.buildAuthor( stopWatch.getStartTime( ) );
         final StringBuilder logs = new StringBuilder( );
         final String startingMessage = "Starting IdentityDuplicatesDaemon...";
-        AppLogService.info( startingMessage );
+        _logger.info( startingMessage );
         logs.append( startingMessage ).append( "\n" );
         setLastRunLogs( logs.toString( ) );
         final List<DuplicateRule> rules;
@@ -96,7 +96,7 @@ public class IdentityDuplicatesDaemon extends Daemon
         catch( final DuplicateRuleNotFoundException e )
         {
             final String error = "No duplicate rules found in database. Stopping daemon.";
-            AppLogService.error( error, e );
+            _logger.error( error, e );
             logs.append( error ).append( e.getMessage( ) ).append( "\n" );
             setLastRunLogs( logs.toString( ) );
             return;
@@ -104,14 +104,14 @@ public class IdentityDuplicatesDaemon extends Daemon
         if ( CollectionUtils.isEmpty( rules ) )
         {
             final String empty = "No existing duplicate rules marked to be used in daemon. Stopping daemon.";
-            AppLogService.info( empty );
+            _logger.info( empty );
             logs.append( empty );
             setLastRunLogs( logs.toString( ) );
             return;
         }
 
         final String starting = rules.size( ) + " applicable detection rules found. Starting process...";
-        AppLogService.info( starting );
+        _logger.info( starting );
         logs.append( starting ).append( "\n" );
         setLastRunLogs( logs.toString( ) );
         rules.sort( Comparator.comparingInt( DuplicateRule::getPriority ) );
@@ -124,7 +124,7 @@ public class IdentityDuplicatesDaemon extends Daemon
             }
             catch( IdentityStoreException e )
             {
-                AppLogService.error( e );
+                _logger.error( e );
                 logs.append( e.getMessage( ) ).append( "\n" );
                 setLastRunLogs( logs.toString( ) );
             }
@@ -136,7 +136,7 @@ public class IdentityDuplicatesDaemon extends Daemon
         stopWatch.stop( );
         final String duration = DurationFormatUtils.formatDurationWords( stopWatch.getTime( ), true, true );
         final String log = "Execution time " + duration;
-        AppLogService.info( log );
+        _logger.info( log );
         logs.append( log );
         setLastRunLogs( logs.toString( ) );
     }
@@ -151,20 +151,20 @@ public class IdentityDuplicatesDaemon extends Daemon
     {
         final String processing = "-- Processing Rule id = [" + rule.getId( ) + "] code = [" + rule.getCode( ) + "] priority = [" + rule.getPriority( )
                 + "] ...";
-        AppLogService.info( processing );
+        _logger.info( processing );
         logs.append( processing ).append( "\n" );
         setLastRunLogs( logs.toString( ) );
         final Batch<String> cuidList = IdentityService.instance( ).getIdentitiesBatchForPotentialDuplicate( rule, 200 );
         if ( cuidList == null || cuidList.isEmpty( ) )
         {
             final String error = "No identities having required attributes and not already suspicious found.";
-            AppLogService.info( error );
+            _logger.info( error );
             logs.append( error ).append( "\n" );
             setLastRunLogs( logs.toString( ) );
             return;
         }
         final String found = cuidList.totalSize( ) + " identities found. Searching for potential duplicates on those...";
-        AppLogService.info( found );
+        _logger.info( found );
         logs.append( found ).append( "\n" );
         setLastRunLogs( logs.toString( ) );
         int markedSuspicious = 0;
@@ -179,7 +179,7 @@ public class IdentityDuplicatesDaemon extends Daemon
             }
         }
         final String marked = markedSuspicious + " identities have been marked as suspicious.";
-        AppLogService.info( marked );
+        _logger.info( marked );
         logs.append( marked ).append( "\n" );
         setLastRunLogs( logs.toString( ) );
     }
@@ -215,7 +215,7 @@ public class IdentityDuplicatesDaemon extends Daemon
         }
         catch( Exception e )
         {
-            AppLogService.error( e.getMessage( ), e );
+            _logger.error( e.getMessage( ), e );
         }
         return false;
     }

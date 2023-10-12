@@ -44,11 +44,11 @@ import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDupli
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeDto;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.QualityDefinition;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummaryDto;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.admin.AccessDeniedException;
@@ -56,7 +56,6 @@ import fr.paris.lutece.portal.service.message.AdminMessage;
 import fr.paris.lutece.portal.service.message.AdminMessageService;
 import fr.paris.lutece.portal.service.security.SecurityTokenService;
 import fr.paris.lutece.portal.service.util.AppException;
-import fr.paris.lutece.portal.service.util.AppLogService;
 import fr.paris.lutece.portal.util.mvc.admin.annotations.Controller;
 import fr.paris.lutece.portal.util.mvc.commons.annotations.Action;
 import fr.paris.lutece.portal.util.mvc.commons.annotations.View;
@@ -64,9 +63,16 @@ import fr.paris.lutece.util.html.AbstractPaginator;
 import fr.paris.lutece.util.url.UrlItem;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -75,6 +81,7 @@ import java.util.stream.Collectors;
 @Controller( controllerJsp = "ManageSuspiciousIdentitys.jsp", controllerPath = "jsp/admin/plugins/identitystore/modules/quality/", right = "IDENTITYSTORE_QUALITY_MANAGEMENT" )
 public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
 {
+    private static final Logger _logger = Logger.getLogger(ManageSuspiciousIdentitys.class);
     // Templates
     private static final String TEMPLATE_MANAGE_SUSPICIOUSIDENTITYS = "/admin/plugins/identitystore/modules/quality/manage_suspiciousidentitys.html";
     private static final String TEMPLATE_CREATE_SUSPICIOUSIDENTITY = "/admin/plugins/identitystore/modules/quality/create_suspiciousidentity.html";
@@ -175,7 +182,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         }
         catch( final IdentityStoreException e )
         {
-            AppLogService.error( "Error while fetching duplicate calculation rules.", e );
+            _logger.error( "Error while fetching duplicate calculation rules.", e );
             addError( e.getMessage( ) );
         }
 
@@ -199,7 +206,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         _currentRuleCode = request.getParameter( PARAM_RULE_CODE );
         if ( StringUtils.isBlank( _currentRuleCode ) )
         {
-            AppLogService.error( "Rule code must be specified in request." );
+            _logger.error( "Rule code must be specified in request." );
             return getDuplicateTypes( request );
         }
 
@@ -230,7 +237,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         }
         catch( final IdentityStoreException e )
         {
-            AppLogService.error( "Error while fetching potential identity duplicates.", e );
+            _logger.error( "Error while fetching potential identity duplicates.", e );
             addError( "Error while fetching potential identity duplicates: " + e.getMessage( ) );
         }
 
@@ -519,7 +526,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         }
         catch( DuplicateRuleNotFoundException e )
         {
-            AppLogService.error( "Error while fetching duplicate rules.", e );
+            _logger.error( "Error while fetching duplicate rules.", e );
             addError( e.getMessage( ) );
         }
 
