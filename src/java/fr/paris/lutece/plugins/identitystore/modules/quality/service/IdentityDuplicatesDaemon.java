@@ -167,8 +167,8 @@ public class IdentityDuplicatesDaemon extends Daemon
         _logger.info( processing );
         logs.append( processing ).append( "\n" );
         setLastRunLogs( logs.toString( ) );
-        final Batch<String> cuidList = IdentityService.instance( ).getIdentitiesBatchForPotentialDuplicate( rule, 200 );
-        if ( cuidList == null || cuidList.isEmpty( ) )
+        final Batch<IdentityDto> identityBatch = IdentityService.instance( ).getIdentitiesBatchForPotentialDuplicate( rule, 200 );
+        if ( identityBatch == null || identityBatch.isEmpty( ) )
         {
             final String error = "No identities having required attributes and not already suspicious found.";
             _logger.info( error );
@@ -176,16 +176,16 @@ public class IdentityDuplicatesDaemon extends Daemon
             setLastRunLogs( logs.toString( ) );
             return;
         }
-        final String found = cuidList.totalSize( ) + " identities found. Searching for potential duplicates on those...";
+        final String found = identityBatch.totalSize( ) + " identities found. Searching for potential duplicates on those...";
         _logger.info( found );
         logs.append( found ).append( "\n" );
         setLastRunLogs( logs.toString( ) );
         int markedSuspicious = 0;
-        for ( final List<String> cuids : cuidList )
+        for ( final List<IdentityDto> identities : identityBatch )
         {
-            for ( final String cuid : cuids )
+            for ( final IdentityDto identity : identities )
             {
-                if ( processIdentity( cuid, rule, author ) )
+                if ( processIdentity( identity, rule, author ) )
                 {
                     markedSuspicious++;
                 }
@@ -197,11 +197,10 @@ public class IdentityDuplicatesDaemon extends Daemon
         setLastRunLogs( logs.toString( ) );
     }
 
-    private boolean processIdentity( final String cuid, final DuplicateRule rule, final RequestAuthor author )
+    private boolean processIdentity( final IdentityDto identity, final DuplicateRule rule, final RequestAuthor author )
     {
         try
         {
-            final IdentityDto identity = IdentityService.instance( ).getQualifiedIdentity( cuid );
             final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( identity,
                     Collections.singletonList( rule.getCode( ) ) );
             final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
@@ -212,13 +211,10 @@ public class IdentityDuplicatesDaemon extends Daemon
                 final List<String> customerIds = processedIdentities.stream( ).map( IdentityDto::getCustomerId ).collect( Collectors.toList( ) );
                 if ( !SuspiciousIdentityService.instance( ).hasSuspicious( customerIds ) )
                 {
-                    final String bestQualityCuid = processedIdentities.stream( ).sorted( Comparator.comparingDouble( i -> i.getQuality( ).getQuality( ) ) )
-                            .map( IdentityDto::getCustomerId ).findFirst( ).get( );
-
                     final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
                     final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
                     request.setSuspiciousIdentity( new SuspiciousIdentityDto( ) );
-                    request.getSuspiciousIdentity( ).setCustomerId( bestQualityCuid );
+                    request.getSuspiciousIdentity( ).setCustomerId( identity.getCustomerId( ) );
                     request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
                     request.getSuspiciousIdentity( ).getMetadata( ).putAll( duplicates.getMetadata( ) );
                     SuspiciousIdentityService.instance( ).create( request, clientCode, author, response );
