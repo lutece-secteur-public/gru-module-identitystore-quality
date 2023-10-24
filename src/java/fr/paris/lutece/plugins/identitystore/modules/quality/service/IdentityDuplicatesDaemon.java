@@ -33,6 +33,8 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.service;
 
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRuleHome;
@@ -66,7 +68,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * This task identifies {@link Identity} with potential duplicates. The best quality identity is saved in the database to be processed later.
+ * This task identifies {@link Identity} with potential duplicates. The best quality identity is saved in the database to be processed later.<br/>
+ * This daemon is also deleting expired suspicions.
  */
 public class IdentityDuplicatesDaemon extends Daemon
 {
@@ -88,6 +91,16 @@ public class IdentityDuplicatesDaemon extends Daemon
         _logger.info( startingMessage );
         logs.append( startingMessage ).append( "\n" );
         setLastRunLogs( logs.toString( ) );
+        try
+        {
+            this.purgeExpiredSuspicions( logs );
+        }
+        catch( final IdentityStoreException e )
+        {
+            final String error = "Error occured while purging expired suspicions. Continuing...";
+            _logger.error( error, e );
+            logs.append( error ).append( e.getMessage( ) ).append( "\n" );
+        }
         final List<DuplicateRule> rules;
         try
         {
@@ -218,6 +231,37 @@ public class IdentityDuplicatesDaemon extends Daemon
             _logger.error( e.getMessage( ), e );
         }
         return false;
+    }
+
+    /**
+     * Purges the existing suspicious identities by deleting those that don't have duplicates anymore.
+     * 
+     * @param logs
+     *            the logs builder
+     */
+    private void purgeExpiredSuspicions( final StringBuilder logs ) throws IdentityStoreException
+    {
+        final String startMsg = "Starting purge suspicions process...";
+        logs.append( startMsg ).append( "\n" );
+        _logger.info( startMsg );
+
+        final List<SuspiciousIdentity> suspiciousIdentitysList = SuspiciousIdentityHome.getSuspiciousIdentitysList( null, 500, null );
+        int purgeCount = 0;
+        for ( final SuspiciousIdentity suspicious : suspiciousIdentitysList )
+        {
+            final IdentityDto identity = IdentityService.instance( ).getQualifiedIdentity( suspicious.getCustomerId( ) );
+            final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( identity,
+                    Collections.singletonList( suspicious.getDuplicateRuleCode( ) ) );
+            if ( duplicates.getIdentities( ).isEmpty( ) )
+            {
+                SuspiciousIdentityHome.remove( suspicious.getCustomerId( ) );
+                purgeCount++;
+            }
+        }
+
+        final String endMsg = "Purge process ended with " + purgeCount + " deleted suspicions.";
+        logs.append( endMsg ).append( "\n" );
+        _logger.info( endMsg );
     }
 
     private RequestAuthor buildAuthor( long time )
