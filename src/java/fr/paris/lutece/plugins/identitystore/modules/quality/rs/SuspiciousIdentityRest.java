@@ -34,14 +34,15 @@
 
 package fr.paris.lutece.plugins.identitystore.modules.quality.rs;
 
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreDuplicateRuleGetRequest;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreFindDuplicatesRequest;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSearchDuplicatesRequest;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousCancelExclusionRequest;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousCreateRequest;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousExcludeRequest;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousLockRequest;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousSearchRequest;
 import fr.paris.lutece.plugins.identitystore.service.IdentityStoreService;
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreDuplicateRuleGetRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeRequest;
@@ -50,6 +51,7 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdenti
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummarySearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.swagger.SwaggerConstants;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
@@ -204,9 +206,9 @@ public class SuspiciousIdentityRest
     }
 
     /**
-     * Get SuspiciousIdentity List
+     * Get Duplicate List
      *
-     * @return the SuspiciousIdentity List
+     * @return the Duplicate List
      */
     @GET
     @Path( Constants.DUPLICATE_PATH + "/{customer_id}" )
@@ -223,6 +225,31 @@ public class SuspiciousIdentityRest
     {
         final String trustedClientCode = IdentityStoreService.getTrustedClientCode( strHeaderClientCode, StringUtils.EMPTY, strHeaderAppCode );
         final IdentityStoreFindDuplicatesRequest request = new IdentityStoreFindDuplicatesRequest( trustedClientCode, ruleCode, customer_id, authorName,
+                authorType );
+        final DuplicateSearchResponse duplicateSearchResponse = (DuplicateSearchResponse) request.doRequest( );
+        return Response.status( duplicateSearchResponse.getStatus( ).getHttpCode( ) ).entity( duplicateSearchResponse ).type( MediaType.APPLICATION_JSON_TYPE )
+                .build( );
+    }
+
+    /**
+     * Get Duplicate List
+     *
+     * @return the Duplicate List
+     */
+    @POST
+    @Path( Constants.DUPLICATE_PATH + Constants.SEARCH_IDENTITIES_PATH )
+    @Consumes( MediaType.APPLICATION_JSON )
+    @Produces( MediaType.APPLICATION_JSON )
+    @ApiOperation( value = "Get list of identities that are duplicates of the provided customer_id's identity, according to the provided rule ID.", response = DuplicateSearchResponse.class )
+    public Response searchDuplicates( final DuplicateSearchRequest duplicateSearchRequest,
+            @HeaderParam( Constants.PARAM_CLIENT_CODE ) final String strHeaderClientCode,
+            @ApiParam( name = Constants.PARAM_AUTHOR_NAME, value = SwaggerConstants.PARAM_AUTHOR_NAME_DESCRIPTION ) @HeaderParam( Constants.PARAM_AUTHOR_NAME ) String authorName,
+            @ApiParam( name = Constants.PARAM_AUTHOR_TYPE, value = SwaggerConstants.PARAM_AUTHOR_TYPE_DESCRIPTION ) @HeaderParam( Constants.PARAM_AUTHOR_TYPE ) String authorType,
+            @ApiParam( name = Constants.PARAM_APPLICATION_CODE, value = SwaggerConstants.PARAM_APPLICATION_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_APPLICATION_CODE ) @DefaultValue( "" ) String strHeaderAppCode )
+            throws IdentityStoreException
+    {
+        final String trustedClientCode = IdentityStoreService.getTrustedClientCode( strHeaderClientCode, StringUtils.EMPTY, strHeaderAppCode );
+        final IdentityStoreSearchDuplicatesRequest request = new IdentityStoreSearchDuplicatesRequest( trustedClientCode, duplicateSearchRequest, authorName,
                 authorType );
         final DuplicateSearchResponse duplicateSearchResponse = (DuplicateSearchResponse) request.doRequest( );
         return Response.status( duplicateSearchResponse.getStatus( ).getHttpCode( ) ).entity( duplicateSearchResponse ).type( MediaType.APPLICATION_JSON_TYPE )

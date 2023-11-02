@@ -31,42 +31,36 @@
  *
  * License 1.0
  */
-package fr.paris.lutece.plugins.identitystore.modules.quality.service;
+package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
-import fr.paris.lutece.plugins.identitystore.service.duplicate.IDuplicateService;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeDto;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
+import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDuplicatesService;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-public class SearchDuplicatesService
+public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreRequest
 {
-    private static SearchDuplicatesService instance;
-    private final IDuplicateService _duplicateServiceElasticSearch = SpringContextService.getBean( "identitystore.duplicateService.elasticsearch" );
 
-    public static SearchDuplicatesService instance( )
+    private final DuplicateSearchRequest _request;
+
+    public IdentityStoreSearchDuplicatesRequest( String strClientCode, DuplicateSearchRequest request, String authorName, String authorType )
+            throws IdentityStoreException
     {
-        if ( instance == null )
-        {
-            instance = new SearchDuplicatesService( );
-        }
-        return instance;
+        super( strClientCode, authorName, authorType );
+        this._request = request;
     }
 
-    public final DuplicateSearchResponse findDuplicates( final IdentityDto identity, final List<String> ruleCodes ) throws IdentityStoreException
+    @Override
+    protected void validateSpecificRequest( ) throws IdentityStoreException
     {
-        final Map<String, String> attributeMap = identity.getAttributes( ).stream( )
-                .collect( Collectors.toMap( AttributeDto::getKey, AttributeDto::getValue ) );
-        return _duplicateServiceElasticSearch.findDuplicates( attributeMap, identity.getCustomerId( ), ruleCodes );
+        SuspiciousIdentityRequestValidator.instance( ).checkDuplicateSearch( _request );
     }
 
-    public final DuplicateSearchResponse findDuplicates( final Map<String, String> attributeValues, final List<String> ruleCodes ) throws IdentityStoreException
+    @Override
+    protected DuplicateSearchResponse doSpecificRequest( ) throws IdentityStoreException
     {
-        return _duplicateServiceElasticSearch.findDuplicates( attributeValues, "", ruleCodes );
+        return SearchDuplicatesService.instance( ).findDuplicates( _request.getAttributes( ), _request.getRuleCodes( ) );
     }
 }
