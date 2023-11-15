@@ -174,7 +174,7 @@ public class SuspiciousIdentityService
 
         if ( suspiciousIdentitysList == null || suspiciousIdentitysList.isEmpty( ) )
         {
-            response.setStatus( ResponseStatusFactory.notFound( ).setMessageKey( Constants.PROPERTY_REST_ERROR_NO_SUSPICIOUS_IDENTITY_FOUND ) );
+            response.setStatus( ResponseStatusFactory.noResult( ).setMessageKey( Constants.PROPERTY_REST_ERROR_NO_SUSPICIOUS_IDENTITY_FOUND ) );
             response.setSuspiciousIdentities( Collections.emptyList( ) );
         }
         else

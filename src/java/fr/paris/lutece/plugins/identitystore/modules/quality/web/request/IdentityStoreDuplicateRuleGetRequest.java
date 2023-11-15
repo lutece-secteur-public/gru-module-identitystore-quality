@@ -77,7 +77,7 @@ public class IdentityStoreDuplicateRuleGetRequest extends AbstractIdentityStoreR
         if ( CollectionUtils.isEmpty( rules ) )
         {
             response.setDuplicateRuleSummaries( Collections.emptyList( ) );
-            response.setStatus( ResponseStatusFactory.notFound( ).setMessageKey( Constants.PROPERTY_REST_ERROR_NO_DUPLICATE_RULE_FOUND ) );
+            response.setStatus( ResponseStatusFactory.noResult( ).setMessageKey( Constants.PROPERTY_REST_ERROR_NO_DUPLICATE_RULE_FOUND ) );
         }
         else
         {
