@@ -53,7 +53,6 @@ import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreExceptio
 import fr.paris.lutece.portal.service.daemon.Daemon;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.log4j.Logger;
@@ -73,9 +72,16 @@ import java.util.stream.Collectors;
  */
 public class IdentityDuplicatesDaemon extends Daemon
 {
-    private final static Logger _logger = Logger.getLogger( IdentityDuplicatesDaemon.class );
-    private final String authorName = AppPropertiesService.getProperty( "daemon.identityDuplicatesDaemon.author.name" );
-    private final String clientCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesDaemon.client.code" );
+    private static final Logger _logger = Logger.getLogger( IdentityDuplicatesDaemon.class );
+    private static final String clientCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesDaemon.client.code" );
+
+    private static final RequestAuthor author;
+    static
+    {
+        author = new RequestAuthor( );
+        author.setType( AuthorType.application );
+        author.setName( AppPropertiesService.getProperty( "daemon.identityDuplicatesDaemon.author.name" ) );
+    }
 
     /**
      * {@inheritDoc}
@@ -85,7 +91,6 @@ public class IdentityDuplicatesDaemon extends Daemon
     {
         final StopWatch stopWatch = new StopWatch( );
         stopWatch.start( );
-        final RequestAuthor author = this.buildAuthor( stopWatch.getStartTime( ) );
         final StringBuilder logs = new StringBuilder( );
         final String startingMessage = "Starting IdentityDuplicatesDaemon...";
         _logger.info( startingMessage );
@@ -258,13 +263,5 @@ public class IdentityDuplicatesDaemon extends Daemon
         final String endMsg = "Purge process ended with " + purgeCount + " deleted suspicions.";
         logs.append( endMsg ).append( "\n" );
         _logger.info( endMsg );
-    }
-
-    private RequestAuthor buildAuthor( long time )
-    {
-        final RequestAuthor author = new RequestAuthor( );
-        author.setType( AuthorType.application );
-        author.setName( authorName + DateFormatUtils.ISO_8601_EXTENDED_DATETIME_FORMAT.format( time ) );
-        return author;
     }
 }
