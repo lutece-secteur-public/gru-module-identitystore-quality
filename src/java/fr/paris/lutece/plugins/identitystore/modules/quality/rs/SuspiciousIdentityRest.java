@@ -57,6 +57,7 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.swagger.SwaggerConstants;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.plugins.rest.service.RestConstants;
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
@@ -80,10 +81,11 @@ import javax.ws.rs.core.Response;
  * SuspiciousIdentityRest
  */
 @Path( RestConstants.BASE_PATH + Constants.PLUGIN_PATH + Constants.VERSION_PATH_V3 + Constants.QUALITY_PATH )
+@Api( RestConstants.BASE_PATH + Constants.PLUGIN_PATH + Constants.VERSION_PATH_V3 + Constants.QUALITY_PATH )
 public class SuspiciousIdentityRest
 {
     protected static final String ERROR_NO_OBJECT_FOUND = "No object found";
-    protected static final String ERROR_DURING_TREATMENT = "An error occured during the treatment.";
+    protected static final String ERROR_DURING_TREATMENT = "An error occurred during the treatment.";
 
     /**
      * Get SuspiciousIdentity List
@@ -94,7 +96,14 @@ public class SuspiciousIdentityRest
     @Path( Constants.SUSPICIONS_PATH + Constants.SEARCH_IDENTITIES_PATH )
     @Consumes( MediaType.APPLICATION_JSON )
     @Produces( MediaType.APPLICATION_JSON )
-    @ApiOperation( value = "Get a list of suspicions, limited to max", response = SuspiciousIdentitySearchResponse.class )
+    @ApiOperation( value = "Get a paginated list of suspicions, according to criteria specified in the request", response = SuspiciousIdentitySearchResponse.class )
+    @ApiResponses( value = {
+            @ApiResponse( code = 200, message = "The request has succeeded." ),
+            @ApiResponse( code = 400, message = "The request could not be understood by the server due to incorrect syntax. The client SHOULD NOT repeat the request without modifications." ),
+            @ApiResponse( code = 401, message = "The request requires user authentication information. The client MAY repeat the request with a suitable Authorization header field." ),
+            @ApiResponse( code = 403, message = "Failure" ), @ApiResponse( code = 404, message = "No resource matching the request coud be found" ),
+            @ApiResponse( code = 409, message = "Conflict" ), @ApiResponse( code = 500, message = "Conflict" )
+    } )
     public Response getSuspiciousIdentityList(
             @ApiParam( name = "Request body.", value = "The suspicious identity search request", type = "SuspiciousIdentitySearchRequest" ) SuspiciousIdentitySearchRequest searchRequest,
             @ApiParam( name = Constants.PARAM_CLIENT_CODE, value = SwaggerConstants.PARAM_CLIENT_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_CLIENT_CODE ) String strHeaderClientAppCode,

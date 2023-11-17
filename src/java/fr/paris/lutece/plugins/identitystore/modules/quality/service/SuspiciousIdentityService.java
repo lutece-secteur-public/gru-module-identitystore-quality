@@ -185,7 +185,7 @@ public class SuspiciousIdentityService
         for ( final SuspiciousIdentityDto suspiciousIdentity : response.getSuspiciousIdentities( ) )
         {
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_READ, SEARCH_SUSPICIOUS_IDENTITY_EVENT_CODE,
-                    _internalUserService.getApiUser( author, clientCode ), request, SPECIFIC_ORIGIN );
+                    _internalUserService.getApiUser( author, clientCode ), suspiciousIdentity, SPECIFIC_ORIGIN );
         }
     }
 

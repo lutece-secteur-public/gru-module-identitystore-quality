@@ -16,6 +16,14 @@
     <version>1.0.0-SNAPSHOT</version>
     <name>Lutece identitystore quality module</name>
 
+    <properties>
+        <componentName>identitystore-quality</componentName>
+        <jiraProjectName>IDENTITYSTOREQUALITY</jiraProjectName>
+        <jiraComponentId></jiraComponentId>
+        <swagger-jaxrs.version>1.6.11</swagger-jaxrs.version>
+        <library-identitybusiness.version>3.1.1-SNAPSHOT</library-identitybusiness.version>
+    </properties>
+
     <repositories>
         <repository>
             <id>lutece</id>
@@ -59,7 +67,7 @@
         <dependency>
             <groupId>io.swagger</groupId>
             <artifactId>swagger-jaxrs</artifactId>
-            <version>1.5.16</version>
+            <version>${swagger-jaxrs.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.fasterxml.jackson</groupId>
@@ -78,11 +86,47 @@
         </dependency>
     </dependencies>
 
-    <properties>
-        <componentName>identitystore-quality</componentName>
-        <jiraProjectName>IDENTITYSTOREQUALITY</jiraProjectName>
-        <jiraComponentId></jiraComponentId>
-    </properties>
+    <!-- Génération du fichier swagger.json -->
+    <profiles>
+        <profile>
+            <id>swagger-json</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>io.openapitools.swagger</groupId>
+                        <artifactId>swagger-maven-plugin</artifactId>
+                        <version>1.0.3</version>
+                        <configuration>
+                            <resourcePackages>
+                                <resourcePackage>fr.paris.lutece.plugins.identitystore.modules.quality.rs.swagger</resourcePackage>
+                                <resourcePackage>fr.paris.lutece.plugins.identitystore.modules.quality.rs</resourcePackage>
+                            </resourcePackages>
+                            <outputDirectory>${project.basedir}/webapp/plugins/identitystore/modules/quality/api/swagger/v3/</outputDirectory>
+                            <outputFilename>swagger</outputFilename>
+                            <outputFormats>JSON</outputFormats>
+                        </configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>fr.paris.lutece.plugins</groupId>
+                                <artifactId>library-identitybusiness</artifactId>
+                                <version>${library-identitybusiness.version}</version>
+                            </dependency>
+                        </dependencies>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>generate</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
     <scm>
         <connection>scm:git:https://github.com/lutece-secteur-public/gru-module-identitystore-quality.git</connection>
