@@ -250,7 +250,7 @@ public class IdentityDuplicatesDaemon extends Daemon
         int purgeCount = 0;
         for ( final SuspiciousIdentity suspicious : suspiciousIdentitysList )
         {
-            final IdentityDto identity = IdentityService.instance( ).getQualifiedIdentity( suspicious.getCustomerId( ) );
+            final IdentityDto identity = IdentityService.instance( ).search( suspicious.getCustomerId( ) );
             final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( identity,
                     Collections.singletonList( suspicious.getDuplicateRuleCode( ) ) );
             if ( duplicates.getIdentities( ).isEmpty( ) )
