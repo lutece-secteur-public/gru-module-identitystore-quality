@@ -38,6 +38,7 @@ import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.Susp
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRuleHome;
+import fr.paris.lutece.plugins.identitystore.service.daemon.LoggingDaemon;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
@@ -50,12 +51,10 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdenti
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
-import fr.paris.lutece.portal.service.daemon.Daemon;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.time.StopWatch;
-import org.apache.log4j.Logger;
 
 import java.sql.Timestamp;
 import java.time.ZoneId;
@@ -70,9 +69,8 @@ import java.util.stream.Collectors;
  * This task identifies {@link Identity} with potential duplicates. The best quality identity is saved in the database to be processed later.<br/>
  * This daemon is also deleting expired suspicions.
  */
-public class IdentityDuplicatesDaemon extends Daemon
+public class IdentityDuplicatesDaemon extends LoggingDaemon
 {
-    private static final Logger _logger = Logger.getLogger( IdentityDuplicatesDaemon.class );
     private static final String clientCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesDaemon.client.code" );
 
     private static final RequestAuthor author;
@@ -87,24 +85,20 @@ public class IdentityDuplicatesDaemon extends Daemon
      * {@inheritDoc}
      */
     @Override
-    public void run( )
+    public void doTask( )
     {
         final StopWatch stopWatch = new StopWatch( );
         stopWatch.start( );
-        final StringBuilder logs = new StringBuilder( );
-        final String startingMessage = "Starting IdentityDuplicatesDaemon...";
-        _logger.info( startingMessage );
-        logs.append( startingMessage ).append( "\n" );
-        setLastRunLogs( logs.toString( ) );
+        this.info( "Starting IdentityDuplicatesDaemon..." );
+
         try
         {
-            this.purgeExpiredSuspicions( logs );
+            this.purgeExpiredSuspicions( );
         }
         catch( final IdentityStoreException e )
         {
-            final String error = "Error occured while purging expired suspicions. Continuing...";
-            _logger.error( error, e );
-            logs.append( error ).append( e.getMessage( ) ).append( "\n" );
+            this.error( "Error occured while purging expired suspicions : " + e.getMessage( ) );
+            this.info( "Continuing..." );
         }
         final List<DuplicateRule> rules;
         try
@@ -113,38 +107,28 @@ public class IdentityDuplicatesDaemon extends Daemon
         }
         catch( final DuplicateRuleNotFoundException e )
         {
-            final String error = "No duplicate rules found in database. Stopping daemon.";
-            _logger.error( error, e );
-            logs.append( error ).append( e.getMessage( ) ).append( "\n" );
-            setLastRunLogs( logs.toString( ) );
+            this.error( "No duplicate rules found in database: " + e.getMessage( ) );
+            this.info( "Stopping daemon." );
             return;
         }
         if ( CollectionUtils.isEmpty( rules ) )
         {
-            final String empty = "No existing duplicate rules marked to be used in daemon. Stopping daemon.";
-            _logger.info( empty );
-            logs.append( empty );
-            setLastRunLogs( logs.toString( ) );
+            this.error( "No existing duplicate rules marked to be used in daemon. Stopping daemon." );
             return;
         }
 
-        final String starting = rules.size( ) + " applicable detection rules found. Starting process...";
-        _logger.info( starting );
-        logs.append( starting ).append( "\n" );
-        setLastRunLogs( logs.toString( ) );
+        this.info( rules.size( ) + " applicable detection rules found. Starting process..." );
         rules.sort( Comparator.comparingInt( DuplicateRule::getPriority ) );
 
         for ( final DuplicateRule rule : rules )
         {
             try
             {
-                this.search( rule, logs, author );
+                this.search( rule );
             }
             catch( IdentityStoreException e )
             {
-                _logger.error( e );
-                logs.append( e.getMessage( ) ).append( "\n" );
-                setLastRunLogs( logs.toString( ) );
+                this.error( "An error occured during treatment: " + e.getMessage( ) );
             }
 
             rule.setDaemonLastExecDate( Timestamp.from( ZonedDateTime.now( ZoneId.systemDefault( ) ).toInstant( ) ) );
@@ -153,10 +137,7 @@ public class IdentityDuplicatesDaemon extends Daemon
 
         stopWatch.stop( );
         final String duration = DurationFormatUtils.formatDurationWords( stopWatch.getTime( ), true, true );
-        final String log = "Execution time " + duration;
-        _logger.info( log );
-        logs.append( log );
-        setLastRunLogs( logs.toString( ) );
+        this.info( "Execution time " + duration );
     }
 
     /**
@@ -165,26 +146,19 @@ public class IdentityDuplicatesDaemon extends Daemon
      * @param rule
      *            the rule used to search duplicates
      */
-    private void search( final DuplicateRule rule, final StringBuilder logs, final RequestAuthor author ) throws IdentityStoreException
+    private void search( final DuplicateRule rule ) throws IdentityStoreException
     {
         final String processing = "-- Processing Rule id = [" + rule.getId( ) + "] code = [" + rule.getCode( ) + "] priority = [" + rule.getPriority( )
                 + "] ...";
-        _logger.info( processing );
-        logs.append( processing ).append( "\n" );
-        setLastRunLogs( logs.toString( ) );
+        this.info( processing );
         final Batch<IdentityDto> identityBatch = IdentityService.instance( ).getIdentitiesBatchForPotentialDuplicate( rule, 200 );
         if ( identityBatch == null || identityBatch.isEmpty( ) )
         {
-            final String error = "No identities having required attributes and not already suspicious found.";
-            _logger.info( error );
-            logs.append( error ).append( "\n" );
-            setLastRunLogs( logs.toString( ) );
+            this.error( "No identities having required attributes and not already suspicious found." );
             return;
         }
-        final String found = identityBatch.totalSize( ) + " identities found. Searching for potential duplicates on those...";
-        _logger.info( found );
-        logs.append( found ).append( "\n" );
-        setLastRunLogs( logs.toString( ) );
+
+        this.info( identityBatch.totalSize( ) + " identities found. Searching for potential duplicates on those..." );
         int markedSuspicious = 0;
         for ( final List<IdentityDto> identities : identityBatch )
         {
@@ -196,10 +170,7 @@ public class IdentityDuplicatesDaemon extends Daemon
                 }
             }
         }
-        final String marked = markedSuspicious + " identities have been marked as suspicious.";
-        _logger.info( marked );
-        logs.append( marked ).append( "\n" );
-        setLastRunLogs( logs.toString( ) );
+        this.info( markedSuspicious + " identities have been marked as suspicious." );
     }
 
     private boolean processIdentity( final IdentityDto identity, final DuplicateRule rule, final RequestAuthor author )
@@ -227,24 +198,20 @@ public class IdentityDuplicatesDaemon extends Daemon
                 }
             }
         }
-        catch( Exception e )
+        catch( final Exception e )
         {
-            _logger.error( e.getMessage( ), e );
+            this.error( "An error occurred during duplicate search for identity" + identity.getCustomerId( ) + " and rule " + rule.getCode( ) + " : "
+                    + e.getMessage( ) );
         }
         return false;
     }
 
     /**
      * Purges the existing suspicious identities by deleting those that don't have duplicates anymore.
-     * 
-     * @param logs
-     *            the logs builder
      */
-    private void purgeExpiredSuspicions( final StringBuilder logs ) throws IdentityStoreException
+    private void purgeExpiredSuspicions( ) throws IdentityStoreException
     {
-        final String startMsg = "Starting purge suspicions process...";
-        logs.append( startMsg ).append( "\n" );
-        _logger.info( startMsg );
+        this.info( "Starting purge suspicions process..." );
 
         final List<SuspiciousIdentity> suspiciousIdentitysList = SuspiciousIdentityHome.getSuspiciousIdentitysList( null, 500, null );
         int purgeCount = 0;
@@ -260,8 +227,6 @@ public class IdentityDuplicatesDaemon extends Daemon
             }
         }
 
-        final String endMsg = "Purge process ended with " + purgeCount + " deleted suspicions.";
-        logs.append( endMsg ).append( "\n" );
-        _logger.info( endMsg );
+        this.info( "Purge process ended with " + purgeCount + " deleted suspicions." );
     }
 }

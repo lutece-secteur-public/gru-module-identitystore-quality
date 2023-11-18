@@ -42,8 +42,7 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.IdentityMapper;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.RequestAuthor;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.history.IdentityChangeType;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
-import fr.paris.lutece.portal.service.util.AppPropertiesService;
-import org.apache.log4j.Logger;
+import fr.paris.lutece.portal.service.util.AppLogService;
 
 import java.util.Collections;
 import java.util.Map;
@@ -54,10 +53,6 @@ import java.util.Map;
 public class SuspiciousIdentityListener implements IdentityChangeListener
 {
     private static final String SERVICE_NAME = "Elastic Search identity change listener";
-    private static final String PROPERTY_LOGGER_NAME = "identitystore.changelistener.logging.loggerName";
-    private static final String DEFAULT_LOGGER_NAME = "lutece.identitystore";
-    private static final String LOGGER_NAME = AppPropertiesService.getProperty( PROPERTY_LOGGER_NAME, DEFAULT_LOGGER_NAME );
-    private static final Logger _logger = Logger.getLogger( LOGGER_NAME );
 
     @Override
     public void processIdentityChange( IdentityChangeType identityChangeType, Identity identity, String statusCode, String statusMessage, RequestAuthor author,
@@ -99,7 +94,7 @@ public class SuspiciousIdentityListener implements IdentityChangeListener
             }
             catch( Exception e )
             {
-                _logger.error( "Could not handle identity " + identity.getCustomerId( ) + " : " + e.getMessage( ) );
+                AppLogService.error( "Could not handle identity " + identity.getCustomerId( ) + " : " + e.getMessage( ) );
             }
         }
     }
