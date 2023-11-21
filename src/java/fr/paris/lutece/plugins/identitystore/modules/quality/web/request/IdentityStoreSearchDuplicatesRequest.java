@@ -64,9 +64,11 @@ public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreR
     @Override
     protected DuplicateSearchResponse doSpecificRequest( ) throws IdentityStoreException
     {
-        final DuplicateSearchResponse duplicateSearchResponse = SearchDuplicatesService.instance().findDuplicates(_request.getAttributes(), _request.getRuleCodes());
-        final ServiceContract serviceContract = ServiceContractService.instance().getActiveServiceContract(_strClientCode);
-        duplicateSearchResponse.getIdentities().forEach(identityDto -> IdentityQualityService.instance().enrich(null, identityDto, serviceContract, null));
+        final DuplicateSearchResponse duplicateSearchResponse = SearchDuplicatesService.instance( ).findDuplicates( _request.getAttributes( ),
+                _request.getRuleCodes( ) );
+        final ServiceContract serviceContract = ServiceContractService.instance( ).getActiveServiceContract( _strClientCode );
+        duplicateSearchResponse.getIdentities( )
+                .forEach( identityDto -> IdentityQualityService.instance( ).enrich( null, identityDto, serviceContract, null ) );
         return duplicateSearchResponse;
     }
 }
