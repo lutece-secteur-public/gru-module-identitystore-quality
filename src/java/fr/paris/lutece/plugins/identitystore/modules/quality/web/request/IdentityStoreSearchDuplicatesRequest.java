@@ -33,7 +33,10 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
+import fr.paris.lutece.plugins.identitystore.business.contract.ServiceContract;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDuplicatesService;
+import fr.paris.lutece.plugins.identitystore.service.contract.ServiceContractService;
+import fr.paris.lutece.plugins.identitystore.service.identity.IdentityQualityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchRequest;
@@ -61,6 +64,9 @@ public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreR
     @Override
     protected DuplicateSearchResponse doSpecificRequest( ) throws IdentityStoreException
     {
-        return SearchDuplicatesService.instance( ).findDuplicates( _request.getAttributes( ), _request.getRuleCodes( ) );
+        final DuplicateSearchResponse duplicateSearchResponse = SearchDuplicatesService.instance().findDuplicates(_request.getAttributes(), _request.getRuleCodes());
+        final ServiceContract serviceContract = ServiceContractService.instance().getActiveServiceContract(_strClientCode);
+        duplicateSearchResponse.getIdentities().forEach(identityDto -> IdentityQualityService.instance().enrich(null, identityDto, serviceContract, null));
+        return duplicateSearchResponse;
     }
 }
