@@ -110,12 +110,6 @@
             <daemon-class>fr.paris.lutece.plugins.identitystore.modules.quality.service.IdentityDuplicatesDaemon</daemon-class>
         </daemon>
         <daemon>
-            <daemon-id>identityDuplicatesPurgeDaemon</daemon-id>
-            <daemon-name>identitystore.daemon.identityDuplicatesPurgeDaemon.name</daemon-name>
-            <daemon-description>identitystore.daemon.identityDuplicatesPurgeDaemon.description</daemon-description>
-            <daemon-class>fr.paris.lutece.plugins.identitystore.modules.quality.service.IdentityDuplicatesPurgeDaemon</daemon-class>
-        </daemon>
-        <daemon>
             <daemon-id>identityDuplicatesResolutionDaemon</daemon-id>
             <daemon-name>identitystore.daemon.identityDuplicatesResolutionDaemon.name</daemon-name>
             <daemon-description>identitystore.daemon.identityDuplicatesDaemon.description</daemon-description>
