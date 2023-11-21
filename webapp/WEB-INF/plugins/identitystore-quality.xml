@@ -105,20 +105,20 @@
     <daemons>
         <daemon>
             <daemon-id>identityDuplicatesDaemon</daemon-id>
-            <daemon-name>identitystore.daemon.identityDuplicatesDaemon.name</daemon-name>
-            <daemon-description>identitystore.daemon.identityDuplicatesDaemon.description</daemon-description>
+            <daemon-name>module.identitystore.quality.daemon.identityDuplicatesDaemon.name</daemon-name>
+            <daemon-description>module.identitystore.quality.daemon.identityDuplicatesDaemon.description</daemon-description>
             <daemon-class>fr.paris.lutece.plugins.identitystore.modules.quality.service.IdentityDuplicatesDaemon</daemon-class>
         </daemon>
         <daemon>
             <daemon-id>identityDuplicatesResolutionDaemon</daemon-id>
-            <daemon-name>identitystore.daemon.identityDuplicatesResolutionDaemon.name</daemon-name>
-            <daemon-description>identitystore.daemon.identityDuplicatesDaemon.description</daemon-description>
+            <daemon-name>module.identitystore.quality.daemon.identityDuplicatesResolutionDaemon.name</daemon-name>
+            <daemon-description>module.identitystore.quality.daemon.identityDuplicatesDaemon.description</daemon-description>
             <daemon-class>fr.paris.lutece.plugins.identitystore.modules.quality.service.IdentityDuplicatesResolutionDaemon</daemon-class>
         </daemon>
         <daemon>
             <daemon-id>lockPurgeDaemon</daemon-id>
-            <daemon-name>identitystore.daemon.lockPurgeDaemon.name</daemon-name>
-            <daemon-description>identitystore.daemon.lockPurgeDaemon.description</daemon-description>
+            <daemon-name>module.identitystore.quality.daemon.lockPurgeDaemon.name</daemon-name>
+            <daemon-description>module.identitystore.quality.daemon.lockPurgeDaemon.description</daemon-description>
             <daemon-class>fr.paris.lutece.plugins.identitystore.modules.quality.service.LockPurgeDaemon</daemon-class>
         </daemon>
     </daemons>
