@@ -104,7 +104,7 @@ public class SuspiciousIdentityRest
             @ApiResponse( code = 403, message = "Failure" ), @ApiResponse( code = 404, message = "No resource matching the request coud be found" ),
             @ApiResponse( code = 409, message = "Conflict" ), @ApiResponse( code = 500, message = "Conflict" )
     } )
-    public Response getSuspiciousIdentityList(
+    public Response searchSuspiciousIdentityList(
             @ApiParam( name = "Request body.", value = "The suspicious identity search request", type = "SuspiciousIdentitySearchRequest" ) SuspiciousIdentitySearchRequest searchRequest,
             @ApiParam( name = Constants.PARAM_CLIENT_CODE, value = SwaggerConstants.PARAM_CLIENT_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_CLIENT_CODE ) String strHeaderClientAppCode,
             @ApiParam( name = Constants.PARAM_AUTHOR_NAME, value = SwaggerConstants.PARAM_AUTHOR_NAME_DESCRIPTION ) @HeaderParam( Constants.PARAM_AUTHOR_NAME ) String authorName,
