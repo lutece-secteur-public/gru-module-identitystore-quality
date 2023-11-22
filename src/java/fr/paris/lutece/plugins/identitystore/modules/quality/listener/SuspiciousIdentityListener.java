@@ -38,7 +38,7 @@ import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.Susp
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDuplicatesService;
 import fr.paris.lutece.plugins.identitystore.service.IdentityChangeListener;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.IdentityMapper;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.DtoConverter;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.RequestAuthor;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.history.IdentityChangeType;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
@@ -85,7 +85,7 @@ public class SuspiciousIdentityListener implements IdentityChangeListener
             try
             {
                 final SuspiciousIdentity suspiciousIdentity = SuspiciousIdentityHome.selectByCustomerID( identity.getCustomerId( ) );
-                final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( IdentityMapper.toDto( identity ),
+                final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( DtoConverter.convertIdentityToDto( identity ),
                         Collections.singletonList( suspiciousIdentity.getDuplicateRuleCode( ) ) );
                 if ( duplicates.getIdentities( ).isEmpty( ) )
                 {
