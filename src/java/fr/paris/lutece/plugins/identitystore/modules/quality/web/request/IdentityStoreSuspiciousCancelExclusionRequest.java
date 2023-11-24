@@ -67,7 +67,7 @@ public class IdentityStoreSuspiciousCancelExclusionRequest extends AbstractIdent
     }
 
     @Override
-    public SuspiciousIdentityExcludeResponse doSpecificRequest( ) throws IdentityStoreException
+    public SuspiciousIdentityExcludeResponse doSpecificRequest( )
     {
         final SuspiciousIdentityExcludeResponse response = new SuspiciousIdentityExcludeResponse( );
         SuspiciousIdentityService.instance( ).cancelExclusion( _suspiciousIdentityExcludeRequest, _strClientCode, _author, response );

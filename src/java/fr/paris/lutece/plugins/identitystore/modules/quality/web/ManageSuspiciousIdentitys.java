@@ -271,7 +271,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     {
         _currentRule = null;
         final IdentityDto suspiciousIdentity;
-        final List<AttributeKey> readableAttributes = new ArrayList<>( );
+        final List<AttributeKey> readableAttributes;
         try
         {
             final String customerId = request.getParameter( PARAM_CUID );
@@ -287,7 +287,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
                 addError( "Could not find suspiciousIdentity with customer ID " + customerId );
                 return getDuplicateTypes( request );
             }
-            readableAttributes.addAll( AttributeKeyHome.getAttributeKeysList( ) );
+            readableAttributes = new ArrayList<>( AttributeKeyHome.getAttributeKeysList( ) );
             final Comparator<AttributeKey> sortById = Comparator.comparing( AttributeKey::getId );
             final Comparator<AttributeKey> sortByPivot = ( o1, o2 ) -> Boolean.compare( o2.getPivot( ), o1.getPivot( ) );
             readableAttributes.sort( sortByPivot.thenComparing( sortById ) );
@@ -298,7 +298,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
             return getDuplicateTypes( request );
         }
 
-        final List<IdentityDto> identityList = new ArrayList<>( );
+        final List<IdentityDto> identityList;
         try
         {
             _currentRule = DuplicateRuleService.instance( ).get( _currentRuleCode );
@@ -310,7 +310,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
                 addError( "No duplicate could be found." );
                 return getDuplicateTypes( request );
             }
-            identityList.addAll( duplicateSearchResponse.getIdentities( ) );
+            identityList = new ArrayList<>( duplicateSearchResponse.getIdentities( ) );
             identityList.add( suspiciousIdentity );
             /* Order identity list by connected identities, then best quality */
             identityList.sort( orderingComparator );
@@ -366,7 +366,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         final IdentityDto firstIdentity;
         final IdentityDto secondIdentity;
         final List<IdentityDto> identities = new ArrayList<>( );
-        final List<AttributeKey> readableAttributes = new ArrayList<>( );
+        final List<AttributeKey> readableAttributes;
         String firstCustomerId;
         String secondCustomerId;
         try
@@ -400,7 +400,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
             }
             identities.add( firstIdentity );
             identities.add( secondIdentity );
-            readableAttributes.addAll( AttributeKeyHome.getAttributeKeysList( ) );
+            readableAttributes = new ArrayList<>( AttributeKeyHome.getAttributeKeysList( ) );
             final Comparator<AttributeKey> sortById = Comparator.comparing( AttributeKey::getId );
             final Comparator<AttributeKey> sortByPivot = ( o1, o2 ) -> Boolean.compare( o2.getPivot( ), o1.getPivot( ) );
             readableAttributes.sort( sortByPivot.thenComparing( sortById ) );

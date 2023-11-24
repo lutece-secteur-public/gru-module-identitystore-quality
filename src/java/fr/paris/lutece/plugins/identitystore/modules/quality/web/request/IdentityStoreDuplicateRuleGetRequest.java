@@ -35,7 +35,6 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummaryDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummarySearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
@@ -64,7 +63,7 @@ public class IdentityStoreDuplicateRuleGetRequest extends AbstractIdentityStoreR
     }
 
     @Override
-    protected void validateSpecificRequest( ) throws IdentityStoreException
+    protected void validateSpecificRequest( )
     {
     }
 

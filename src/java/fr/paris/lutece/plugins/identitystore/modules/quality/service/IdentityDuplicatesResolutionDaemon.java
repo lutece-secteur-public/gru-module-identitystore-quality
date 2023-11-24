@@ -173,7 +173,6 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
     private void merge( final IdentityDto primaryIdentity, final IdentityDto candidate, final String suspiciousCustomerId, final RequestAuthor author )
             throws IdentityStoreException
     {
-        final StringBuilder logs = new StringBuilder( );
         /* Cannot merge connected identity */
         if ( this.canMerge( primaryIdentity, candidate ) )
         {

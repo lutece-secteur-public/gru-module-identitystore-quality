@@ -122,15 +122,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
 
         for ( final DuplicateRule rule : rules )
         {
-            try
-            {
-                this.search( rule );
-            }
-            catch( IdentityStoreException e )
-            {
-                this.error( "An error occured during treatment: " + e.getMessage( ) );
-            }
-
+            this.search( rule );
             rule.setDaemonLastExecDate( Timestamp.from( ZonedDateTime.now( ZoneId.systemDefault( ) ).toInstant( ) ) );
             DuplicateRuleHome.update( rule );
         }
@@ -146,7 +138,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
      * @param rule
      *            the rule used to search duplicates
      */
-    private void search( final DuplicateRule rule ) throws IdentityStoreException
+    private void search( final DuplicateRule rule )
     {
         final String processing = "-- Processing Rule id = [" + rule.getId( ) + "] code = [" + rule.getCode( ) + "] priority = [" + rule.getPriority( )
                 + "] ...";
@@ -164,7 +156,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
         {
             for ( final IdentityDto identity : identities )
             {
-                if ( processIdentity( identity, rule, author ) )
+                if ( processIdentity( identity, rule ) )
                 {
                     markedSuspicious++;
                 }
@@ -173,7 +165,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
         this.info( markedSuspicious + " identities have been marked as suspicious." );
     }
 
-    private boolean processIdentity( final IdentityDto identity, final DuplicateRule rule, final RequestAuthor author )
+    private boolean processIdentity( final IdentityDto identity, final DuplicateRule rule )
     {
         try
         {

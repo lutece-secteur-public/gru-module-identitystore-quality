@@ -111,7 +111,7 @@ public class SuspiciousIdentityService
      *             in case of error
      */
     public void create( final SuspiciousIdentityChangeRequest request, final String clientCode, final RequestAuthor author,
-            final SuspiciousIdentityChangeResponse response ) throws IdentityStoreException
+            final SuspiciousIdentityChangeResponse response )
     {
         // TODO check if the application has the right to create a suspicious identity
         /*

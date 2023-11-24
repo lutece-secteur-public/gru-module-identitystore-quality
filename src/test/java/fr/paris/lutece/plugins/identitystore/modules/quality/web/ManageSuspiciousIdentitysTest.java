@@ -54,10 +54,9 @@ public class ManageSuspiciousIdentitysTest extends LuteceTestCase
     private static final String CUSTOMERID1 = "CustomerId1";
     private static final String CUSTOMERID2 = "CustomerId2";
 
-    public void testJspBeans( ) throws AccessDeniedException, IOException
+    public void testJspBeans( )
     {
         MockHttpServletRequest request = new MockHttpServletRequest( );
-        MockHttpServletResponse response = new MockHttpServletResponse( );
         MockServletConfig config = new MockServletConfig( );
 
         // display admin SuspiciousIdentity management JSP
@@ -72,7 +71,7 @@ public class ManageSuspiciousIdentitysTest extends LuteceTestCase
         // action create SuspiciousIdentity
         request = new MockHttpServletRequest( );
 
-        response = new MockHttpServletResponse( );
+        MockHttpServletResponse response = new MockHttpServletResponse( );
         AdminUser adminUser = new AdminUser( );
         adminUser.setAccessCode( "admin" );
 
@@ -102,7 +101,7 @@ public class ManageSuspiciousIdentitysTest extends LuteceTestCase
         request = new MockHttpServletRequest( );
         request.addParameter( "customer_id", CUSTOMERID1 );
         List<Integer> listIds = SuspiciousIdentityHome.getIdSuspiciousIdentitysList( );
-        assertTrue( !listIds.isEmpty( ) );
+        assertFalse( listIds.isEmpty( ) );
         request.addParameter( "id", String.valueOf( listIds.get( 0 ) ) );
         jspbean = new ManageSuspiciousIdentitys( );
 
