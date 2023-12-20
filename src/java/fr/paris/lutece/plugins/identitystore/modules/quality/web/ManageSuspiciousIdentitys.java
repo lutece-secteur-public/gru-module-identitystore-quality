@@ -229,7 +229,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
             identities.sort( getAttributeComparator( Constants.PARAM_FAMILY_NAME ).thenComparing( getAttributeComparator( Constants.PARAM_FIRST_NAME ) )
                     .thenComparing( getAttributeComparator( Constants.PARAM_BIRTH_DATE ) ) );
 
-            final List<AttributeKey> pivotAttributes = AttributeKeyHome.getAttributeKeysList( ).stream( ).filter( AttributeKey::getPivot )
+            final List<AttributeKey> pivotAttributes = AttributeKeyHome.getAttributeKeysList( false ).stream( ).filter( AttributeKey::getPivot )
                     .collect( Collectors.toList( ) );
             readableAttributes.addAll( pivotAttributes );
             readableAttributes.sort( Comparator.comparingInt( AttributeKey::getId ) );
@@ -287,7 +287,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
                 addError( "Could not find suspiciousIdentity with customer ID " + customerId );
                 return getDuplicateTypes( request );
             }
-            readableAttributes = new ArrayList<>( AttributeKeyHome.getAttributeKeysList( ) );
+            readableAttributes = new ArrayList<>( AttributeKeyHome.getAttributeKeysList( false ) );
             final Comparator<AttributeKey> sortById = Comparator.comparing( AttributeKey::getId );
             final Comparator<AttributeKey> sortByPivot = ( o1, o2 ) -> Boolean.compare( o2.getPivot( ), o1.getPivot( ) );
             readableAttributes.sort( sortByPivot.thenComparing( sortById ) );
@@ -400,7 +400,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
             }
             identities.add( firstIdentity );
             identities.add( secondIdentity );
-            readableAttributes = new ArrayList<>( AttributeKeyHome.getAttributeKeysList( ) );
+            readableAttributes = new ArrayList<>( AttributeKeyHome.getAttributeKeysList( false ) );
             final Comparator<AttributeKey> sortById = Comparator.comparing( AttributeKey::getId );
             final Comparator<AttributeKey> sortByPivot = ( o1, o2 ) -> Boolean.compare( o2.getPivot( ), o1.getPivot( ) );
             readableAttributes.sort( sortByPivot.thenComparing( sortById ) );
