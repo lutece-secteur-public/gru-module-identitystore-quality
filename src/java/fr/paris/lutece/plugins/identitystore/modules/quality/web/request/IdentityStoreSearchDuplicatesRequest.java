@@ -68,7 +68,7 @@ public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreR
                 _request.getRuleCodes( ) );
         final ServiceContract serviceContract = ServiceContractService.instance( ).getActiveServiceContract( _strClientCode );
         duplicateSearchResponse.getIdentities( )
-                .forEach( identityDto -> IdentityQualityService.instance( ).enrich( null, identityDto, serviceContract, null ) );
+                .forEach( identityDto -> IdentityQualityService.instance( ).enrich( null, identityDto, serviceContract, null, false ) );
         return duplicateSearchResponse;
     }
 }
