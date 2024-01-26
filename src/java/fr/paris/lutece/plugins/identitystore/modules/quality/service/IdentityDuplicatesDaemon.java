@@ -72,6 +72,8 @@ import java.util.stream.Collectors;
 public class IdentityDuplicatesDaemon extends LoggingDaemon
 {
     private static final String clientCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesDaemon.client.code" );
+    private static final Integer batchSize = AppPropertiesService.getPropertyInt( "daemon.identityDuplicatesDaemon.batch.size", 10 );
+    private static final Integer purgeSize = AppPropertiesService.getPropertyInt( "daemon.identityDuplicatesDaemon.purge.size", 500 );
 
     private static final RequestAuthor author;
     static
@@ -143,7 +145,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
         final String processing = "-- Processing Rule id = [" + rule.getId( ) + "] code = [" + rule.getCode( ) + "] priority = [" + rule.getPriority( )
                 + "] ...";
         this.info( processing );
-        final Batch<IdentityDto> identityBatch = IdentityService.instance( ).getIdentitiesBatchForPotentialDuplicate( rule, 200 );
+        final Batch<IdentityDto> identityBatch = IdentityService.instance( ).getIdentitiesBatchForPotentialDuplicate( rule, batchSize );
         if ( identityBatch == null || identityBatch.isEmpty( ) )
         {
             this.error( "No identities having required attributes and not already suspicious found." );
@@ -205,7 +207,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
     {
         this.info( "Starting purge suspicions process..." );
 
-        final List<SuspiciousIdentity> suspiciousIdentitysList = SuspiciousIdentityHome.getSuspiciousIdentitysList( null, 500, null );
+        final List<SuspiciousIdentity> suspiciousIdentitysList = SuspiciousIdentityHome.getSuspiciousIdentitysList( null, purgeSize, null );
         int purgeCount = 0;
         for ( final SuspiciousIdentity suspicious : suspiciousIdentitysList )
         {
