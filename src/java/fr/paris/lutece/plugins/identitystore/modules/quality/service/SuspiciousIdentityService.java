@@ -229,33 +229,33 @@ public class SuspiciousIdentityService
     public void exclude( final SuspiciousIdentityExcludeRequest request, final String clientCode, final RequestAuthor author,
             final SuspiciousIdentityExcludeResponse response )
     {
+        final Identity firstIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid1( ) );
+        final Identity secondIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid2( ) );
+
+        if ( firstIdentity == null )
+        {
+            response.setStatus( ResponseStatusFactory.notFound( ).setMessage( "Cannot find identity with cuid " + request.getIdentityCuid1( ) )
+                    .setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
+            return;
+        }
+
+        if ( secondIdentity == null )
+        {
+            response.setStatus( ResponseStatusFactory.notFound( ).setMessage( "Cannot find identity with cuid " + request.getIdentityCuid2( ) )
+                    .setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
+            return;
+        }
+
+        if ( SuspiciousIdentityHome.excluded( request.getIdentityCuid1( ), request.getIdentityCuid2( ) ) )
+        {
+            response.setStatus( ResponseStatusFactory.conflict( ).setMessage( "Identities are already excluded from duplicate suspicions." )
+                    .setMessageKey( Constants.PROPERTY_REST_ERROR_ALREADY_EXCLUDED ) );
+            return;
+        }
+
         TransactionManager.beginTransaction( null );
         try
         {
-            final Identity firstIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid1( ) );
-            final Identity secondIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid2( ) );
-
-            if ( firstIdentity == null )
-            {
-                response.setStatus( ResponseStatusFactory.notFound( ).setMessage( "Cannot find identity with cuid " + request.getIdentityCuid1( ) )
-                        .setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
-                return;
-            }
-
-            if ( secondIdentity == null )
-            {
-                response.setStatus( ResponseStatusFactory.notFound( ).setMessage( "Cannot find identity with cuid " + request.getIdentityCuid2( ) )
-                        .setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
-                return;
-            }
-
-            if ( SuspiciousIdentityHome.excluded( request.getIdentityCuid1( ), request.getIdentityCuid2( ) ) )
-            {
-                response.setStatus( ResponseStatusFactory.conflict( ).setMessage( "Identities are already excluded from duplicate suspicions." )
-                        .setMessageKey( Constants.PROPERTY_REST_ERROR_ALREADY_EXCLUDED ) );
-                return;
-            }
-
             // flag the 2 identities: manage the list of identities to exclude (supposed to be a field at the identity level)
             SuspiciousIdentityHome.exclude( request.getIdentityCuid1( ), request.getIdentityCuid2( ), author.getType( ).name( ), author.getName( ) );
 
@@ -289,33 +289,33 @@ public class SuspiciousIdentityService
     public void cancelExclusion( final SuspiciousIdentityExcludeRequest request, final String clientCode, final RequestAuthor author,
             final SuspiciousIdentityExcludeResponse response )
     {
+        final Identity firstIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid1( ) );
+        final Identity secondIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid2( ) );
+
+        if ( firstIdentity == null )
+        {
+            response.setStatus( ResponseStatusFactory.notFound( ).setMessage( "Cannot find identity with cuid " + request.getIdentityCuid1( ) )
+                    .setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
+            return;
+        }
+
+        if ( secondIdentity == null )
+        {
+            response.setStatus( ResponseStatusFactory.notFound( ).setMessage( "Cannot find identity with cuid " + request.getIdentityCuid2( ) )
+                    .setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
+            return;
+        }
+
+        if ( !SuspiciousIdentityHome.excluded( request.getIdentityCuid1( ), request.getIdentityCuid2( ) ) )
+        {
+            response.setStatus( ResponseStatusFactory.conflict( ).setMessage( "Identities are not excluded from duplicate suspicions." )
+                    .setMessageKey( Constants.PROPERTY_REST_ERROR_NOT_EXCLUDED ) );
+            return;
+        }
+
         TransactionManager.beginTransaction( null );
         try
         {
-            final Identity firstIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid1( ) );
-            final Identity secondIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid2( ) );
-
-            if ( firstIdentity == null )
-            {
-                response.setStatus( ResponseStatusFactory.notFound( ).setMessage( "Cannot find identity with cuid " + request.getIdentityCuid1( ) )
-                        .setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
-                return;
-            }
-
-            if ( secondIdentity == null )
-            {
-                response.setStatus( ResponseStatusFactory.notFound( ).setMessage( "Cannot find identity with cuid " + request.getIdentityCuid2( ) )
-                        .setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
-                return;
-            }
-
-            if ( !SuspiciousIdentityHome.excluded( request.getIdentityCuid1( ), request.getIdentityCuid2( ) ) )
-            {
-                response.setStatus( ResponseStatusFactory.conflict( ).setMessage( "Identities are not excluded from duplicate suspicions." )
-                        .setMessageKey( Constants.PROPERTY_REST_ERROR_NOT_EXCLUDED ) );
-                return;
-            }
-
             // remove the exclusion
             SuspiciousIdentityHome.removeExcludedIdentities( request.getIdentityCuid1( ), request.getIdentityCuid2( ) );
             response.setStatus( ResponseStatusFactory.success( ).setMessage( "Identities exclusion has been cancelled." )

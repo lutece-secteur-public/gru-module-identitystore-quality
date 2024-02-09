@@ -43,6 +43,7 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.RequestAuthor;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.history.IdentityChangeType;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.portal.service.util.AppLogService;
+    import fr.paris.lutece.util.sql.TransactionManager;
 
 import java.util.Collections;
 import java.util.Map;
@@ -87,14 +88,17 @@ public class SuspiciousIdentityListener implements IdentityChangeListener
                 final SuspiciousIdentity suspiciousIdentity = SuspiciousIdentityHome.selectByCustomerID( identity.getCustomerId( ) );
                 final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( DtoConverter.convertIdentityToDto( identity ),
                         Collections.singletonList( suspiciousIdentity.getDuplicateRuleCode( ) ) );
+                TransactionManager.beginTransaction(null);
                 if ( duplicates.getIdentities( ).isEmpty( ) )
                 {
                     SuspiciousIdentityHome.remove( identity.getCustomerId( ) );
                 }
+                TransactionManager.commitTransaction(null);
             }
             catch( Exception e )
             {
-                AppLogService.error( "Could not handle identity " + identity.getCustomerId( ) + " : " + e.getMessage( ) );
+                TransactionManager.rollBack(null);
+                AppLogService.error( "SuspiciousIdentityListener :: Could not handle identity " + identity.getCustomerId( ) + " : " + e.getMessage( ) );
             }
         }
     }
