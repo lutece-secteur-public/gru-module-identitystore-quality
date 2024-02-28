@@ -43,6 +43,8 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearc
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 
+import java.util.Collections;
+
 public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreRequest
 {
 
@@ -65,7 +67,7 @@ public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreR
     protected DuplicateSearchResponse doSpecificRequest( ) throws IdentityStoreException
     {
         final DuplicateSearchResponse duplicateSearchResponse = SearchDuplicatesService.instance( ).findDuplicates( _request.getAttributes( ),
-                _request.getRuleCodes( ) );
+                _request.getRuleCodes( ), Collections.emptyList( ) );
         final ServiceContract serviceContract = ServiceContractService.instance( ).getActiveServiceContract( _strClientCode );
         duplicateSearchResponse.getIdentities( )
                 .forEach( identityDto -> IdentityQualityService.instance( ).enrich( null, identityDto, serviceContract, null, false ) );

@@ -154,13 +154,17 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
 
         this.info( identityBatch.totalSize( ) + " identities found. Searching for potential duplicates on those..." );
         int markedSuspicious = 0;
-        for ( final List<IdentityDto> identities : identityBatch )
+        detection_loop: for ( final List<IdentityDto> identities : identityBatch )
         {
             for ( final IdentityDto identity : identities )
             {
-                if ( processIdentity( identity, rule ) )
+                if ( this.processIdentity( identity, rule ) )
                 {
                     markedSuspicious++;
+                    if ( rule.getDetectionLimit( ) > 0 && markedSuspicious >= rule.getDetectionLimit( ) )
+                    {
+                        break detection_loop;
+                    }
                 }
             }
         }
@@ -172,10 +176,11 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
         try
         {
             final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( identity,
-                    Collections.singletonList( rule.getCode( ) ) );
+                    Collections.singletonList( rule.getCode( ) ), Collections.singletonList( "customerId" ) );
             final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
             if ( duplicateCount > 0 )
             {
+                this.info( "Identity " + identity.getCustomerId( ) + " has " + duplicateCount + " duplicates." );
                 final List<IdentityDto> processedIdentities = new ArrayList<>( duplicates.getIdentities( ) );
                 processedIdentities.add( identity );
                 final List<String> customerIds = processedIdentities.stream( ).map( IdentityDto::getCustomerId ).collect( Collectors.toList( ) );
@@ -188,6 +193,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
                     request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
                     request.getSuspiciousIdentity( ).getMetadata( ).putAll( duplicates.getMetadata( ) );
                     SuspiciousIdentityService.instance( ).create( request, clientCode, author, response );
+                    this.info( "Identity " + identity.getCustomerId( ) + " has been marked suspicious." );
                     return true;
                 }
             }
@@ -213,7 +219,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
         {
             final IdentityDto identity = IdentityService.instance( ).search( suspicious.getCustomerId( ) );
             final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( identity,
-                    Collections.singletonList( suspicious.getDuplicateRuleCode( ) ) );
+                    Collections.singletonList( suspicious.getDuplicateRuleCode( ) ), Collections.emptyList( ) );
             if ( duplicates.getIdentities( ).isEmpty( ) )
             {
                 SuspiciousIdentityHome.remove( suspicious.getCustomerId( ) );

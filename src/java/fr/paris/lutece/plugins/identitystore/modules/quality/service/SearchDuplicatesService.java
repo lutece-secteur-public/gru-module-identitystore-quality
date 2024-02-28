@@ -58,15 +58,17 @@ public class SearchDuplicatesService
         return instance;
     }
 
-    public final DuplicateSearchResponse findDuplicates( final IdentityDto identity, final List<String> ruleCodes ) throws IdentityStoreException
+    public final DuplicateSearchResponse findDuplicates( final IdentityDto identity, final List<String> ruleCodes, final List<String> attributesFilter )
+            throws IdentityStoreException
     {
         final Map<String, String> attributeMap = identity.getAttributes( ).stream( )
                 .collect( Collectors.toMap( AttributeDto::getKey, AttributeDto::getValue ) );
-        return _duplicateServiceElasticSearch.findDuplicates( attributeMap, identity.getCustomerId( ), ruleCodes );
+        return _duplicateServiceElasticSearch.findDuplicates( attributeMap, identity.getCustomerId( ), ruleCodes, attributesFilter );
     }
 
-    public final DuplicateSearchResponse findDuplicates( final Map<String, String> attributeValues, final List<String> ruleCodes ) throws IdentityStoreException
+    public final DuplicateSearchResponse findDuplicates( final Map<String, String> attributeValues, final List<String> ruleCodes,
+            final List<String> attributesFilter ) throws IdentityStoreException
     {
-        return _duplicateServiceElasticSearch.findDuplicates( attributeValues, "", ruleCodes );
+        return _duplicateServiceElasticSearch.findDuplicates( attributeValues, "", ruleCodes, attributesFilter );
     }
 }

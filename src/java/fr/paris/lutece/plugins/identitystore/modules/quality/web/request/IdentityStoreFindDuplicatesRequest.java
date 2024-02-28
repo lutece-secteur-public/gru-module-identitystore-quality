@@ -68,6 +68,6 @@ public class IdentityStoreFindDuplicatesRequest extends AbstractIdentityStoreReq
     protected DuplicateSearchResponse doSpecificRequest( ) throws IdentityStoreException
     {
         final IdentityDto identity = IdentityService.instance( ).getQualifiedIdentity( _strCustomerId );
-        return SearchDuplicatesService.instance( ).findDuplicates( identity, Collections.singletonList( _strRuleCode ) );
+        return SearchDuplicatesService.instance( ).findDuplicates( identity, Collections.singletonList( _strRuleCode ), Collections.emptyList( ) );
     }
 }

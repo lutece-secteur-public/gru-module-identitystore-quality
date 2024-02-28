@@ -302,7 +302,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         {
             _currentRule = DuplicateRuleService.instance( ).get( _currentRuleCode );
             final DuplicateSearchResponse duplicateSearchResponse = SearchDuplicatesService.instance( ).findDuplicates( suspiciousIdentity,
-                    Collections.singletonList( _currentRuleCode ) );
+                    Collections.singletonList( _currentRuleCode ), Collections.emptyList( ) );
 
             if ( CollectionUtils.isEmpty( duplicateSearchResponse.getIdentities( ) ) )
             {

@@ -87,7 +87,7 @@ public class SuspiciousIdentityListener implements IdentityChangeListener
             {
                 final SuspiciousIdentity suspiciousIdentity = SuspiciousIdentityHome.selectByCustomerID( identity.getCustomerId( ) );
                 final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( DtoConverter.convertIdentityToDto( identity ),
-                        Collections.singletonList( suspiciousIdentity.getDuplicateRuleCode( ) ) );
+                        Collections.singletonList( suspiciousIdentity.getDuplicateRuleCode( ) ), Collections.emptyList( ) );
                 TransactionManager.beginTransaction( null );
                 if ( duplicates.getIdentities( ).isEmpty( ) )
                 {

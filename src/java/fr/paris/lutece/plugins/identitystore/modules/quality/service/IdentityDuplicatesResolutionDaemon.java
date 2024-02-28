@@ -102,7 +102,7 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
                         /* Get and sort identities to process */
                         final IdentityDto identity = IdentityService.instance( ).getQualifiedIdentity( suspiciousIdentity.getCustomerId( ) );
                         final DuplicateSearchResponse duplicateSearchResponse = SearchDuplicatesService.instance( ).findDuplicates( identity,
-                                Collections.singletonList( processedRule.getCode( ) ) );
+                                Collections.singletonList( processedRule.getCode( ) ), Collections.emptyList( ) );
                         final List<IdentityDto> processedIdentities = new ArrayList<>( duplicateSearchResponse.getIdentities( ) );
                         processedIdentities.add( identity );
 
