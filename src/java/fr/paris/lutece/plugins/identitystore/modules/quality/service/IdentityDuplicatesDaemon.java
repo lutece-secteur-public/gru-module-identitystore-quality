@@ -142,6 +142,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
      */
     private void processRule( final DuplicateRule rule )
     {
+        final RetryServiceQuality _retryService = new RetryServiceQuality();
         final String processing = "-- Processing Rule id = [" + rule.getId( ) + "] code = [" + rule.getCode( ) + "] priority = [" + rule.getPriority( )
                 + "] ...";
         this.info( processing );
@@ -163,7 +164,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
                 {
                     try
                     {
-                        final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( identity,
+                        final DuplicateSearchResponse duplicates = _retryService.callSearchDuplicateWithRetry( identity,
                                 Collections.singletonList( rule.getCode( ) ), Collections.singletonList( "customerId" ) );
                         final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
                         if ( duplicateCount > 0 )
@@ -210,17 +211,22 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
     {
         this.info( "Starting purge suspicions process..." );
 
+        final RetryServiceQuality _retryService = new RetryServiceQuality();
         final List<SuspiciousIdentity> suspiciousIdentitysList = SuspiciousIdentityHome.getSuspiciousIdentitysList( null, purgeSize, null );
         int purgeCount = 0;
         for ( final SuspiciousIdentity suspicious : suspiciousIdentitysList )
         {
             final IdentityDto identity = IdentityService.instance( ).search( suspicious.getCustomerId( ) );
-            final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( identity,
-                    Collections.singletonList( suspicious.getDuplicateRuleCode( ) ), Collections.emptyList( ) );
-            if ( duplicates.getIdentities( ).isEmpty( ) )
+            if(identity != null)
             {
-                SuspiciousIdentityHome.remove( suspicious.getCustomerId( ) );
-                purgeCount++;
+                final DuplicateSearchResponse duplicates = _retryService.callSearchDuplicateWithRetry(identity,
+                        Collections.singletonList(suspicious.getDuplicateRuleCode()), Collections.emptyList());
+
+                if ( duplicates.getIdentities( ).isEmpty( ) )
+                {
+                    SuspiciousIdentityHome.remove( suspicious.getCustomerId( ) );
+                    purgeCount++;
+                }
             }
         }
 
