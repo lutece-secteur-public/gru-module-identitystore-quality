@@ -155,6 +155,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
 
         this.info( identityBatch.totalSize( ) + " identities found. Searching for potential duplicates on those..." );
         int markedSuspicious = 0;
+        int bddSuspicious = SuspiciousIdentityHome.countSuspiciousIdentity(rule.getId());
         final List<String> enhancerFilter = new ArrayList<>( ); // holds cuids that have been detected as duplicates to reduce iteration
         detection_loop: for ( final List<IdentityDto> identities : identityBatch )
         {
@@ -188,7 +189,8 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
                             enhancerFilter.addAll( customerIds );
                         }
 
-                        if ( rule.getDetectionLimit( ) > 0 && markedSuspicious >= rule.getDetectionLimit( ) )
+                        int  totalSuspicious = markedSuspicious + bddSuspicious;
+                        if ( rule.getDetectionLimit( ) > 0 && totalSuspicious >= rule.getDetectionLimit( ) )
                         {
                             break detection_loop;
                         }
