@@ -142,68 +142,72 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
      */
     private void processRule( final DuplicateRule rule )
     {
-        final RetryServiceQuality _retryService = new RetryServiceQuality();
+        final int bddSuspicious = SuspiciousIdentityHome.countSuspiciousIdentity(rule.getId());
         final String processing = "-- Processing Rule id = [" + rule.getId( ) + "] code = [" + rule.getCode( ) + "] priority = [" + rule.getPriority( )
                 + "] ...";
         this.info( processing );
-        final Batch<IdentityDto> identityBatch = IdentityService.instance( ).getIdentitiesBatchForPotentialDuplicate( rule, batchSize );
-        if ( identityBatch == null || identityBatch.isEmpty( ) )
-        {
-            this.error( "No identities having required attributes and not already suspicious found." );
-            return;
-        }
 
-        this.info( identityBatch.totalSize( ) + " identities found. Searching for potential duplicates on those..." );
-        int markedSuspicious = 0;
-        int bddSuspicious = SuspiciousIdentityHome.countSuspiciousIdentity(rule.getId());
-        final List<String> enhancerFilter = new ArrayList<>( ); // holds cuids that have been detected as duplicates to reduce iteration
-        detection_loop: for ( final List<IdentityDto> identities : identityBatch )
-        {
-            for ( final IdentityDto identity : identities )
+        if( rule.getDetectionLimit( ) > 0 && bddSuspicious >= rule.getDetectionLimit( ) ) {
+            this.info("Rule detection limit (" + rule.getDetectionLimit( ) + ") limit exceeded. Detection count : " + bddSuspicious );
+        } else {
+            final RetryServiceQuality _retryService = new RetryServiceQuality();
+            final Batch<IdentityDto> identityBatch = IdentityService.instance( ).getIdentitiesBatchForPotentialDuplicate( rule, batchSize );
+            if ( identityBatch == null || identityBatch.isEmpty( ) )
             {
-                if ( !enhancerFilter.contains( identity.getCustomerId( ) ) )
-                {
-                    try
-                    {
-                        final DuplicateSearchResponse duplicates = _retryService.callSearchDuplicateWithRetry( identity,
-                                Collections.singletonList( rule.getCode( ) ), Collections.singletonList( "customerId" ) );
-                        final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
-                        if ( duplicateCount > 0 )
-                        {
-                            this.info( "Identity " + identity.getCustomerId( ) + " has " + duplicateCount + " duplicates." );
-                            final List<IdentityDto> processedIdentities = new ArrayList<>( duplicates.getIdentities( ) );
-                            processedIdentities.add( identity );
-                            final List<String> customerIds = processedIdentities.stream( ).map( IdentityDto::getCustomerId ).collect( Collectors.toList( ) );
-                            if ( !SuspiciousIdentityService.instance( ).hasSuspicious( customerIds ) )
-                            {
-                                final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
-                                final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
-                                request.setSuspiciousIdentity( new SuspiciousIdentityDto( ) );
-                                request.getSuspiciousIdentity( ).setCustomerId( identity.getCustomerId( ) );
-                                request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
-                                request.getSuspiciousIdentity( ).getMetadata( ).putAll( duplicates.getMetadata( ) );
-                                SuspiciousIdentityService.instance( ).create( request, clientCode, author, response );
-                                this.info( "Identity " + identity.getCustomerId( ) + " has been marked suspicious." );
-                                markedSuspicious++;
-                            }
-                            enhancerFilter.addAll( customerIds );
-                        }
+                this.error( "No identities having required attributes and not already suspicious found." );
+                return;
+            }
 
-                        int  totalSuspicious = markedSuspicious + bddSuspicious;
-                        if ( rule.getDetectionLimit( ) > 0 && totalSuspicious >= rule.getDetectionLimit( ) )
-                        {
-                            break detection_loop;
-                        }
-                    }
-                    catch( final Exception e )
+            this.info( identityBatch.totalSize( ) + " identities found. Searching for potential duplicates on those..." );
+            int markedSuspicious = bddSuspicious;
+            final List<String> enhancerFilter = new ArrayList<>( ); // holds cuids that have been detected as duplicates to reduce iteration
+            detection_loop: for ( final List<IdentityDto> identities : identityBatch )
+            {
+                for ( final IdentityDto identity : identities )
+                {
+                    if ( !enhancerFilter.contains( identity.getCustomerId( ) ) )
                     {
-                        this.error( "An error occurred during duplicate search for identity" + identity.getCustomerId( ) + " and rule " + rule.getCode( )
-                                + " : " + e.getMessage( ) );
+                        try
+                        {
+                            final DuplicateSearchResponse duplicates = _retryService.callSearchDuplicateWithRetry( identity,
+                                    Collections.singletonList( rule.getCode( ) ), Collections.singletonList( "customerId" ) );
+                            final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
+                            if ( duplicateCount > 0 )
+                            {
+                                this.info( "Identity " + identity.getCustomerId( ) + " has " + duplicateCount + " duplicates." );
+                                final List<IdentityDto> processedIdentities = new ArrayList<>( duplicates.getIdentities( ) );
+                                processedIdentities.add( identity );
+                                final List<String> customerIds = processedIdentities.stream( ).map( IdentityDto::getCustomerId ).collect( Collectors.toList( ) );
+                                if ( !SuspiciousIdentityService.instance( ).hasSuspicious( customerIds ) )
+                                {
+                                    final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
+                                    final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
+                                    request.setSuspiciousIdentity( new SuspiciousIdentityDto( ) );
+                                    request.getSuspiciousIdentity( ).setCustomerId( identity.getCustomerId( ) );
+                                    request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
+                                    request.getSuspiciousIdentity( ).getMetadata( ).putAll( duplicates.getMetadata( ) );
+                                    SuspiciousIdentityService.instance( ).create( request, clientCode, author, response );
+                                    this.info( "Identity " + identity.getCustomerId( ) + " has been marked suspicious." );
+                                    markedSuspicious++;
+                                }
+                                enhancerFilter.addAll( customerIds );
+                            }
+
+                            if ( rule.getDetectionLimit( ) > 0 && markedSuspicious >= rule.getDetectionLimit( ) )
+                            {
+                                break detection_loop;
+                            }
+                        }
+                        catch( final Exception e )
+                        {
+                            this.error( "An error occurred during duplicate search for identity" + identity.getCustomerId( ) + " and rule " + rule.getCode( )
+                                    + " : " + e.getMessage( ) );
+                        }
                     }
                 }
             }
+            this.info( markedSuspicious + " identities have been marked as suspicious." );
         }
-        this.info( markedSuspicious + " identities have been marked as suspicious." );
     }
 
     /**
