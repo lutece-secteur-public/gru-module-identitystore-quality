@@ -34,18 +34,23 @@
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.request.AbstractIdentityStoreAppCodeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummaryDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummarySearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.ResponseStatusFactory;
+import fr.paris.lutece.plugins.identitystore.web.exception.ClientAuthorizationException;
+import fr.paris.lutece.plugins.identitystore.web.exception.DuplicatesConsistencyException;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
+import fr.paris.lutece.plugins.identitystore.web.exception.RequestContentFormattingException;
+import fr.paris.lutece.plugins.identitystore.web.exception.RequestFormatException;
+import fr.paris.lutece.plugins.identitystore.web.exception.ResourceConsistencyException;
+import fr.paris.lutece.plugins.identitystore.web.exception.ResourceNotFoundException;
 import org.apache.commons.collections.CollectionUtils;
 
-import java.util.Collections;
 import java.util.List;
 
-public class IdentityStoreDuplicateRuleGetRequest extends AbstractIdentityStoreRequest
+public class IdentityStoreDuplicateRuleGetRequest extends AbstractIdentityStoreAppCodeRequest
 {
     private final Integer _nPriority;
 
@@ -55,16 +60,47 @@ public class IdentityStoreDuplicateRuleGetRequest extends AbstractIdentityStoreR
      * @param strClientCode
      *            the client application Code
      */
-    public IdentityStoreDuplicateRuleGetRequest( final String strClientCode, final Integer _nPriority, final String authorName, final String authorType )
-            throws IdentityStoreException
+    public IdentityStoreDuplicateRuleGetRequest( final Integer _nPriority, final String strClientCode, final String strAppCode, final String authorName,
+            final String authorType ) throws IdentityStoreException
     {
-        super( strClientCode, authorName, authorType );
+        super( strClientCode, strAppCode, authorName, authorType );
         this._nPriority = _nPriority;
     }
 
     @Override
-    protected void validateSpecificRequest( )
+    protected void fetchResources( ) throws ResourceNotFoundException
     {
+        // Do nothing
+    }
+
+    @Override
+    protected void validateRequestFormat( ) throws RequestFormatException
+    {
+        // Do nothing
+    }
+
+    @Override
+    protected void validateClientAuthorization( ) throws ClientAuthorizationException
+    {
+        // Do nothing
+    }
+
+    @Override
+    protected void validateResourcesConsistency( ) throws ResourceConsistencyException
+    {
+        // Do nothing
+    }
+
+    @Override
+    protected void formatRequestContent( ) throws RequestContentFormattingException
+    {
+        // Do nothing
+    }
+
+    @Override
+    protected void checkDuplicatesConsistency( ) throws DuplicatesConsistencyException
+    {
+        // Do nothing
     }
 
     @Override
@@ -75,14 +111,11 @@ public class IdentityStoreDuplicateRuleGetRequest extends AbstractIdentityStoreR
         final List<DuplicateRuleSummaryDto> rules = DuplicateRuleService.instance( ).findSummaries( _nPriority );
         if ( CollectionUtils.isEmpty( rules ) )
         {
-            response.setDuplicateRuleSummaries( Collections.emptyList( ) );
-            response.setStatus( ResponseStatusFactory.noResult( ).setMessageKey( Constants.PROPERTY_REST_ERROR_NO_DUPLICATE_RULE_FOUND ) );
+            throw new ResourceNotFoundException( "No duplicate rule found", Constants.PROPERTY_REST_ERROR_NO_DUPLICATE_RULE_FOUND );
         }
-        else
-        {
-            response.setDuplicateRuleSummaries( rules );
-            response.setStatus( ResponseStatusFactory.ok( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
-        }
+
+        response.setDuplicateRuleSummaries( rules );
+        response.setStatus( ResponseStatusFactory.ok( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
         return response;
     }
 }

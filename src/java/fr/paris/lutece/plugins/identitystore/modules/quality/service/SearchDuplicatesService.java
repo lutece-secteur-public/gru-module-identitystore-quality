@@ -33,12 +33,17 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.service;
 
+import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.IDuplicateService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentitySearchResult;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
+import fr.paris.lutece.plugins.identitystore.web.exception.ResourceNotFoundException;
 import fr.paris.lutece.portal.service.spring.SpringContextService;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -58,17 +63,41 @@ public class SearchDuplicatesService
         return instance;
     }
 
-    public final DuplicateSearchResponse findDuplicates( final IdentityDto identity, final List<String> ruleCodes, final List<String> attributesFilter )
-            throws IdentityStoreException
+    public final Map<String, QualifiedIdentitySearchResult> findDuplicates( final IdentityDto identity, final List<DuplicateRule> rules,
+            final List<String> attributesFilter ) throws IdentityStoreException
+    {
+        return this.findDuplicates( identity, rules, attributesFilter, false );
+    }
+
+    public final Map<String, QualifiedIdentitySearchResult> findDuplicates( final IdentityDto identity, final List<DuplicateRule> rules,
+            final List<String> attributesFilter, final boolean allowEmptyResponse ) throws IdentityStoreException
     {
         final Map<String, String> attributeMap = identity.getAttributes( ).stream( )
                 .collect( Collectors.toMap( AttributeDto::getKey, AttributeDto::getValue ) );
-        return _duplicateServiceElasticSearch.findDuplicates( attributeMap, identity.getCustomerId( ), ruleCodes, attributesFilter );
+        final Map<String, QualifiedIdentitySearchResult> duplicates = _duplicateServiceElasticSearch.findDuplicates( attributeMap, identity.getCustomerId( ),
+                rules, attributesFilter );
+        if ( !allowEmptyResponse && ( duplicates == null || duplicates.values( ).stream( ).allMatch( r -> r.getQualifiedIdentities( ).isEmpty( ) ) ) )
+        {
+            throw new ResourceNotFoundException(
+                    "No potential duplicate found with the rule(s) : "
+                            + String.join( ",", rules.stream( ).map( DuplicateRule::getCode ).collect( Collectors.toList( ) ) ),
+                    Constants.PROPERTY_REST_ERROR_NO_POTENTIAL_DUPLICATE_FOUND );
+        }
+        return duplicates;
     }
 
-    public final DuplicateSearchResponse findDuplicates( final Map<String, String> attributeValues, final List<String> ruleCodes,
+    public final Map<String, QualifiedIdentitySearchResult> findDuplicates( final Map<String, String> attributeValues, final List<DuplicateRule> rules,
             final List<String> attributesFilter ) throws IdentityStoreException
     {
-        return _duplicateServiceElasticSearch.findDuplicates( attributeValues, "", ruleCodes, attributesFilter );
+        final Map<String, QualifiedIdentitySearchResult> duplicates = _duplicateServiceElasticSearch.findDuplicates( attributeValues, StringUtils.EMPTY, rules,
+                attributesFilter );
+        if ( duplicates.values( ).stream( ).allMatch( r -> r.getQualifiedIdentities( ).isEmpty( ) ) )
+        {
+            throw new ResourceNotFoundException(
+                    "No potential duplicate found with the rule(s) : "
+                            + String.join( ",", rules.stream( ).map( DuplicateRule::getCode ).collect( Collectors.toList( ) ) ),
+                    Constants.PROPERTY_REST_ERROR_NO_POTENTIAL_DUPLICATE_FOUND );
+        }
+        return duplicates;
     }
 }

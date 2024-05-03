@@ -34,30 +34,70 @@
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.request.AbstractIdentityStoreAppCodeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.Page;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.ResponseStatusFactory;
+import fr.paris.lutece.plugins.identitystore.web.exception.ClientAuthorizationException;
+import fr.paris.lutece.plugins.identitystore.web.exception.DuplicatesConsistencyException;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
+import fr.paris.lutece.plugins.identitystore.web.exception.RequestContentFormattingException;
+import fr.paris.lutece.plugins.identitystore.web.exception.RequestFormatException;
+import fr.paris.lutece.plugins.identitystore.web.exception.ResourceConsistencyException;
+import fr.paris.lutece.plugins.identitystore.web.exception.ResourceNotFoundException;
+import org.apache.commons.lang3.tuple.Pair;
 
-public class IdentityStoreSuspiciousSearchRequest extends AbstractIdentityStoreRequest
+import java.util.List;
+
+public class IdentityStoreSuspiciousSearchRequest extends AbstractIdentityStoreAppCodeRequest
 {
     private final SuspiciousIdentitySearchRequest _request;
 
-    public IdentityStoreSuspiciousSearchRequest( final SuspiciousIdentitySearchRequest request, final String strClientAppCode, final String authorName,
-            final String authorType ) throws IdentityStoreException
+    public IdentityStoreSuspiciousSearchRequest( final SuspiciousIdentitySearchRequest request, final String strClientCode, final String strAppCode,
+            final String authorName, final String authorType ) throws IdentityStoreException
     {
-        super( strClientAppCode, authorName, authorType );
+        super( strClientCode, strAppCode, authorName, authorType );
         this._request = request;
     }
 
     @Override
-    protected void validateSpecificRequest( ) throws IdentityStoreException
+    protected void fetchResources( ) throws ResourceNotFoundException
+    {
+        // Do nothing
+    }
+
+    @Override
+    protected void validateRequestFormat( ) throws RequestFormatException
     {
         SuspiciousIdentityRequestValidator.instance( ).checkSuspiciousIdentitySearch( _request );
+    }
+
+    @Override
+    protected void validateClientAuthorization( ) throws ClientAuthorizationException
+    {
+        // TODO check if the application has the right to search a suspicious identity
+    }
+
+    @Override
+    protected void validateResourcesConsistency( ) throws ResourceConsistencyException
+    {
+        // Do nothing
+    }
+
+    @Override
+    protected void formatRequestContent( ) throws RequestContentFormattingException
+    {
+        // Do nothing
+    }
+
+    @Override
+    protected void checkDuplicatesConsistency( ) throws DuplicatesConsistencyException
+    {
+        // Do nothing
     }
 
     @Override
@@ -65,42 +105,12 @@ public class IdentityStoreSuspiciousSearchRequest extends AbstractIdentityStoreR
     {
         final SuspiciousIdentitySearchResponse response = new SuspiciousIdentitySearchResponse( );
 
-        if ( _request.getPage( ) != null && _request.getPage( ) < 1 )
-        {
-            response.setStatus( ResponseStatusFactory.badRequest( ) );
-            response.getStatus( ).setMessage( "Pagination should start at index 1" );
-            response.getStatus( ).setMessageKey( Constants.PROPERTY_REST_PAGINATION_START_ERROR );
-            return response;
-        }
-        SuspiciousIdentityService.instance( ).search( _request, _strClientCode, _author, response );
+        final Pair<List<SuspiciousIdentityDto>, Page> result = SuspiciousIdentityService.instance( ).search( _request, _strClientCode, _author );
 
-        if ( _request.getPage( ) != null && _request.getSize( ) != null )
-        {
+        response.setSuspiciousIdentities( result.getKey( ) );
+        response.setPagination( result.getValue( ) );
+        response.setStatus( ResponseStatusFactory.ok( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
 
-            final int totalRecords = response.getSuspiciousIdentities( ).size( );
-            final int totalPages = (int) Math.ceil( (double) totalRecords / _request.getSize( ) );
-
-            if ( _request.getPage( ) > totalPages )
-            {
-                response.setStatus( ResponseStatusFactory.badRequest( ) );
-                response.getStatus( ).setMessage( "Pagination index should not exceed total number of pages." );
-                response.getStatus( ).setMessageKey( Constants.PROPERTY_REST_PAGINATION_END_ERROR );
-                response.setSuspiciousIdentities( null );
-                return response;
-            }
-
-            final int start = ( _request.getPage( ) - 1 ) * _request.getSize( );
-            final int end = Math.min( start + _request.getSize( ), totalRecords );
-            response.setSuspiciousIdentities( response.getSuspiciousIdentities( ).subList( start, end ) );
-
-            final Page pagination = new Page( );
-            pagination.setTotalPages( totalPages );
-            pagination.setTotalRecords( totalRecords );
-            pagination.setCurrentPage( _request.getPage( ) );
-            pagination.setNextPage( _request.getPage( ) == totalPages ? null : _request.getPage( ) + 1 );
-            pagination.setPreviousPage( _request.getPage( ) > 1 ? _request.getPage( ) - 1 : null );
-            response.setPagination( pagination );
-        }
         return response;
     }
 }

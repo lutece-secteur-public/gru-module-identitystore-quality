@@ -33,19 +33,35 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
+import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
+import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
+import fr.paris.lutece.plugins.identitystore.modules.quality.web.validator.LockSuspiciousIdentityValidator;
+import fr.paris.lutece.plugins.identitystore.v3.web.request.AbstractIdentityStoreAppCodeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.ResponseStatusFactory;
+import fr.paris.lutece.plugins.identitystore.web.exception.ClientAuthorizationException;
+import fr.paris.lutece.plugins.identitystore.web.exception.DuplicatesConsistencyException;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
+import fr.paris.lutece.plugins.identitystore.web.exception.RequestContentFormattingException;
+import fr.paris.lutece.plugins.identitystore.web.exception.RequestFormatException;
+import fr.paris.lutece.plugins.identitystore.web.exception.ResourceConsistencyException;
+import fr.paris.lutece.plugins.identitystore.web.exception.ResourceNotFoundException;
 
 /**
  * This class represents a create request for IdentityStoreRestServive
  */
-public class IdentityStoreSuspiciousLockRequest extends AbstractIdentityStoreRequest
+public class IdentityStoreSuspiciousLockRequest extends AbstractIdentityStoreAppCodeRequest
 {
     private final SuspiciousIdentityLockRequest _request;
+
+    private SuspiciousIdentity suspiciousIdentity;
 
     /**
      * Constructor of IdentityStoreCreateRequest
@@ -53,25 +69,73 @@ public class IdentityStoreSuspiciousLockRequest extends AbstractIdentityStoreReq
      * @param request
      *            the dto of lock's change
      */
-    public IdentityStoreSuspiciousLockRequest( String strClientAppCode, SuspiciousIdentityLockRequest request, String authorName, String authorType )
-            throws IdentityStoreException
+    public IdentityStoreSuspiciousLockRequest( final SuspiciousIdentityLockRequest request, final String strClientCode, final String strAppCode,
+            final String authorName, final String authorType ) throws IdentityStoreException
     {
-        super( strClientAppCode, authorName, authorType );
+        super( strClientCode, strAppCode, authorName, authorType );
+        if ( request == null )
+        {
+            throw new RequestFormatException( "Provided Suspicious Lock request is null or empty", Constants.PROPERTY_REST_ERROR_SUSPICIOUS_LOCK_REQUEST_NULL_OR_EMPTY );
+        }
         this._request = request;
     }
 
     @Override
-    protected void validateSpecificRequest( ) throws IdentityStoreException
+    protected void fetchResources( ) throws ResourceNotFoundException
+    {
+        final Identity identity = IdentityHome.findByCustomerId( _request.getCustomerId( ) );
+        if ( identity == null )
+        {
+            throw new ResourceNotFoundException( "Could not find identity with customerId " + _request.getCustomerId( ),
+                    Constants.PROPERTY_REST_ERROR_NO_MATCHING_IDENTITY );
+        }
+        suspiciousIdentity = SuspiciousIdentityHome.selectByCustomerID( _request.getCustomerId( ) );
+        if ( suspiciousIdentity == null )
+        {
+            throw new ResourceNotFoundException( "Could not find suspicious identity with customerId " + _request.getCustomerId( ),
+                    Constants.PROPERTY_REST_ERROR_NO_SUSPICIOUS_IDENTITY_FOUND );
+        }
+
+    }
+
+    @Override
+    protected void validateRequestFormat( ) throws RequestFormatException
     {
         SuspiciousIdentityRequestValidator.instance( ).checkLockRequest( _request );
     }
 
     @Override
-    public SuspiciousIdentityLockResponse doSpecificRequest( )
+    protected void validateClientAuthorization( ) throws ClientAuthorizationException
+    {
+        LockSuspiciousIdentityValidator.instance( ).validateLockRequestAuthorization( suspiciousIdentity, _request, _author );
+    }
+
+    @Override
+    protected void validateResourcesConsistency( ) throws ResourceConsistencyException
+    {
+        LockSuspiciousIdentityValidator.instance( ).validateLockRequestConsistency( suspiciousIdentity, _request );
+    }
+
+    @Override
+    protected void formatRequestContent( ) throws RequestContentFormattingException
+    {
+        // Do nothing
+    }
+
+    @Override
+    protected void checkDuplicatesConsistency( ) throws DuplicatesConsistencyException
+    {
+        // Do nothing
+    }
+
+    @Override
+    protected SuspiciousIdentityLockResponse doSpecificRequest( ) throws IdentityStoreException
     {
         final SuspiciousIdentityLockResponse response = new SuspiciousIdentityLockResponse( );
 
-        SuspiciousIdentityService.instance( ).lock( _request, _strClientCode, _author, response );
+        final boolean locked = SuspiciousIdentityService.instance( ).lock( _request, suspiciousIdentity, _strClientCode, _author );
+        response.setLocked( locked );
+        response.setStatus( ResponseStatusFactory.success( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
 
         return response;
     }

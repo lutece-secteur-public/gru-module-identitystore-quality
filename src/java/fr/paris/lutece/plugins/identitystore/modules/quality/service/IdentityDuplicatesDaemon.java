@@ -40,18 +40,19 @@ import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRuleHome;
 import fr.paris.lutece.plugins.identitystore.service.daemon.LoggingDaemon;
-import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.utils.Batch;
+import fr.paris.lutece.plugins.identitystore.utils.Maps;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.DtoConverter;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AuthorType;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.RequestAuthor;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityDto;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentitySearchResult;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
+import fr.paris.lutece.plugins.identitystore.web.exception.ResourceNotFoundException;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
@@ -64,6 +65,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -109,7 +111,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
         {
             rules = DuplicateRuleService.instance( ).findAll( ).stream( ).filter( rule -> rule != null && rule.isDaemon() && rule.isActive() ).collect( Collectors.toList( ) );
         }
-        catch( final DuplicateRuleNotFoundException e )
+        catch( final ResourceNotFoundException e )
         {
             this.error( "No duplicate rules found in database: " + e.getMessage( ) );
             this.info( "Stopping daemon." );
@@ -138,7 +140,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
 
     /**
      * Search for potential duplicates according to the provided rule.
-     * 
+     *
      * @param rule
      *            the rule used to search duplicates
      */
@@ -173,24 +175,33 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
                         if ( !enhancerFilter.contains( identity.getCustomerId( ) ) )
                         {
                             try {
-                                final DuplicateSearchResponse duplicates = _retryService.callSearchDuplicateWithRetry( identity,
-                                        Collections.singletonList( rule.getCode( ) ), Collections.singletonList( "customerId" ) );
-                                final int duplicateCount = duplicates != null ? duplicates.getIdentities( ).size( ) : 0;
-                                if ( duplicateCount > 0 )
+                                final Map<String, QualifiedIdentitySearchResult> result = _retryService.callSearchDuplicateWithRetry(identity,
+                                                                                                                                         Collections.singletonList( rule ), Collections.singletonList( "customerId" ));
+                                final List<IdentityDto> duplicateList = new ArrayList<>( );
+                                if ( result != null )
                                 {
-                                    this.info( "Identity " + identity.getCustomerId( ) + " has " + duplicateCount + " duplicates." );
-                                    final List<IdentityDto> processedIdentities = new ArrayList<>( duplicates.getIdentities( ) );
+                                    result.values( ).stream( ).flatMap( r -> r.getQualifiedIdentities( ).stream( ) ).forEach( duplicate -> {
+                                        if ( duplicateList.stream( ).noneMatch( i -> i.getCustomerId( ).equals( duplicate.getCustomerId( ) ) ) )
+                                        {
+                                            duplicateList.add( duplicate );
+                                        }
+                                    } );
+                                }
+                                if ( !duplicateList.isEmpty() )
+                                {
+                                    this.info( "Identity " + identity.getCustomerId( ) + " has " + duplicateList.size() + " duplicates." );
+                                    final List<IdentityDto> processedIdentities = new ArrayList<>( duplicateList );
                                     processedIdentities.add( identity );
                                     final List<String> customerIds = processedIdentities.stream( ).map( IdentityDto::getCustomerId ).collect( Collectors.toList( ) );
                                     if ( !SuspiciousIdentityService.instance( ).hasSuspicious( customerIds ) )
                                     {
-                                        final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
                                         final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
                                         request.setSuspiciousIdentity( new SuspiciousIdentityDto( ) );
                                         request.getSuspiciousIdentity( ).setCustomerId( identity.getCustomerId( ) );
                                         request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
-                                        request.getSuspiciousIdentity( ).getMetadata( ).putAll( duplicates.getMetadata( ) );
-                                        SuspiciousIdentityService.instance( ).create( request, clientCode, author, response );
+                                        result.values( ).forEach( r -> Maps.mergeStringMap(request.getSuspiciousIdentity().getMetadata(), r.getMetadata()));
+
+                                        SuspiciousIdentityService.instance( ).create(request, DtoConverter.convertDtoToIdentity(identity), rule, clientCode, author);
                                         this.info( "Identity " + identity.getCustomerId( ) + " has been marked suspicious." );
                                         markedSuspicious++;
                                     }
@@ -235,11 +246,10 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
             final IdentityDto identity = IdentityService.instance( ).search( suspicious.getCustomerId( ) );
             if(identity != null)
             {
-                final DuplicateSearchResponse duplicates = _retryService.callSearchDuplicateWithRetry(identity,
-                        Collections.singletonList(suspicious.getDuplicateRuleCode()), Collections.emptyList());
+                final Map<String, QualifiedIdentitySearchResult> result = _retryService.callSearchDuplicateWithRetry(identity,
+                                                                                                      Collections.singletonList( DuplicateRuleService.instance( ).get( suspicious.getDuplicateRuleCode( ) ) ), Collections.emptyList());
 
-                if ( duplicates.getIdentities( ).isEmpty( ) )
-                {
+                if ( result == null || result.values( ).stream( ).map( QualifiedIdentitySearchResult::getQualifiedIdentities ).allMatch( List::isEmpty ) )                {
                     SuspiciousIdentityHome.remove( suspicious.getCustomerId( ) );
                     purgeCount++;
                 }

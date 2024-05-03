@@ -36,37 +36,31 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.service;
 import fr.paris.lutece.plugins.identitystore.business.application.ClientApplication;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
-import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityLockedException;
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
-import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.modules.quality.rs.SuspiciousIdentityMapper;
-import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.listeners.IdentityStoreNotifyListenerService;
 import fr.paris.lutece.plugins.identitystore.service.user.InternalUserService;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.Page;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.RequestAuthor;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.ResponseStatusType;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.history.IdentityChangeType;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.ResponseStatusFactory;
-import fr.paris.lutece.plugins.identitystore.web.exception.IdentityNotFoundException;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
+import fr.paris.lutece.plugins.identitystore.web.exception.RequestFormatException;
+import fr.paris.lutece.plugins.identitystore.web.exception.ResourceNotFoundException;
 import fr.paris.lutece.portal.service.security.AccessLogService;
 import fr.paris.lutece.portal.service.security.AccessLoggerConstants;
-import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import fr.paris.lutece.util.sql.TransactionManager;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,7 +77,6 @@ public class SuspiciousIdentityService
     private static final String SPECIFIC_ORIGIN = "BO";
 
     // SERVICES
-    private final String externalDeclarationRuleCode = AppPropertiesService.getProperty( "identitystore-quality.external.duplicates.rule.code" );
     private final IdentityStoreNotifyListenerService _identityStoreNotifyListenerService = IdentityStoreNotifyListenerService.instance( );
     private final InternalUserService _internalUserService = InternalUserService.getInstance( );
     private static SuspiciousIdentityService _instance;
@@ -98,250 +91,189 @@ public class SuspiciousIdentityService
     }
 
     /**
-     * Creates a new {@link SuspiciousIdentity} according to the given {@link SuspiciousIdentityChangeRequest}
+     * Creates a new {@link SuspiciousIdentity} according to the given parameters
      *
      * @param request
      *            the {@link SuspiciousIdentityChangeRequest} holding the parameters of the suspicious identity change request
+     * @param identity
+     *            the {@link Identity} wanted to be marked as suspicious
+     * @param duplicateRule
+     *            the {@link DuplicateRule} used to mark the suspicious identity
      * @param clientCode
      *            code of the {@link ClientApplication} requesting the change
-     * @param response
-     *            the {@link SuspiciousIdentityChangeResponse} holding the status of the execution of the request
-     * @return the created {@link SuspiciousIdentity}
+     * @param author
+     *            the author
+     * @return the created {@link SuspiciousIdentityDto}
      * @throws IdentityStoreException
      *             in case of error
      */
-    public void create( final SuspiciousIdentityChangeRequest request, final String clientCode, final RequestAuthor author,
-            final SuspiciousIdentityChangeResponse response )
+    public SuspiciousIdentityDto create( final SuspiciousIdentityChangeRequest request, final Identity identity, final DuplicateRule duplicateRule,
+            final String clientCode, final RequestAuthor author ) throws IdentityStoreException
     {
-        // TODO check if the application has the right to create a suspicious identity
-        /*
-         * if ( !_serviceContractService.canCreateSuspiciousIdentity( clientCode ) ) { response.setStatus( IdentityChangeStatus.FAILURE ); response.setMessage(
-         * "The client application is not authorized to create an identity." ); return null; }
-         */
         TransactionManager.beginTransaction( null );
-        boolean marked = false;
         try
         {
             final SuspiciousIdentity suspiciousIdentity = new SuspiciousIdentity( );
-            final String requestRuleCode = request.getSuspiciousIdentity( ).getDuplicationRuleCode( );
-            final String ruleCode = requestRuleCode != null ? requestRuleCode : externalDeclarationRuleCode;
 
-            final Identity identity = IdentityHome.findByCustomerId( request.getSuspiciousIdentity( ).getCustomerId( ) );
-            if ( identity == null )
-            {
-                response.setStatus( ResponseStatusFactory.notFound( ).setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
-            }
-            else
-            {
-                final DuplicateRule duplicateRule = DuplicateRuleService.instance( ).get( ruleCode );
-                suspiciousIdentity.setDuplicateRuleCode( ruleCode );
-                suspiciousIdentity.setIdDuplicateRule( duplicateRule.getId( ) );
-                suspiciousIdentity.setCustomerId( request.getSuspiciousIdentity( ).getCustomerId( ) );
-                suspiciousIdentity.setCreationDate( Timestamp.from( Instant.now( ) ) );
-                suspiciousIdentity.setLastUpdateDate( identity.getLastUpdateDate( ) );
+            suspiciousIdentity.setDuplicateRuleCode( duplicateRule.getCode( ) );
+            suspiciousIdentity.setIdDuplicateRule( duplicateRule.getId( ) );
+            suspiciousIdentity.setCustomerId( identity.getCustomerId( ) );
+            suspiciousIdentity.setCreationDate( Timestamp.from( Instant.now( ) ) );
+            suspiciousIdentity.setLastUpdateDate( identity.getLastUpdateDate( ) );
 
-                SuspiciousIdentityHome.create( suspiciousIdentity );
+            SuspiciousIdentityHome.create( suspiciousIdentity );
 
-                response.setSuspiciousIdentity( SuspiciousIdentityMapper.toDto( suspiciousIdentity ) );
-                response.setStatus( ResponseStatusFactory.success( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
-                marked = true;
-            }
             TransactionManager.commitTransaction( null );
-            if ( marked )
-            {
-                final Map<String, String> metadata = new HashMap<>( request.getSuspiciousIdentity( ).getMetadata( ) );
-                metadata.put( Constants.METADATA_DUPLICATE_RULE_CODE, ruleCode );
-                _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.MARKED_SUSPICIOUS, identity,
-                        response.getStatus( ).getType( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata );
-            }
+
+            final Map<String, String> metadata = new HashMap<>( request.getSuspiciousIdentity( ).getMetadata( ) );
+            metadata.put( Constants.METADATA_DUPLICATE_RULE_CODE, duplicateRule.getCode( ) );
+            _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.MARKED_SUSPICIOUS, identity,
+                    ResponseStatusType.SUCCESS.name( ), ResponseStatusType.SUCCESS.name( ), author, clientCode, metadata );
+
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_CREATE, CREATE_SUSPICIOUS_IDENTITY_EVENT_CODE,
                     _internalUserService.getApiUser( author, clientCode ), request, SPECIFIC_ORIGIN );
+
+            return SuspiciousIdentityMapper.toDto( suspiciousIdentity );
         }
-        catch( Exception e )
+        catch( final Exception e )
         {
             TransactionManager.rollBack( null );
-            response.setStatus(
-                    ResponseStatusFactory.failure( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_DURING_TREATMENT ) );
+            throw new IdentityStoreException( e.getMessage( ), Constants.PROPERTY_REST_ERROR_DURING_TREATMENT );
         }
     }
 
-    public void search( final SuspiciousIdentitySearchRequest request, String clientCode, final RequestAuthor author,
-            final SuspiciousIdentitySearchResponse response ) throws IdentityStoreException
+    public Pair<List<SuspiciousIdentityDto>, Page> search( final SuspiciousIdentitySearchRequest request, final String clientCode, final RequestAuthor author )
+            throws IdentityStoreException
     {
-        // TODO check if the application has the right to search a suspicious identity
-        final List<SuspiciousIdentity> suspiciousIdentitysList = SuspiciousIdentityHome.getSuspiciousIdentitysList( request.getRuleCode( ),
-                request.getAttributes( ), request.getMax( ), request.getRulePriority( ) );
+        final List<SuspiciousIdentity> fullSuspiciousList = SuspiciousIdentityHome.getSuspiciousIdentitysList( request.getRuleCode( ), request.getAttributes( ),
+                request.getMax( ), request.getRulePriority( ) );
 
-        if ( suspiciousIdentitysList == null || suspiciousIdentitysList.isEmpty( ) )
+        if ( fullSuspiciousList == null || fullSuspiciousList.isEmpty( ) )
         {
-            response.setStatus( ResponseStatusFactory.noResult( ).setMessageKey( Constants.PROPERTY_REST_ERROR_NO_SUSPICIOUS_IDENTITY_FOUND ) );
-            response.setSuspiciousIdentities( Collections.emptyList( ) );
+            throw new ResourceNotFoundException( "No suspicious identity found", Constants.PROPERTY_REST_ERROR_NO_SUSPICIOUS_IDENTITY_FOUND );
+        }
+
+        final List<SuspiciousIdentityDto> suspiciousIdentitiesToReturn;
+        final Page pagination;
+        if ( request.getPage( ) != null && request.getSize( ) != null )
+        {
+            final int totalRecords = fullSuspiciousList.size( );
+            final int totalPages = (int) Math.ceil( (double) totalRecords / request.getSize( ) );
+
+            if ( request.getPage( ) > totalPages )
+            {
+                throw new RequestFormatException( "Pagination index should not exceed total number of pages.", Constants.PROPERTY_REST_PAGINATION_END_ERROR );
+            }
+
+            final int start = ( request.getPage( ) - 1 ) * request.getSize( );
+            final int end = Math.min( start + request.getSize( ), totalRecords );
+            suspiciousIdentitiesToReturn = fullSuspiciousList.subList( start, end ).stream( ).map( SuspiciousIdentityMapper::toDto )
+                    .collect( Collectors.toList( ) );
+
+            pagination = new Page( );
+            pagination.setTotalPages( totalPages );
+            pagination.setTotalRecords( totalRecords );
+            pagination.setCurrentPage( request.getPage( ) );
+            pagination.setNextPage( request.getPage( ) == totalPages ? null : request.getPage( ) + 1 );
+            pagination.setPreviousPage( request.getPage( ) > 1 ? request.getPage( ) - 1 : null );
         }
         else
         {
-            response.setStatus( ResponseStatusFactory.ok( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
-            response.setSuspiciousIdentities( suspiciousIdentitysList.stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) ) );
+            suspiciousIdentitiesToReturn = fullSuspiciousList.stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) );
+            pagination = null;
         }
-        for ( final SuspiciousIdentityDto suspiciousIdentity : response.getSuspiciousIdentities( ) )
+
+        for ( final SuspiciousIdentityDto suspiciousIdentity : suspiciousIdentitiesToReturn )
         {
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_READ, SEARCH_SUSPICIOUS_IDENTITY_EVENT_CODE,
                     _internalUserService.getApiUser( author, clientCode ), suspiciousIdentity, SPECIFIC_ORIGIN );
         }
+        return Pair.of( suspiciousIdentitiesToReturn, pagination );
     }
 
-    public void lock( SuspiciousIdentityLockRequest request, String strClientCode, final RequestAuthor author, SuspiciousIdentityLockResponse response )
+    public boolean lock( final SuspiciousIdentityLockRequest request, final SuspiciousIdentity suspiciousIdentity, final String strClientCode,
+            final RequestAuthor author ) throws IdentityStoreException
     {
         TransactionManager.beginTransaction( null );
         try
         {
-            final boolean locked = SuspiciousIdentityHome.manageLock( request.getCustomerId( ), author.getName( ), author.getType( ).name( ),
-                    request.isLocked( ) );
-            response.setLocked( locked );
-            response.setStatus( ResponseStatusFactory.success( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
+            final boolean locked = SuspiciousIdentityHome.manageLock( suspiciousIdentity, author.getName( ), author.getType( ).name( ), request.isLocked( ) );
             TransactionManager.commitTransaction( null );
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY,
                     request.isLocked( ) ? LOCK_SUSPICIOUS_IDENTITY_EVENT_CODE : UNLOCK_SUSPICIOUS_IDENTITY_EVENT_CODE,
                     _internalUserService.getApiUser( author, strClientCode ), request, SPECIFIC_ORIGIN );
-        }
-        catch( final SuspiciousIdentityLockedException e )
-        {
-            response.setLocked( false );
-            response.setStatus(
-                    ResponseStatusFactory.conflict( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_UNAUTHORIZED_OPERATION ) );
-            TransactionManager.rollBack( null );
-        }
-        catch( final IdentityNotFoundException e )
-        {
-            response.setLocked( false );
-            response.setStatus(
-                    ResponseStatusFactory.notFound( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
-            TransactionManager.rollBack( null );
+            return locked;
         }
         catch( final Exception e )
         {
-            response.setLocked( false );
-            response.setStatus(
-                    ResponseStatusFactory.failure( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_DURING_TREATMENT ) );
             TransactionManager.rollBack( null );
+            throw new IdentityStoreException( e.getMessage( ), Constants.PROPERTY_REST_ERROR_DURING_TREATMENT );
         }
     }
 
-    public void exclude( final SuspiciousIdentityExcludeRequest request, final String clientCode, final RequestAuthor author,
-            final SuspiciousIdentityExcludeResponse response )
+    public void exclude( final SuspiciousIdentityExcludeRequest request, final Identity firstIdentity, final Identity secondIdentity, final String clientCode,
+            final RequestAuthor author ) throws IdentityStoreException
     {
-        final Identity firstIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid1( ) );
-        final Identity secondIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid2( ) );
-
-        if ( firstIdentity == null )
-        {
-            response.setStatus( ResponseStatusFactory.notFound( ).setMessage( "Cannot find identity with cuid " + request.getIdentityCuid1( ) )
-                    .setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
-            return;
-        }
-
-        if ( secondIdentity == null )
-        {
-            response.setStatus( ResponseStatusFactory.notFound( ).setMessage( "Cannot find identity with cuid " + request.getIdentityCuid2( ) )
-                    .setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
-            return;
-        }
-
-        if ( SuspiciousIdentityHome.excluded( request.getIdentityCuid1( ), request.getIdentityCuid2( ) ) )
-        {
-            response.setStatus( ResponseStatusFactory.conflict( ).setMessage( "Identities are already excluded from duplicate suspicions." )
-                    .setMessageKey( Constants.PROPERTY_REST_ERROR_ALREADY_EXCLUDED ) );
-            return;
-        }
-
         TransactionManager.beginTransaction( null );
         try
         {
             // flag the 2 identities: manage the list of identities to exclude (supposed to be a field at the identity level)
-            SuspiciousIdentityHome.exclude( request.getIdentityCuid1( ), request.getIdentityCuid2( ), author.getType( ).name( ), author.getName( ) );
+            SuspiciousIdentityHome.exclude( firstIdentity.getCustomerId( ), secondIdentity.getCustomerId( ), author.getType( ).name( ), author.getName( ) );
 
-            response.setStatus( ResponseStatusFactory.success( ).setMessage( "Identities excluded from duplicate suspicions." )
-                    .setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
             TransactionManager.commitTransaction( null );
 
             // First identity history
             final Map<String, String> metadata = new HashMap<>( );
             metadata.put( Constants.METADATA_EXCLUDED_CUID_KEY, secondIdentity.getCustomerId( ) );
-            _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUDED, firstIdentity,
-                    response.getStatus( ).getType( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata );
+            _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUDED, firstIdentity, ResponseStatusType.SUCCESS.name( ),
+                    ResponseStatusType.SUCCESS.name( ), author, clientCode, metadata );
 
             // Second identity history
             final Map<String, String> metadata2 = new HashMap<>( );
             metadata2.put( Constants.METADATA_EXCLUDED_CUID_KEY, firstIdentity.getCustomerId( ) );
-            _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUDED, secondIdentity,
-                    response.getStatus( ).getType( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata2 );
+            _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUDED, secondIdentity, ResponseStatusType.SUCCESS.name( ),
+                    ResponseStatusType.SUCCESS.name( ), author, clientCode, metadata2 );
 
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY, EXCLUDE_SUSPICIOUS_IDENTITY_EVENT_CODE,
                     _internalUserService.getApiUser( author, clientCode ), request, SPECIFIC_ORIGIN );
         }
-        catch( Exception e )
+        catch( final Exception e )
         {
             TransactionManager.rollBack( null );
-            response.setStatus(
-                    ResponseStatusFactory.failure( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_DURING_TREATMENT ) );
+            throw new IdentityStoreException( e.getMessage( ), Constants.PROPERTY_REST_ERROR_DURING_TREATMENT );
         }
     }
 
-    public void cancelExclusion( final SuspiciousIdentityExcludeRequest request, final String clientCode, final RequestAuthor author,
-            final SuspiciousIdentityExcludeResponse response )
+    public void cancelExclusion( final SuspiciousIdentityExcludeRequest request, final Identity firstIdentity, final Identity secondIdentity,
+            final String clientCode, final RequestAuthor author ) throws IdentityStoreException
     {
-        final Identity firstIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid1( ) );
-        final Identity secondIdentity = IdentityHome.findByCustomerId( request.getIdentityCuid2( ) );
-
-        if ( firstIdentity == null )
-        {
-            response.setStatus( ResponseStatusFactory.notFound( ).setMessage( "Cannot find identity with cuid " + request.getIdentityCuid1( ) )
-                    .setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
-            return;
-        }
-
-        if ( secondIdentity == null )
-        {
-            response.setStatus( ResponseStatusFactory.notFound( ).setMessage( "Cannot find identity with cuid " + request.getIdentityCuid2( ) )
-                    .setMessageKey( Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND ) );
-            return;
-        }
-
-        if ( !SuspiciousIdentityHome.excluded( request.getIdentityCuid1( ), request.getIdentityCuid2( ) ) )
-        {
-            response.setStatus( ResponseStatusFactory.conflict( ).setMessage( "Identities are not excluded from duplicate suspicions." )
-                    .setMessageKey( Constants.PROPERTY_REST_ERROR_NOT_EXCLUDED ) );
-            return;
-        }
-
         TransactionManager.beginTransaction( null );
         try
         {
             // remove the exclusion
-            SuspiciousIdentityHome.removeExcludedIdentities( request.getIdentityCuid1( ), request.getIdentityCuid2( ) );
-            response.setStatus( ResponseStatusFactory.success( ).setMessage( "Identities exclusion has been cancelled." )
-                    .setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
+            SuspiciousIdentityHome.removeExcludedIdentities( firstIdentity.getCustomerId( ), secondIdentity.getCustomerId( ) );
+
             TransactionManager.commitTransaction( null );
 
             // First identity history
             final Map<String, String> metadata = new HashMap<>( );
             metadata.put( Constants.METADATA_EXCLUDED_CUID_KEY, secondIdentity.getCustomerId( ) );
             _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUSION_CANCELLED, firstIdentity,
-                    response.getStatus( ).getType( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata );
+                    ResponseStatusType.SUCCESS.name( ), ResponseStatusType.SUCCESS.name( ), author, clientCode, metadata );
 
             // Second identity history
             final Map<String, String> metadata2 = new HashMap<>( );
             metadata2.put( Constants.METADATA_EXCLUDED_CUID_KEY, firstIdentity.getCustomerId( ) );
             _identityStoreNotifyListenerService.notifyListenersIdentityChange( IdentityChangeType.EXCLUSION_CANCELLED, secondIdentity,
-                    response.getStatus( ).getType( ).name( ), response.getStatus( ).getMessage( ), author, clientCode, metadata2 );
+                    ResponseStatusType.SUCCESS.name( ), ResponseStatusType.SUCCESS.name( ), author, clientCode, metadata2 );
 
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY, EXCLUDE_SUSPICIOUS_IDENTITY_EVENT_CODE,
                     _internalUserService.getApiUser( author, clientCode ), request, SPECIFIC_ORIGIN );
         }
-        catch( Exception e )
+        catch( final Exception e )
         {
             TransactionManager.rollBack( null );
-            response.setStatus(
-                    ResponseStatusFactory.failure( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_DURING_TREATMENT ) );
+            throw new IdentityStoreException( e.getMessage( ), Constants.PROPERTY_REST_ERROR_DURING_TREATMENT );
         }
     }
 

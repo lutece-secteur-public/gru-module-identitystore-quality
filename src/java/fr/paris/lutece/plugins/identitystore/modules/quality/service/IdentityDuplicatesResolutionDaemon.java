@@ -35,29 +35,36 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.service;
 
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
+import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
+import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.service.daemon.LoggingDaemon;
-import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
+import fr.paris.lutece.plugins.identitystore.service.identity.IdentityQualityService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.DtoConverter;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeChangeStatusType;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeDto;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeStatus;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AuthorType;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.QualityDefinition;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.RequestAuthor;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.ResponseStatusType;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.merge.IdentityMergeRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.merge.IdentityMergeResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentitySearchResult;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
+import fr.paris.lutece.plugins.identitystore.web.exception.ResourceNotFoundException;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.time.StopWatch;
+import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -100,10 +107,12 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
                     if ( suspiciousIdentity.getLock( ) == null || !suspiciousIdentity.getLock( ).isLocked( ) )
                     {
                         /* Get and sort identities to process */
-                        final IdentityDto identity = IdentityService.instance( ).getQualifiedIdentity( suspiciousIdentity.getCustomerId( ) );
-                        final DuplicateSearchResponse duplicateSearchResponse = SearchDuplicatesService.instance( ).findDuplicates( identity,
-                                Collections.singletonList( processedRule.getCode( ) ), Collections.emptyList( ) );
-                        final List<IdentityDto> processedIdentities = new ArrayList<>( duplicateSearchResponse.getIdentities( ) );
+                        final IdentityDto identity = DtoConverter.convertIdentityToDto( IdentityHome.findByCustomerId( suspiciousIdentity.getCustomerId( ) ) );
+                        IdentityQualityService.instance( ).computeQuality( identity );
+                        final Map<String, QualifiedIdentitySearchResult> duplicates = SearchDuplicatesService.instance( ).findDuplicates( identity,
+                                Collections.singletonList( processedRule ), Collections.emptyList( ) );
+                        final List<IdentityDto> processedIdentities = duplicates.values( ).stream( ).flatMap( r -> r.getQualifiedIdentities( ).stream( ) )
+                                .collect( Collectors.toList( ) );
                         processedIdentities.add( identity );
 
                         if ( processedIdentities.size( ) >= 2 )
@@ -125,7 +134,7 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
                             /* Try to merge */
                             for ( final IdentityDto candidate : processedIdentities )
                             {
-                                this.merge( primaryIdentity, candidate, suspiciousIdentity.getCustomerId( ), author );
+                                this.merge( primaryIdentity, candidate, suspiciousIdentity, author );
                             }
                         }
                         else
@@ -147,11 +156,11 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
                 this.info( "No rule found with name " + ruleCode );
             }
         }
-        catch( DuplicateRuleNotFoundException e )
+        catch( final ResourceNotFoundException e )
         {
             this.info( "Could not fetch rule " + ruleCode + " :" + e.getMessage( ) );
         }
-        catch( IdentityStoreException e )
+        catch( final IdentityStoreException e )
         {
             this.info( "Could not resolve suspicious identity :" + e.getMessage( ) );
         }
@@ -170,20 +179,15 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
         return author;
     }
 
-    private void merge( final IdentityDto primaryIdentity, final IdentityDto candidate, final String suspiciousCustomerId, final RequestAuthor author )
-            throws IdentityStoreException
+    private void merge( final IdentityDto primaryIdentity, final IdentityDto candidate, final SuspiciousIdentity suspiciousIdentity,
+            final RequestAuthor author ) throws IdentityStoreException
     {
         /* Cannot merge connected identity */
         if ( this.canMerge( primaryIdentity, candidate ) )
         {
             /* Lock current */
-            SuspiciousIdentityHome.manageLock( suspiciousCustomerId, "IdentityDuplicatesResolutionDaemon", AuthorType.admin.name( ), true );
-            this.info( "Lock suspicious identity with customer ID " + suspiciousCustomerId );
-
-            final IdentityMergeRequest request = new IdentityMergeRequest( );
-            request.setPrimaryCuid( primaryIdentity.getCustomerId( ) );
-            request.setSecondaryCuid( candidate.getCustomerId( ) );
-            request.setDuplicateRuleCode( ruleCode );
+            SuspiciousIdentityHome.manageLock( suspiciousIdentity, "IdentityDuplicatesResolutionDaemon", AuthorType.admin.name( ), true );
+            this.info( "Lock suspicious identity with customer ID " + suspiciousIdentity.getCustomerId( ) );
 
             /* Get all attributes of secondary that do not exist in primary */
             final Predicate<AttributeDto> selectNonExistingAttribute = candidateAttribute -> primaryIdentity.getAttributes( ).stream( )
@@ -210,21 +214,27 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
                 this.info( log );
             }
 
+            final IdentityDto identity;
             if ( !attributesToCreate.isEmpty( ) || !attributesToOverride.isEmpty( ) )
             {
-                final IdentityDto identity = new IdentityDto( );
-                request.setIdentity( identity );
+                identity = new IdentityDto( );
                 identity.getAttributes( ).addAll( attributesToCreate );
                 identity.getAttributes( ).addAll( attributesToOverride );
+            } else {
+                identity = null;
             }
-            final IdentityMergeResponse response = new IdentityMergeResponse( );
-            IdentityService.instance( ).merge( request, author, clientCode, response );
+            final Pair<Identity, List<AttributeStatus>> mergeResult =
+                    IdentityService.instance().merge(DtoConverter.convertDtoToIdentity(primaryIdentity), DtoConverter.convertDtoToIdentity(candidate), identity,
+                                                     ruleCode, author, clientCode, Collections.emptyList( ));
             nbIdentitiesMerged++;
-            this.info( "Identities merged with status " + response.getStatus( ).getType( ).name( ) );
+
+            final boolean fullSuccess = mergeResult.getValue( ).stream( ).map( AttributeStatus::getStatus )
+                    .allMatch( status -> status.getType( ) == AttributeChangeStatusType.SUCCESS );
+            this.info( "Identities merged with status " + ( fullSuccess ? ResponseStatusType.SUCCESS : ResponseStatusType.INCOMPLETE_SUCCESS ) );
 
             /* Unlock current */
-            SuspiciousIdentityHome.manageLock( suspiciousCustomerId, "IdentityDuplicatesResolutionDaemon", AuthorType.admin.name( ), false );
-            this.info( "Unlock suspicious identity with customer ID " + suspiciousCustomerId );
+            SuspiciousIdentityHome.manageLock( suspiciousIdentity, "IdentityDuplicatesResolutionDaemon", AuthorType.admin.name( ), false );
+            this.info( "Unlock suspicious identity with customer ID " + suspiciousIdentity.getCustomerId( ) );
         }
         else
         {
