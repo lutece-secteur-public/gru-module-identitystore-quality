@@ -38,16 +38,17 @@ import fr.paris.lutece.plugins.identitystore.business.attribute.AttributeKeyHome
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.ExcludedIdentities;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
+import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDuplicatesService;
-import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
-import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
+import fr.paris.lutece.plugins.identitystore.service.identity.IdentityQualityService;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.DtoConverter;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.QualityDefinition;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummaryDto;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentitySearchResult;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.admin.AccessDeniedException;
@@ -213,13 +214,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         try
         {
             _currentRule = DuplicateRuleService.instance( ).get( _currentRuleCode );
-            final List<String> listSuspiciousIdentities = SuspiciousIdentityHome.getSuspiciousIdentityCuidsList( _currentRuleCode );
-            final List<IdentityDto> qualifiedIdentityList = new ArrayList<>( );
-            for ( final String cuid : listSuspiciousIdentities )
-            {
-                qualifiedIdentityList.add( IdentityService.instance( ).getQualifiedIdentity( cuid ) );
-            }
-            identities.addAll( qualifiedIdentityList );
+            SuspiciousIdentityHome.getSuspiciousIdentityCuidsList( _currentRuleCode ).forEach( cuid -> identities.add( getQualifiedIdentity( cuid ) ) );
             if ( CollectionUtils.isEmpty( identities ) )
             {
                 addInfo( "No suspicous identities found for rule id " + _currentRuleCode );
@@ -280,7 +275,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
                 return getDuplicateTypes( request );
             }
 
-            suspiciousIdentity = IdentityService.instance( ).getQualifiedIdentity( customerId );
+            suspiciousIdentity = getQualifiedIdentity( customerId );
             if ( suspiciousIdentity == null )
             {
                 addError( "Could not find suspiciousIdentity with customer ID " + customerId );
@@ -291,7 +286,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
             final Comparator<AttributeKey> sortByPivot = ( o1, o2 ) -> Boolean.compare( o2.getPivot( ), o1.getPivot( ) );
             readableAttributes.sort( sortByPivot.thenComparing( sortById ) );
         }
-        catch( final IdentityStoreException e )
+        catch( final Exception e )
         {
             addError( "An error occurred when fetching suspiciousIdentity : " + e.getMessage( ) );
             return getDuplicateTypes( request );
@@ -301,20 +296,19 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         try
         {
             _currentRule = DuplicateRuleService.instance( ).get( _currentRuleCode );
-            final DuplicateSearchResponse duplicateSearchResponse = SearchDuplicatesService.instance( ).findDuplicates( suspiciousIdentity,
-                    Collections.singletonList( _currentRuleCode ), Collections.emptyList( ) );
-
-            if ( CollectionUtils.isEmpty( duplicateSearchResponse.getIdentities( ) ) )
+            final Map<String, QualifiedIdentitySearchResult> duplicateResult = SearchDuplicatesService.instance( ).findDuplicates( suspiciousIdentity,
+                    Collections.singletonList( _currentRule ), Collections.emptyList( ) );
+            identityList = duplicateResult.values( ).stream( ).flatMap( r -> r.getQualifiedIdentities( ).stream( ) ).collect( Collectors.toList( ) );
+            if ( CollectionUtils.isEmpty( identityList ) )
             {
                 addError( "No duplicate could be found." );
                 return getDuplicateTypes( request );
             }
-            identityList = new ArrayList<>( duplicateSearchResponse.getIdentities( ) );
             identityList.add( suspiciousIdentity );
             /* Order identity list by connected identities, then best quality */
             identityList.sort( orderingComparator );
         }
-        catch( final IdentityStoreException e )
+        catch( final Exception e )
         {
             addError( "An error occurred when fetching duplicate: " + e.getMessage( ) );
             return getDuplicateTypes( request );
@@ -384,17 +378,17 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
                 return getDuplicateTypes( request );
             }
 
-            firstIdentity = IdentityService.instance( ).getQualifiedIdentity( firstCustomerId );
+            firstIdentity = getQualifiedIdentity( firstCustomerId );
             if ( firstIdentity == null )
             {
                 addError( "Could not find first identity with customer ID " + firstCustomerId );
                 return getDuplicateTypes( request );
             }
 
-            secondIdentity = IdentityService.instance( ).getQualifiedIdentity( secondCustomerId );
+            secondIdentity = getQualifiedIdentity( secondCustomerId );
             if ( secondIdentity == null )
             {
-                addError( "Could not find second identity with customer ID " + secondIdentity );
+                addError( "Could not find second identity with customer ID " + secondCustomerId );
                 return getDuplicateTypes( request );
             }
             identities.add( firstIdentity );
@@ -404,9 +398,9 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
             final Comparator<AttributeKey> sortByPivot = ( o1, o2 ) -> Boolean.compare( o2.getPivot( ), o1.getPivot( ) );
             readableAttributes.sort( sortByPivot.thenComparing( sortById ) );
         }
-        catch( final IdentityStoreException e )
+        catch( final Exception e )
         {
-            addError( "An error occurred when fetching firstIdentity : " + e.getMessage( ) );
+            addError( "An error occurred when identities : " + e.getMessage( ) );
             return getDuplicateTypes( request );
         }
 
@@ -516,13 +510,13 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     public String getCreateSuspiciousIdentity( HttpServletRequest request )
     {
         _suspiciousidentity = ( _suspiciousidentity != null ) ? _suspiciousidentity : new SuspiciousIdentity( );
-        List<DuplicateRule> duplicateRules = new ArrayList<>( );
+        final List<DuplicateRule> duplicateRules = new ArrayList<>( );
         try
         {
             duplicateRules.addAll( DuplicateRuleService.instance( ).findAll( ) );
             duplicateRules.sort( Comparator.comparing( DuplicateRule::getPriority ).thenComparing( DuplicateRule::getName ) );
         }
-        catch( DuplicateRuleNotFoundException e )
+        catch( final Exception e )
         {
             AppLogService.error( "Error while fetching duplicate rules.", e );
             addError( e.getMessage( ) );
@@ -661,4 +655,12 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
 
         return redirectView( request, VIEW_MANAGE_SUSPICIOUSIDENTITYS );
     }
+
+    private IdentityDto getQualifiedIdentity( final String customerId )
+    {
+        final IdentityDto qualifiedIdentity = DtoConverter.convertIdentityToDto( IdentityHome.findByCustomerId( customerId ) );
+        IdentityQualityService.instance( ).computeQuality( qualifiedIdentity );
+        return qualifiedIdentity;
+    }
+
 }

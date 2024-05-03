@@ -34,43 +34,124 @@
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
 import fr.paris.lutece.plugins.identitystore.business.contract.ServiceContract;
+import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
+import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
+import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDuplicatesService;
 import fr.paris.lutece.plugins.identitystore.service.contract.ServiceContractService;
+import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityQualityService;
+import fr.paris.lutece.plugins.identitystore.utils.Maps;
+import fr.paris.lutece.plugins.identitystore.v3.web.request.AbstractIdentityStoreAppCodeRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.request.validator.DuplicateRuleValidator;
+import fr.paris.lutece.plugins.identitystore.v3.web.request.validator.IdentityAttributeValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.DtoConverter;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentitySearchResult;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.ResponseStatusFactory;
+import fr.paris.lutece.plugins.identitystore.web.exception.ClientAuthorizationException;
+import fr.paris.lutece.plugins.identitystore.web.exception.DuplicatesConsistencyException;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
+import fr.paris.lutece.plugins.identitystore.web.exception.RequestContentFormattingException;
+import fr.paris.lutece.plugins.identitystore.web.exception.RequestFormatException;
+import fr.paris.lutece.plugins.identitystore.web.exception.ResourceConsistencyException;
+import fr.paris.lutece.plugins.identitystore.web.exception.ResourceNotFoundException;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
-public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreRequest
+public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreAppCodeRequest
 {
 
     private final DuplicateSearchRequest _request;
+    private final List<DuplicateRule> rules = new ArrayList<>( );
 
-    public IdentityStoreSearchDuplicatesRequest( String strClientCode, DuplicateSearchRequest request, String authorName, String authorType )
-            throws IdentityStoreException
+    private ServiceContract serviceContract;
+
+    public IdentityStoreSearchDuplicatesRequest( String strClientCode, final String strAppCode, DuplicateSearchRequest request, String authorName,
+            String authorType ) throws IdentityStoreException
     {
-        super( strClientCode, authorName, authorType );
+        super( strClientCode, strAppCode, authorName, authorType );
+        if ( request == null )
+        {
+            throw new RequestFormatException( "Provided duplicate search request is null", Constants.PROPERTY_REST_ERROR_DUPLICATE_SEARCH_REQUEST_NULL );
+        }
         this._request = request;
     }
 
     @Override
-    protected void validateSpecificRequest( ) throws IdentityStoreException
+    protected void fetchResources( ) throws ResourceNotFoundException
+    {
+        for ( final String ruleCode : _request.getRuleCodes( ) )
+        {
+            rules.add( DuplicateRuleService.instance( ).get( ruleCode ) );
+        }
+        serviceContract = ServiceContractService.instance( ).getActiveServiceContract( _strClientCode );
+    }
+
+    @Override
+    protected void validateRequestFormat( ) throws RequestFormatException
     {
         SuspiciousIdentityRequestValidator.instance( ).checkDuplicateSearch( _request );
+        IdentityAttributeValidator.instance( ).checkAttributeExistence( _request.getAttributes( ).keySet( ) );
+    }
+
+    @Override
+    protected void validateClientAuthorization( ) throws ClientAuthorizationException
+    {
+        // Do nothing
+    }
+
+    @Override
+    protected void validateResourcesConsistency( ) throws ResourceConsistencyException
+    {
+        for ( final DuplicateRule rule : rules )
+        {
+            DuplicateRuleValidator.instance( ).validateActive( rule );
+        }
+    }
+
+    @Override
+    protected void formatRequestContent( ) throws RequestContentFormattingException
+    {
+        // Do nothing
+    }
+
+    @Override
+    protected void checkDuplicatesConsistency( ) throws DuplicatesConsistencyException
+    {
+        // Do nothing
     }
 
     @Override
     protected DuplicateSearchResponse doSpecificRequest( ) throws IdentityStoreException
     {
-        final DuplicateSearchResponse duplicateSearchResponse = SearchDuplicatesService.instance( ).findDuplicates( _request.getAttributes( ),
-                _request.getRuleCodes( ), Collections.emptyList( ) );
-        final ServiceContract serviceContract = ServiceContractService.instance( ).getActiveServiceContract( _strClientCode );
-        duplicateSearchResponse.getIdentities( )
-                .forEach( identityDto -> IdentityQualityService.instance( ).enrich( null, identityDto, serviceContract, null, false ) );
-        return duplicateSearchResponse;
+        final DuplicateSearchResponse response = new DuplicateSearchResponse( );
+
+        final Map<String, QualifiedIdentitySearchResult> duplicates = SearchDuplicatesService.instance( ).findDuplicates( _request.getAttributes( ), rules,
+                Collections.emptyList( ) );
+        duplicates.values( ).stream( ).peek( r -> Maps.mergeStringMap( response.getMetadata( ), r.getMetadata( ) ) )
+                .flatMap( r -> r.getQualifiedIdentities( ).stream( ) ).forEach( identity -> {
+                    if ( response.getIdentities( ).stream( ).noneMatch( existing -> Objects.equals( existing.getCustomerId( ), identity.getCustomerId( ) ) ) )
+                    {
+                        IdentityQualityService.instance( ).enrich( null, identity, serviceContract, null, false );
+                        response.getIdentities( ).add( identity );
+                    }
+                } );
+        final List<String> matchingRuleCodes = duplicates.entrySet( ).stream( ).filter( e -> !e.getValue( ).getQualifiedIdentities( ).isEmpty( ) )
+                .map( Map.Entry::getKey ).collect( Collectors.toList( ) );
+
+        response.setStatus( ResponseStatusFactory.ok( ).setMessage( "Potential duplicate(s) found with rule(s) : " + String.join( ",", matchingRuleCodes ) )
+                .setMessageKey( Constants.PROPERTY_REST_INFO_POTENTIAL_DUPLICATE_FOUND ) );
+
+        return response;
     }
 }

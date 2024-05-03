@@ -38,14 +38,16 @@ import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.Susp
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDuplicatesService;
 import fr.paris.lutece.plugins.identitystore.service.IdentityChangeListener;
+import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.DtoConverter;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.RequestAuthor;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.history.IdentityChangeType;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentitySearchResult;
 import fr.paris.lutece.portal.service.util.AppLogService;
 import fr.paris.lutece.util.sql.TransactionManager;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -86,16 +88,19 @@ public class SuspiciousIdentityListener implements IdentityChangeListener
             try
             {
                 final SuspiciousIdentity suspiciousIdentity = SuspiciousIdentityHome.selectByCustomerID( identity.getCustomerId( ) );
-                final DuplicateSearchResponse duplicates = SearchDuplicatesService.instance( ).findDuplicates( DtoConverter.convertIdentityToDto( identity ),
-                        Collections.singletonList( suspiciousIdentity.getDuplicateRuleCode( ) ), Collections.emptyList( ) );
+                final Map<String, QualifiedIdentitySearchResult> duplicateResult = SearchDuplicatesService.instance( ).findDuplicates(
+                        DtoConverter.convertIdentityToDto( identity ),
+                        Collections.singletonList( DuplicateRuleService.instance( ).get( suspiciousIdentity.getDuplicateRuleCode( ) ) ),
+                        Collections.emptyList( ) );
                 TransactionManager.beginTransaction( null );
-                if ( duplicates.getIdentities( ).isEmpty( ) )
+                if ( duplicateResult == null
+                        || duplicateResult.values( ).stream( ).map( QualifiedIdentitySearchResult::getQualifiedIdentities ).allMatch( List::isEmpty ) )
                 {
                     SuspiciousIdentityHome.remove( identity.getCustomerId( ) );
                 }
                 TransactionManager.commitTransaction( null );
             }
-            catch( Exception e )
+            catch( final Exception e )
             {
                 TransactionManager.rollBack( null );
                 AppLogService.error( "SuspiciousIdentityListener :: Could not handle identity " + identity.getCustomerId( ) + " : " + e.getMessage( ) );
