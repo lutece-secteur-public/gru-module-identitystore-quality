@@ -160,7 +160,7 @@ public class SuspiciousIdentityService
             final int totalRecords = fullSuspiciousList.size( );
             final int totalPages = (int) Math.ceil( (double) totalRecords / request.getSize( ) );
 
-            if ( request.getPage( ) > totalPages )
+            if ( totalPages > 0 && request.getPage( ) > totalPages )
             {
                 throw new RequestFormatException( "Pagination index should not exceed total number of pages.", Constants.PROPERTY_REST_PAGINATION_END_ERROR );
             }
@@ -174,8 +174,11 @@ public class SuspiciousIdentityService
             pagination.setTotalPages( totalPages );
             pagination.setTotalRecords( totalRecords );
             pagination.setCurrentPage( request.getPage( ) );
-            pagination.setNextPage( request.getPage( ) == totalPages ? null : request.getPage( ) + 1 );
-            pagination.setPreviousPage( request.getPage( ) > 1 ? request.getPage( ) - 1 : null );
+            if( totalPages > 0 )
+            {
+                pagination.setNextPage( request.getPage() == totalPages ? null : request.getPage() + 1 );
+                pagination.setPreviousPage( request.getPage() > 1 ? request.getPage() - 1 : null );
+            }
         }
         else
         {
@@ -197,7 +200,7 @@ public class SuspiciousIdentityService
         TransactionManager.beginTransaction( null );
         try
         {
-            final boolean locked = SuspiciousIdentityHome.manageLock( suspiciousIdentity, author.getName( ), author.getType( ).name( ), request.isLocked( ) );
+            final boolean locked = SuspiciousIdentityHome.manageLock( suspiciousIdentity.getCustomerId(), author.getName( ), author.getType( ).name( ), request.isLocked( ) );
             TransactionManager.commitTransaction( null );
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_MODIFY,
                     request.isLocked( ) ? LOCK_SUSPICIOUS_IDENTITY_EVENT_CODE : UNLOCK_SUSPICIOUS_IDENTITY_EVENT_CODE,
@@ -280,5 +283,11 @@ public class SuspiciousIdentityService
     public boolean hasSuspicious( final List<String> customerIds )
     {
         return SuspiciousIdentityHome.hasSuspicious( customerIds );
+    }
+
+    public List<SuspiciousIdentityDto> getSuspiciousIdentity( final List<String> customerIds )
+    {
+        final List<SuspiciousIdentity> suspiciousIdentities = SuspiciousIdentityHome.selectByCustomerIDs(customerIds);
+        return suspiciousIdentities.stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) );
     }
 }

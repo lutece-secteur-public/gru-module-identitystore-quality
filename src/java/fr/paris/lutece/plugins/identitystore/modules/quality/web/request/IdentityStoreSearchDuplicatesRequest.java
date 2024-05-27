@@ -34,10 +34,9 @@
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
 import fr.paris.lutece.plugins.identitystore.business.contract.ServiceContract;
-import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
-import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDuplicatesService;
+import fr.paris.lutece.plugins.identitystore.service.attribute.IdentityAttributeFormatterService;
 import fr.paris.lutece.plugins.identitystore.service.contract.ServiceContractService;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityQualityService;
@@ -45,13 +44,12 @@ import fr.paris.lutece.plugins.identitystore.utils.Maps;
 import fr.paris.lutece.plugins.identitystore.v3.web.request.AbstractIdentityStoreAppCodeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.request.validator.DuplicateRuleValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.request.validator.IdentityAttributeValidator;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.DtoConverter;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeStatus;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentitySearchResult;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentitySearchResult;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.ResponseStatusFactory;
 import fr.paris.lutece.plugins.identitystore.web.exception.ClientAuthorizationException;
 import fr.paris.lutece.plugins.identitystore.web.exception.DuplicatesConsistencyException;
@@ -63,10 +61,10 @@ import fr.paris.lutece.plugins.identitystore.web.exception.ResourceNotFoundExcep
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.stream.Collectors;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreAppCodeRequest
 {
@@ -134,6 +132,18 @@ public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreA
     @Override
     protected DuplicateSearchResponse doSpecificRequest( ) throws IdentityStoreException
     {
+        //TODO à refactorer selon le refactoring en cours
+        // #28070 - la date doit être formatée avant de lancer la recherche
+        AttributeStatus formatStatus = null;
+        final String birthdateValue = _request.getAttributes().get(Constants.PARAM_BIRTH_DATE);
+        if (birthdateValue != null) {
+            final String formattedBirthdate = IdentityAttributeFormatterService.instance().formatDateValue(birthdateValue);
+            if (!formattedBirthdate.equals(birthdateValue)) {
+                formatStatus = IdentityAttributeFormatterService.instance().buildAttributeValueFormattedStatus(Constants.PARAM_BIRTH_DATE, birthdateValue, formattedBirthdate);
+                _request.getAttributes().put(Constants.PARAM_BIRTH_DATE, formattedBirthdate);
+            }
+        }
+
         final DuplicateSearchResponse response = new DuplicateSearchResponse( );
 
         final Map<String, QualifiedIdentitySearchResult> duplicates = SearchDuplicatesService.instance( ).findDuplicates( _request.getAttributes( ), rules,
@@ -152,6 +162,9 @@ public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreA
         response.setStatus( ResponseStatusFactory.ok( ).setMessage( "Potential duplicate(s) found with rule(s) : " + String.join( ",", matchingRuleCodes ) )
                 .setMessageKey( Constants.PROPERTY_REST_INFO_POTENTIAL_DUPLICATE_FOUND ) );
 
+        if (formatStatus != null) {
+            response.getStatus().getAttributeStatuses().add(formatStatus);
+        }
         return response;
     }
 }

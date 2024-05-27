@@ -33,15 +33,18 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.service;
 
+import fr.paris.lutece.plugins.identitystore.business.attribute.AttributeKey;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
 import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
+import fr.paris.lutece.plugins.identitystore.service.attribute.IdentityAttributeService;
 import fr.paris.lutece.plugins.identitystore.service.daemon.LoggingDaemon;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityQualityService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
+import fr.paris.lutece.plugins.identitystore.service.network.DelayedNetworkService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.DtoConverter;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeChangeStatusType;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeDto;
@@ -61,11 +64,7 @@ import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -76,7 +75,9 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
 {
     private final String clientCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.client.code" );
     private final String authorName = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.author.name" );
-    final String ruleCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.rule.code" );
+    private final String ruleCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.rule.code" );
+    private final DelayedNetworkService<IdentityDto> identityDtoDelayedNetworkService = new DelayedNetworkService<>();
+    private final DelayedNetworkService<Map<String, QualifiedIdentitySearchResult>> duplicateSearchResponseDelayedNetworkService = new DelayedNetworkService<>();
     private int nbIdentitiesMerged = 0;
 
     @Override
@@ -107,12 +108,11 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
                     if ( suspiciousIdentity.getLock( ) == null || !suspiciousIdentity.getLock( ).isLocked( ) )
                     {
                         /* Get and sort identities to process */
-                        final IdentityDto identity = DtoConverter.convertIdentityToDto( IdentityHome.findByCustomerId( suspiciousIdentity.getCustomerId( ) ) );
-                        IdentityQualityService.instance( ).computeQuality( identity );
-                        final Map<String, QualifiedIdentitySearchResult> duplicates = SearchDuplicatesService.instance( ).findDuplicates( identity,
-                                Collections.singletonList( processedRule ), Collections.emptyList( ) );
-                        final List<IdentityDto> processedIdentities = duplicates.values( ).stream( ).flatMap( r -> r.getQualifiedIdentities( ).stream( ) )
-                                .collect( Collectors.toList( ) );
+                        final IdentityDto identity = identityDtoDelayedNetworkService.call(() -> DtoConverter.convertIdentityToDto( IdentityHome.findByCustomerId( suspiciousIdentity.getCustomerId( ) ) ), "Get qualified identity " + suspiciousIdentity.getCustomerId(), this);
+                        final Map<String, QualifiedIdentitySearchResult> result = duplicateSearchResponseDelayedNetworkService.call(() -> SearchDuplicatesService.instance( ).findDuplicates( identity,
+                                Collections.singletonList( processedRule ), Collections.emptyList( ) ), "Get duplicates for identity " + suspiciousIdentity.getCustomerId(), this );
+                        final QualifiedIdentitySearchResult duplicates = result.get(processedRule.getCode());
+                        final List<IdentityDto> processedIdentities = new ArrayList<>(duplicates.getQualifiedIdentities());
                         processedIdentities.add( identity );
 
                         if ( processedIdentities.size( ) >= 2 )
@@ -134,7 +134,7 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
                             /* Try to merge */
                             for ( final IdentityDto candidate : processedIdentities )
                             {
-                                this.merge( primaryIdentity, candidate, suspiciousIdentity, author );
+                                this.merge( primaryIdentity, candidate, suspiciousIdentity.getCustomerId( ), author );
                             }
                         }
                         else
@@ -179,15 +179,15 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
         return author;
     }
 
-    private void merge( final IdentityDto primaryIdentity, final IdentityDto candidate, final SuspiciousIdentity suspiciousIdentity,
-            final RequestAuthor author ) throws IdentityStoreException
+    private void merge( final IdentityDto primaryIdentity, final IdentityDto candidate, final String suspiciousCustomerId, final RequestAuthor author )
+            throws IdentityStoreException
     {
         /* Cannot merge connected identity */
         if ( this.canMerge( primaryIdentity, candidate ) )
         {
             /* Lock current */
-            SuspiciousIdentityHome.manageLock( suspiciousIdentity, "IdentityDuplicatesResolutionDaemon", AuthorType.admin.name( ), true );
-            this.info( "Lock suspicious identity with customer ID " + suspiciousIdentity.getCustomerId( ) );
+            SuspiciousIdentityHome.manageLock( suspiciousCustomerId, "IdentityDuplicatesResolutionDaemon", AuthorType.admin.name( ), true );
+            this.info( "Lock suspicious identity with customer ID " + suspiciousCustomerId );
 
             /* Get all attributes of secondary that do not exist in primary */
             final Predicate<AttributeDto> selectNonExistingAttribute = candidateAttribute -> primaryIdentity.getAttributes( ).stream( )
@@ -225,7 +225,7 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
             }
             final Pair<Identity, List<AttributeStatus>> mergeResult =
                     IdentityService.instance().merge(DtoConverter.convertDtoToIdentity(primaryIdentity), DtoConverter.convertDtoToIdentity(candidate), identity,
-                                                     ruleCode, author, clientCode, Collections.emptyList( ));
+                            ruleCode, author, clientCode, Collections.emptyList( ));
             nbIdentitiesMerged++;
 
             final boolean fullSuccess = mergeResult.getValue( ).stream( ).map( AttributeStatus::getStatus )
@@ -233,8 +233,8 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
             this.info( "Identities merged with status " + ( fullSuccess ? ResponseStatusType.SUCCESS : ResponseStatusType.INCOMPLETE_SUCCESS ) );
 
             /* Unlock current */
-            SuspiciousIdentityHome.manageLock( suspiciousIdentity, "IdentityDuplicatesResolutionDaemon", AuthorType.admin.name( ), false );
-            this.info( "Unlock suspicious identity with customer ID " + suspiciousIdentity.getCustomerId( ) );
+            SuspiciousIdentityHome.manageLock( suspiciousCustomerId, "IdentityDuplicatesResolutionDaemon", AuthorType.admin.name( ), false );
+            this.info( "Unlock suspicious identity with customer ID " + suspiciousCustomerId );
         }
         else
         {
@@ -249,6 +249,11 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
         {
             return false;
         }
+        // LUT-28116 - If the primary identity is connected, it must have a minimum certification level (default : >= 500 (ORIG1))
+        if (primaryIdentity.isMonParisActive() && !hasMinimumCertification(primaryIdentity))
+        {
+            return false;
+        }
         return isStrictDuplicate( primaryIdentity, candidate );
     }
 
@@ -258,5 +263,17 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
                 .anyMatch( candidateAttribute -> candidateAttribute.getKey( ).equals( primaryAttribute.getKey( ) )
                         && !candidateAttribute.getValue( ).equalsIgnoreCase( primaryAttribute.getValue( ) ) );
         return primaryIdentity.getAttributes( ).stream( ).noneMatch( selectNotEqualAttributes );
+    }
+
+    private boolean hasMinimumCertification(final IdentityDto primaryIdentity)
+    {
+        final int requiredCertificationLevel =
+                AppPropertiesService.getPropertyInt("daemon.identityDuplicatesResolutionDaemon.primary.identity.connected.min.certification.level", 500);
+        final List<String> pivotAttributeKeys =
+                IdentityAttributeService.instance().getPivotAttributeKeys().stream().map(AttributeKey::getKeyName).collect(Collectors.toList());
+        final int lowestPivotCertificationLevel =
+                primaryIdentity.getAttributes().stream().filter(a -> pivotAttributeKeys.contains(a.getKey())).mapToInt(AttributeDto::getCertificationLevel)
+                               .min().orElse(0);
+        return lowestPivotCertificationLevel >= requiredCertificationLevel;
     }
 }
