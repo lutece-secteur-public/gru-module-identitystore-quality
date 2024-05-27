@@ -55,7 +55,11 @@
                         <#list readable_attribute_list as readableAttr>
                             <td>
                                 <#list identity.attributes?filter(a -> a.key == readableAttr.keyName) as attr>
-                                    <span class="${attr.key}-value">${attr.value}</span>
+                                    <#if attr.key == "gender">
+                                        ${gender_map[attr.value]}
+                                    <#else>
+                                        <span class="${attr.key}-value">${attr.value}</span>
+                                    </#if>
                                     <#if attr.certifier??>
                                         <span class="badge rounded-pill bg-info mx-1">${attr.certifier}</span>
                                     </#if>

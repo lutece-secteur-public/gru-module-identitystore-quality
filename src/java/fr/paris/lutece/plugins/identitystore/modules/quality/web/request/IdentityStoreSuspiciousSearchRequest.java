@@ -80,7 +80,7 @@ public class IdentityStoreSuspiciousSearchRequest extends AbstractIdentityStoreR
             final int totalRecords = response.getSuspiciousIdentities( ).size( );
             final int totalPages = (int) Math.ceil( (double) totalRecords / _request.getSize( ) );
 
-            if ( _request.getPage( ) > totalPages )
+            if ( totalPages > 0 && _request.getPage( ) > totalPages )
             {
                 response.setStatus( ResponseStatusFactory.badRequest( ) );
                 response.getStatus( ).setMessage( "Pagination index should not exceed total number of pages." );
@@ -97,8 +97,11 @@ public class IdentityStoreSuspiciousSearchRequest extends AbstractIdentityStoreR
             pagination.setTotalPages( totalPages );
             pagination.setTotalRecords( totalRecords );
             pagination.setCurrentPage( _request.getPage( ) );
-            pagination.setNextPage( _request.getPage( ) == totalPages ? null : _request.getPage( ) + 1 );
-            pagination.setPreviousPage( _request.getPage( ) > 1 ? _request.getPage( ) - 1 : null );
+            if(totalPages > 0)
+            {
+                pagination.setNextPage(_request.getPage() == totalPages ? null : _request.getPage() + 1);
+                pagination.setPreviousPage(_request.getPage() > 1 ? _request.getPage() - 1 : null);
+            }
             response.setPagination( pagination );
         }
         return response;
