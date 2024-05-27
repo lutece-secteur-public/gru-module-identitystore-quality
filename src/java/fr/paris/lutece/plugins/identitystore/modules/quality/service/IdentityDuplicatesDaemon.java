@@ -94,6 +94,9 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
         final StopWatch stopWatch = new StopWatch( );
         stopWatch.start( );
         this.info( "Starting IdentityDuplicatesDaemon..." );
+        this.info("daemon.identityDuplicatesDaemon.client.code: " + clientCode);
+        this.info("daemon.identityDuplicatesDaemon.batch.size: " + batchSize);
+        this.info("daemon.identityDuplicatesDaemon.purge.size: " + purgeSize);
 
         try
         {
