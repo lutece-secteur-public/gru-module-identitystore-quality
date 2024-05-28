@@ -189,11 +189,6 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
             SuspiciousIdentityHome.manageLock( suspiciousIdentity, "IdentityDuplicatesResolutionDaemon", AuthorType.admin.name( ), true );
             this.info( "Lock suspicious identity with customer ID " + suspiciousIdentity.getCustomerId( ) );
 
-            final IdentityMergeRequest request = new IdentityMergeRequest( );
-            request.setPrimaryCuid( primaryIdentity.getCustomerId( ) );
-            request.setSecondaryCuid( candidate.getCustomerId( ) );
-            request.setDuplicateRuleCode( ruleCode );
-
             /* Get all attributes of secondary that do not exist in primary */
             final Predicate<AttributeDto> selectNonExistingAttribute = candidateAttribute -> primaryIdentity.getAttributes( ).stream( )
                     .noneMatch( primaryAttribute -> Objects.equals( primaryAttribute.getKey( ), candidateAttribute.getKey( ) ) );
@@ -219,15 +214,18 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
                 this.info( log );
             }
 
+            final IdentityDto identity;
             if ( !attributesToCreate.isEmpty( ) || !attributesToOverride.isEmpty( ) )
             {
-                final IdentityDto identity = new IdentityDto( );
-                request.setIdentity( identity );
+                identity = new IdentityDto( );
                 identity.getAttributes( ).addAll( attributesToCreate );
                 identity.getAttributes( ).addAll( attributesToOverride );
+            } else {
+                identity = null;
             }
-            final Pair<Identity, List<AttributeStatus>> mergeResult = IdentityService.instance( ).merge( request, author, clientCode,
-                    Collections.emptyList( ) );
+            final Pair<Identity, List<AttributeStatus>> mergeResult =
+                    IdentityService.instance().merge(DtoConverter.convertDtoToIdentity(primaryIdentity), DtoConverter.convertDtoToIdentity(candidate), identity,
+                                                     ruleCode, author, clientCode, Collections.emptyList( ));
             nbIdentitiesMerged++;
 
             final boolean fullSuccess = mergeResult.getValue( ).stream( ).map( AttributeStatus::getStatus )
