@@ -35,6 +35,7 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.web;
 
 import fr.paris.lutece.plugins.identitystore.business.attribute.AttributeKey;
 import fr.paris.lutece.plugins.identitystore.business.attribute.AttributeKeyHome;
+import fr.paris.lutece.plugins.identitystore.business.attribute.AttributeValue;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.ExcludedIdentities;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
@@ -65,13 +66,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -152,6 +147,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     // Errors
     private static final String ERROR_RESOURCE_NOT_FOUND = "Resource not found";
     private static final String PARAM_RULE_CODE = "rule-code";
+    private static final String PARAM_GENDER_MAP = "gender_map";
     private static final String PARAM_CUID = "cuid";
 
     // Session variable to store working values
@@ -210,6 +206,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
 
         final List<IdentityDto> identities = new ArrayList<>( );
         final List<AttributeKey> readableAttributes = new ArrayList<>( );
+        Map<String, String> genderMap = new HashMap<String, String>( );
         try
         {
             _currentRule = DuplicateRuleService.instance( ).get( _currentRuleCode );
@@ -232,6 +229,9 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
                     .collect( Collectors.toList( ) );
             readableAttributes.addAll( pivotAttributes );
             readableAttributes.sort( Comparator.comparingInt( AttributeKey::getId ) );
+            AttributeKey attribute = AttributeKeyHome.findByKey( "gender", true );
+            List<AttributeValue> genders = attribute.getAttributeValues( );
+            genderMap.putAll(genders.stream( ).collect( Collectors.toMap( AttributeValue::getValue, AttributeValue::getLabel ) ) );
         }
         catch( final IdentityStoreException e )
         {
@@ -246,6 +246,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         final Map<String, Object> model = getPaginatedListModel( request, MARK_DUPLICATE_HOLDER_LIST, identities, JSP_MANAGE_SUSPICIOUSIDENTITYS, parameters );
         model.put( MARK_READABLE_ATTRIBUTES, readableAttributes );
         model.put( MARK_DUPLICATE_RULE, _currentRule );
+        model.put( PARAM_GENDER_MAP, genderMap );
 
         return getPage( PROPERTY_PAGE_TITLE_SEARCH_DUPLICATES, TEMPLATE_SEARCH_DUPLICATES, model );
     }
