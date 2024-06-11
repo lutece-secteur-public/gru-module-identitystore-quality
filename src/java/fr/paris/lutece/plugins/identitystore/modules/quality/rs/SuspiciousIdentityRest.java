@@ -196,7 +196,7 @@ public class SuspiciousIdentityRest implements IRestService
             @ApiParam( name = Constants.PARAM_APPLICATION_CODE, value = SwaggerConstants.PARAM_APPLICATION_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_APPLICATION_CODE ) @DefaultValue( "" ) String strHeaderAppCode )
             throws IdentityStoreException
     {
-        final IdentityStoreDuplicateRuleGetRequest request = new IdentityStoreDuplicateRuleGetRequest( strHeaderClientCode, strHeaderAppCode, priority,
+        final IdentityStoreDuplicateRuleGetRequest request = new IdentityStoreDuplicateRuleGetRequest( priority, strHeaderClientCode, strHeaderAppCode,
                 authorName, authorType );
         return this.buildJsonResponse( request.doRequest( ) );
     }

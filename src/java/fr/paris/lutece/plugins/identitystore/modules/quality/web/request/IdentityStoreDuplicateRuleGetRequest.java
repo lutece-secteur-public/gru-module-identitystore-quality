@@ -60,7 +60,7 @@ public class IdentityStoreDuplicateRuleGetRequest extends AbstractIdentityStoreA
      * @param strClientCode
      *            the client application Code
      */
-    public IdentityStoreDuplicateRuleGetRequest( final String strClientCode, final String strAppCode, final Integer _nPriority, final String authorName,
+    public IdentityStoreDuplicateRuleGetRequest( final Integer _nPriority, final String strClientCode, final String strAppCode, final String authorName,
             final String authorType ) throws IdentityStoreException
     {
         super( strClientCode, strAppCode, authorName, authorType );
