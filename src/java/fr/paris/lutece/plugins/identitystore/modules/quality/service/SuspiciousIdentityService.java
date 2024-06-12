@@ -349,4 +349,10 @@ public class SuspiciousIdentityService
     {
         return SuspiciousIdentityHome.hasSuspicious( customerIds );
     }
+
+    public List<SuspiciousIdentityDto> getSuspiciousIdentity( final List<String> customerIds )
+    {
+        final List<SuspiciousIdentity> suspiciousIdentities = SuspiciousIdentityHome.selectByCustomerIDs(customerIds);
+        return suspiciousIdentities.stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) );
+    }
 }
