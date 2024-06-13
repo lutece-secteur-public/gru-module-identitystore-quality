@@ -182,7 +182,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
     }
 
     private void processRule( final DuplicateRule rule, final int suspiciousCounterInitializer ) {
-        final Batch<String> cuidBatches = IdentityService.instance( ).getCUIDsBatchForPotentialDuplicate( rule, batchSize );
+        final Batch<String> cuidBatches = IdentityService.instance( ).getCUIDsBatchForPotentialDuplicate( rule, batchSize, limitationMode == DuplicatesDaemonLimitationMode.INCREMENTAL );
         if ( cuidBatches == null || cuidBatches.isEmpty( ) )
         {
             this.error( "No identities having required attributes and not already suspicious found." );
