@@ -229,7 +229,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
                     .collect( Collectors.toList( ) );
             readableAttributes.addAll( pivotAttributes );
             readableAttributes.sort( Comparator.comparingInt( AttributeKey::getId ) );
-            AttributeKey attribute = AttributeKeyHome.findByKey( "gender", true );
+            AttributeKey attribute = AttributeKeyHome.findByKey( Constants.PARAM_GENDER, true );
             List<AttributeValue> genders = attribute.getAttributeValues( );
             genderMap.putAll(genders.stream( ).collect( Collectors.toMap( AttributeValue::getValue, AttributeValue::getLabel ) ) );
         }
