@@ -168,11 +168,12 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     public String getDuplicateTypes( final HttpServletRequest request )
     {
         _currentRule = null;
-        final List<DuplicateRuleSummaryDto> duplicateRules = new ArrayList<>( );
+        final List<DuplicateRuleSummaryDto> filteredRules = new ArrayList<>( );
         try
         {
-            duplicateRules.addAll( DuplicateRuleService.instance( ).findSummaries( null ) );
+            final List<DuplicateRuleSummaryDto> duplicateRules = new ArrayList<>(DuplicateRuleService.instance().findSummaries(null));
             duplicateRules.sort( Comparator.comparingInt( DuplicateRuleSummaryDto::getPriority ).thenComparing( DuplicateRuleSummaryDto::getName ) );
+            filteredRules.addAll(duplicateRules.stream().filter(DuplicateRuleSummaryDto::isActive).collect(Collectors.toList()));
         }
         catch( final IdentityStoreException e )
         {
@@ -181,7 +182,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         }
 
         final Map<String, Object> model = getModel( );
-        model.put( MARK_DUPLICATE_RULE_LIST, duplicateRules );
+        model.put( MARK_DUPLICATE_RULE_LIST, filteredRules );
 
         return getPage( PROPERTY_PAGE_TITLE_MANAGE_SUSPICIOUSIDENTITYS, TEMPLATE_CHOOSE_DUPLICATE_TYPE, model );
     }
