@@ -33,9 +33,11 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.service;
 
+import fr.paris.lutece.plugins.identitystore.business.attribute.AttributeKey;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
+import fr.paris.lutece.plugins.identitystore.service.attribute.IdentityAttributeService;
 import fr.paris.lutece.plugins.identitystore.service.daemon.LoggingDaemon;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleNotFoundException;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
@@ -241,6 +243,11 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
         {
             return false;
         }
+        // LUT-28116 - If the primary identity is connected, it must have a minimum certification level (default : >= 500 (ORIG1))
+        if (primaryIdentity.isMonParisActive() && !hasMinimumCertification(primaryIdentity))
+        {
+            return false;
+        }
         return isStrictDuplicate( primaryIdentity, candidate );
     }
 
@@ -250,5 +257,17 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
                 .anyMatch( candidateAttribute -> candidateAttribute.getKey( ).equals( primaryAttribute.getKey( ) )
                         && !candidateAttribute.getValue( ).equalsIgnoreCase( primaryAttribute.getValue( ) ) );
         return primaryIdentity.getAttributes( ).stream( ).noneMatch( selectNotEqualAttributes );
+    }
+
+    private boolean hasMinimumCertification(final IdentityDto primaryIdentity)
+    {
+        final int requiredCertificationLevel =
+                AppPropertiesService.getPropertyInt("daemon.identityDuplicatesResolutionDaemon.primary.identity.connected.min.certification.level", 500);
+        final List<String> pivotAttributeKeys =
+                IdentityAttributeService.instance().getPivotAttributeKeys().stream().map(AttributeKey::getKeyName).collect(Collectors.toList());
+        final int lowestPivotCertificationLevel =
+                primaryIdentity.getAttributes().stream().filter(a -> pivotAttributeKeys.contains(a.getKey())).mapToInt(AttributeDto::getCertificationLevel)
+                               .min().orElse(0);
+        return lowestPivotCertificationLevel >= requiredCertificationLevel;
     }
 }
