@@ -45,6 +45,7 @@ import fr.paris.lutece.plugins.identitystore.v3.web.request.AbstractIdentityStor
 import fr.paris.lutece.plugins.identitystore.v3.web.request.validator.DuplicateRuleValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.request.validator.IdentityAttributeValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeStatus;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
@@ -71,6 +72,7 @@ public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreA
 
     private final DuplicateSearchRequest _request;
     private final List<DuplicateRule> rules = new ArrayList<>( );
+    private final List<AttributeStatus> formatStatuses = new ArrayList<>();
 
     private ServiceContract serviceContract;
 
@@ -120,7 +122,7 @@ public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreA
     @Override
     protected void formatRequestContent( ) throws RequestContentFormattingException
     {
-        // Do nothing
+        formatStatuses.addAll( IdentityAttributeFormatterService.instance( ).formatDuplicateSearchRequestAttributeValues( _request.getAttributes( ) ) );
     }
 
     @Override
@@ -132,18 +134,6 @@ public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreA
     @Override
     protected DuplicateSearchResponse doSpecificRequest( ) throws IdentityStoreException
     {
-        //TODO à refactorer selon le refactoring en cours
-        // #28070 - la date doit être formatée avant de lancer la recherche
-        AttributeStatus formatStatus = null;
-        final String birthdateValue = _request.getAttributes().get(Constants.PARAM_BIRTH_DATE);
-        if (birthdateValue != null) {
-            final String formattedBirthdate = IdentityAttributeFormatterService.instance().formatDateValue(birthdateValue);
-            if (!formattedBirthdate.equals(birthdateValue)) {
-                formatStatus = IdentityAttributeFormatterService.instance().buildAttributeValueFormattedStatus(Constants.PARAM_BIRTH_DATE, birthdateValue, formattedBirthdate);
-                _request.getAttributes().put(Constants.PARAM_BIRTH_DATE, formattedBirthdate);
-            }
-        }
-
         final DuplicateSearchResponse response = new DuplicateSearchResponse( );
 
         final Map<String, QualifiedIdentitySearchResult> duplicates = SearchDuplicatesService.instance( ).findDuplicates( _request.getAttributes( ), rules,
@@ -161,10 +151,7 @@ public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreA
 
         response.setStatus( ResponseStatusFactory.ok( ).setMessage( "Potential duplicate(s) found with rule(s) : " + String.join( ",", matchingRuleCodes ) )
                 .setMessageKey( Constants.PROPERTY_REST_INFO_POTENTIAL_DUPLICATE_FOUND ) );
-
-        if (formatStatus != null) {
-            response.getStatus().getAttributeStatuses().add(formatStatus);
-        }
+        response.getStatus().getAttributeStatuses().addAll( formatStatuses );
         return response;
     }
 }
