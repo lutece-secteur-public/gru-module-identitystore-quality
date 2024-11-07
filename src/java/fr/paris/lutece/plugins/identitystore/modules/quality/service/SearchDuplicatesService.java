@@ -33,8 +33,10 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.service;
 
+import fr.paris.lutece.plugins.identitystore.service.attribute.IdentityAttributeFormatterService;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.IDuplicateService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeDto;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.AttributeStatus;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
@@ -61,14 +63,19 @@ public class SearchDuplicatesService
     public final DuplicateSearchResponse findDuplicates( final IdentityDto identity, final List<String> ruleCodes, final List<String> attributesFilter )
             throws IdentityStoreException
     {
-        final Map<String, String> attributeMap = identity.getAttributes( ).stream( )
-                .collect( Collectors.toMap( AttributeDto::getKey, AttributeDto::getValue ) );
-        return _duplicateServiceElasticSearch.findDuplicates( attributeMap, identity.getCustomerId( ), ruleCodes, attributesFilter );
+        final Map<String, String> attributeMap = identity.getAttributes( ).stream( ).collect( Collectors.toMap( AttributeDto::getKey, AttributeDto::getValue ) );
+        final List<AttributeStatus> attributeStatuses = IdentityAttributeFormatterService.instance().formatDuplicateSearchRequestAttributeValues(attributeMap);
+        final DuplicateSearchResponse duplicates = _duplicateServiceElasticSearch.findDuplicates(attributeMap, identity.getCustomerId(), ruleCodes, attributesFilter);
+        duplicates.getStatus().setAttributeStatuses( attributeStatuses );
+        return duplicates;
     }
 
     public final DuplicateSearchResponse findDuplicates( final Map<String, String> attributeValues, final List<String> ruleCodes,
             final List<String> attributesFilter ) throws IdentityStoreException
     {
-        return _duplicateServiceElasticSearch.findDuplicates( attributeValues, "", ruleCodes, attributesFilter );
+        final List<AttributeStatus> attributeStatuses = IdentityAttributeFormatterService.instance().formatDuplicateSearchRequestAttributeValues(attributeValues);
+        final DuplicateSearchResponse duplicates = _duplicateServiceElasticSearch.findDuplicates(attributeValues, "", ruleCodes, attributesFilter);
+        duplicates.getStatus().setAttributeStatuses( attributeStatuses );
+        return duplicates;
     }
 }
