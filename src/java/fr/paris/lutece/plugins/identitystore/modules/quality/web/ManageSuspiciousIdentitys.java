@@ -33,6 +33,7 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.web;
 
+import fr.paris.lutece.api.user.User;
 import fr.paris.lutece.plugins.identitystore.business.attribute.AttributeKey;
 import fr.paris.lutece.plugins.identitystore.business.attribute.AttributeKeyHome;
 import fr.paris.lutece.plugins.identitystore.business.attribute.AttributeValue;
@@ -41,6 +42,7 @@ import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.Susp
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
+import fr.paris.lutece.plugins.identitystore.modules.quality.rbac.AccessSuspicionsResource;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDuplicatesService;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityQualityService;
@@ -55,6 +57,7 @@ import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreExceptio
 import fr.paris.lutece.portal.service.admin.AccessDeniedException;
 import fr.paris.lutece.portal.service.message.AdminMessage;
 import fr.paris.lutece.portal.service.message.AdminMessageService;
+import fr.paris.lutece.portal.service.rbac.RBACService;
 import fr.paris.lutece.portal.service.security.SecurityTokenService;
 import fr.paris.lutece.portal.service.util.AppException;
 import fr.paris.lutece.portal.service.util.AppLogService;
@@ -139,15 +142,18 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     private static final String ACTION_REMOVE_EXCLUDED_IDENTITIES = "removeExcludedIdentities";
     private static final String ACTION_CONFIRM_REMOVE_SUSPICIOUSIDENTITY = "confirmRemoveSuspiciousIdentity";
     private static final String ACTION_CONFIRM_REMOVE_EXCLUDED_IDENTITIES = "confirmRemoveExcludedIdentities";
+    private static final String ACTION_PURGE_DUPLICATES = "purgeDuplicates";
 
     // Infos
     private static final String INFO_SUSPICIOUSIDENTITY_CREATED = "module.identitystore.quality.info.suspiciousidentity.created";
     private static final String INFO_SUSPICIOUSIDENTITY_UPDATED = "module.identitystore.quality.info.suspiciousidentity.updated";
     private static final String INFO_SUSPICIOUSIDENTITY_REMOVED = "module.identitystore.quality.info.suspiciousidentity.removed";
+    private static final String INFO_SUSPICIOUSIDENTITY_PURGED = "module.identitystore.quality.info.suspiciousidentity.purged";
 
     // Errors
     private static final String ERROR_RESOURCE_NOT_FOUND = "Resource not found";
     private static final String PARAM_RULE_CODE = "rule-code";
+    private static final String PARAM_RULE_ID = "rule-id";
     private static final String PARAM_GENDER_MAP = "gender_map";
     private static final String PARAM_CUID = "cuid";
 
@@ -600,6 +606,31 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         resetListId( );
 
         return redirectView( request, VIEW_MANAGE_SUSPICIOUSIDENTITYS );
+    }
+
+    /**
+     * Process the data capture form of a new suspiciousidentity
+     *
+     * @param request
+     *            The Http Request
+     * @return The Jsp URL of the process result
+     * @throws AccessDeniedException
+     */
+    @Action( ACTION_PURGE_DUPLICATES )
+    public String doPurgeDuplicates( HttpServletRequest request ) throws AccessDeniedException
+    {
+        final String strRuleId = request.getParameter(PARAM_RULE_ID);
+        final Integer ruleId = strRuleId != null && !strRuleId.isEmpty() ? Integer.parseInt( strRuleId ) : null;
+
+        if( !RBACService.isAuthorized( new AccessSuspicionsResource( ), AccessSuspicionsResource.PERMISSION_PURGE, (User) getUser( ) ) )
+        {
+            throw new AccessDeniedException( "You don't have the right to purge suspicions." );
+        }
+
+        SuspiciousIdentityHome.purge( ruleId );
+        addInfo( INFO_SUSPICIOUSIDENTITY_PURGED, getLocale( ) );
+
+        return redirectView( request, VIEW_CHOOSE_DUPLICATE_TYPE );
     }
 
     /**

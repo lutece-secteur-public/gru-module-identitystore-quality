@@ -4,6 +4,9 @@
 <@rowBox>
     <@boxHeader i18nTitleKey="module.identitystore.quality.choose_duplicate_type.pageTitle">
         <@headerButtons>
+            <@aButton  href='jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp?action_purgeDuplicates'
+            title='#i18n{module.identitystore.quality.choose_duplicate_type.buttonPurge}'
+            buttonIcon='search' />
         </@headerButtons>
     </@boxHeader>
     <@boxBody>
@@ -35,6 +38,11 @@
                     <td>${rule.duplicateCount}</td>
                     <td><@aButton  href='jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp?view_searchDuplicates&rule-code=${rule.code}'
                         title='#i18n{module.identitystore.quality.choose_duplicate_type.buttonSearch}'
+                        buttonIcon='search' />
+                    </td>
+                    <td>
+                        <@aButton  href='jsp/admin/plugins/identitystore/modules/quality/ManageSuspiciousIdentitys.jsp?action_purgeDuplicates&rule-id=${rule.id}'
+                        title='#i18n{module.identitystore.quality.choose_duplicate_type.buttonPurgeRule}'
                         buttonIcon='search' />
                     </td>
                 </tr>
