@@ -71,13 +71,11 @@
     -->    
     
     <!-- RBAC Resources -->
-    <!--
     <rbac-resource-types>
         <rbac-resource-type>
-            <rbac-resource-type-class>...</rbac-resource-type-class>
+            <rbac-resource-type-class>fr.paris.lutece.plugins.identitystore.modules.quality.rbac.AccessSuspicionResourceIdService</rbac-resource-type-class>
         </rbac-resource-type>
     </rbac-resource-types>
-    -->
 
     <!-- Admin Dashboard components -->
     <!-- 
