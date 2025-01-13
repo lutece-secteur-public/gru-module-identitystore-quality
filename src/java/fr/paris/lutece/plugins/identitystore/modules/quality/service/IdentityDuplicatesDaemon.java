@@ -60,8 +60,10 @@ import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.time.StopWatch;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -97,7 +99,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
     {
         final StopWatch stopWatch = new StopWatch( );
         stopWatch.start( );
-        this.info( "Starting IdentityDuplicatesDaemon..." );
+        this.info( "Starting IdentityDuplicatesDaemon (" + LocalDateTime.now( ).format( DateTimeFormatter.ofPattern( "dd/MM/yyyy HH:mm:ss.SSS" ) ) + ")..." );
         this.info( "daemon.identityDuplicatesDaemon.client.code: " + clientCode );
         this.info( "daemon.identityDuplicatesDaemon.batch.size: " + batchSize );
         this.info( "daemon.identityDuplicatesDaemon.purge.size: " + purgeSize );
@@ -141,6 +143,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
 
         stopWatch.stop( );
         final String duration = DurationFormatUtils.formatDurationWords( stopWatch.getTime( ), true, true );
+        this.info( "Ending IdentityDuplicatesDaemon (" + LocalDateTime.now( ).format( DateTimeFormatter.ofPattern( "dd/MM/yyyy HH:mm:ss.SSS" ) ) + ")" );
         this.info( "Execution time " + duration );
     }
 
@@ -154,7 +157,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
     {
         try
         {
-            this.info( "-- Processing Rule id = [" + rule.getId( ) + "] code = [" + rule.getCode( ) + "] priority = [" + rule.getPriority( ) + "] ..." );
+            this.info( "-- Processing Rule id = [" + rule.getId( ) + "] code = [" + rule.getCode( ) + "] priority = [" + rule.getPriority( ) + "] (" + LocalDateTime.now( ).format( DateTimeFormatter.ofPattern( "dd/MM/yyyy HH:mm:ss.SSS" ) ) +")..." );
             switch ( limitationMode )
             {
                 case GLOBAL:
@@ -174,6 +177,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
                 default:
                     break;
             }
+            this.info("End of Rule " + rule.getId( ) + " (" + LocalDateTime.now( ).format( DateTimeFormatter.ofPattern( "dd/MM/yyyy HH:mm:ss.SSS" ) ) + ")" );
         }
         catch( final Exception e )
         {

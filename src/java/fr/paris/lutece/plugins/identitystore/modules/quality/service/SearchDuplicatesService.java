@@ -41,6 +41,7 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.portal.service.spring.SpringContextService;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -63,7 +64,7 @@ public class SearchDuplicatesService
     public final DuplicateSearchResponse findDuplicates( final IdentityDto identity, final List<String> ruleCodes, final List<String> attributesFilter )
             throws IdentityStoreException
     {
-        final Map<String, String> attributeMap = identity.getAttributes( ).stream( ).collect( Collectors.toMap( AttributeDto::getKey, AttributeDto::getValue ) );
+        final Map<String, String> attributeMap = identity.getAttributes( ).stream( ).filter( attributeDto -> StringUtils.isNotBlank( attributeDto.getValue( ) ) ).collect( Collectors.toMap( AttributeDto::getKey, AttributeDto::getValue ) );
         final List<AttributeStatus> attributeStatuses = IdentityAttributeFormatterService.instance().formatDuplicateSearchRequestAttributeValues(attributeMap);
         final DuplicateSearchResponse duplicates = _duplicateServiceElasticSearch.findDuplicates(attributeMap, identity.getCustomerId(), ruleCodes, attributesFilter);
         duplicates.getStatus().setAttributeStatuses( attributeStatuses );
