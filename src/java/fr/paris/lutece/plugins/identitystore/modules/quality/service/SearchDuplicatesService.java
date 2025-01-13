@@ -71,7 +71,7 @@ public class SearchDuplicatesService
             final List<String> attributesFilter, final boolean allowEmptyResponse ) throws IdentityStoreException
     {
         final Map<String, String> attributeMap = identity.getAttributes( ).stream( )
-                .collect( Collectors.toMap( AttributeDto::getKey, AttributeDto::getValue ) );
+                .filter( attributeDto -> StringUtils.isNotBlank( attributeDto.getValue( ) ) ).collect( Collectors.toMap( AttributeDto::getKey, AttributeDto::getValue ) );
         final Map<String, QualifiedIdentitySearchResult> duplicates = _duplicateServiceElasticSearch.findDuplicates( attributeMap, identity.getCustomerId( ),
                 rules, attributesFilter );
         if ( !allowEmptyResponse && ( duplicates == null || duplicates.values( ).stream( ).allMatch( r -> r.getQualifiedIdentities( ).isEmpty( ) ) ) )
