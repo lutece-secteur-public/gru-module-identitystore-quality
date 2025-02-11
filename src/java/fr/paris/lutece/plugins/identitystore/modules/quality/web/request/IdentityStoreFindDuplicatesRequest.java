@@ -33,15 +33,26 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
+import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDuplicatesService;
+import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
+import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityDto;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
+import org.apache.commons.collections4.CollectionUtils;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class IdentityStoreFindDuplicatesRequest extends AbstractIdentityStoreRequest
 {
@@ -68,6 +79,27 @@ public class IdentityStoreFindDuplicatesRequest extends AbstractIdentityStoreReq
     protected DuplicateSearchResponse doSpecificRequest( ) throws IdentityStoreException
     {
         final IdentityDto identity = IdentityService.instance( ).getQualifiedIdentity( _strCustomerId );
-        return SearchDuplicatesService.instance( ).findDuplicates( identity, Collections.singletonList( _strRuleCode ), Collections.emptyList( ) );
+        final DuplicateRule rule = DuplicateRuleService.instance().get(_strRuleCode);
+        final DuplicateSearchResponse duplicateResponse =
+                SearchDuplicatesService.instance().findDuplicates(identity, Collections.singletonList(_strRuleCode), Collections.emptyList());
+
+        // LUT-29120 - Si des doublons potentiels sont trouvés, et que l'identité n'est pas déjà marquée suspecte, on la marque.
+        if (rule.isDaemon() && CollectionUtils.isNotEmpty(duplicateResponse.getIdentities())) {
+            final List<IdentityDto> processedIdentities = new ArrayList<>(duplicateResponse.getIdentities() );
+            processedIdentities.add( identity );
+            final List<String> customerIds = processedIdentities.stream( ).map( IdentityDto::getCustomerId ).collect(Collectors.toList());
+            if ( !SuspiciousIdentityService.instance().hasSuspicious(customerIds) )
+            {
+                final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
+                final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
+                request.setSuspiciousIdentity( new SuspiciousIdentityDto( ));
+                request.getSuspiciousIdentity( ).setCustomerId( _strCustomerId );
+                request.getSuspiciousIdentity( ).setDuplicationRuleCode( _strRuleCode );
+                request.getSuspiciousIdentity( ).getMetadata( ).putAll( duplicateResponse.getMetadata( ) );
+                SuspiciousIdentityService.instance( ).create( request, this._strClientCode, this._author, response );
+                duplicateResponse.getMetadata().put(Constants.METADATA_MARKED_SUSPICIOUS, _strCustomerId);
+            }
+        }
+        return duplicateResponse;
     }
 }
