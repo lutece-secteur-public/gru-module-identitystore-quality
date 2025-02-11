@@ -37,6 +37,7 @@ import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
 import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SearchDuplicatesService;
+import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityQualityService;
 import fr.paris.lutece.plugins.identitystore.utils.Maps;
@@ -46,6 +47,8 @@ import fr.paris.lutece.plugins.identitystore.v3.web.request.validator.IdentityAt
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.DtoConverter;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentitySearchResult;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
@@ -147,6 +150,22 @@ public class IdentityStoreFindDuplicatesRequest extends AbstractIdentityStoreApp
         response.setStatus( ResponseStatusFactory.ok( ).setMessage( "Potential duplicate(s) found with rule(s) : " + String.join( ",", matchingRuleCodes ) )
                 .setMessageKey( Constants.PROPERTY_REST_INFO_POTENTIAL_DUPLICATE_FOUND ) );
 
+        // LUT-29120 - Si des doublons potentiels sont trouvés, et que l'identité n'est pas déjà marquée suspecte, on la marque.
+        if (rule.isDaemon() && duplicates.values().stream().anyMatch(result -> !result.getQualifiedIdentities( ).isEmpty( ) ) ) {
+            final List<String> processedIdentitiesCuids =
+                    duplicates.values().stream().flatMap( r -> r.getQualifiedIdentities( ).stream( ) ).map(IdentityDto::getCustomerId).collect(Collectors.toList());
+            processedIdentitiesCuids.add( _strCustomerId );
+            if ( !SuspiciousIdentityService.instance().hasSuspicious(processedIdentitiesCuids) )
+            {
+                final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
+                request.setSuspiciousIdentity( new SuspiciousIdentityDto( ));
+                request.getSuspiciousIdentity( ).setCustomerId( _strCustomerId );
+                request.getSuspiciousIdentity( ).setDuplicationRuleCode( _strRuleCode );
+                request.getSuspiciousIdentity( ).getMetadata( ).putAll( response.getMetadata( ) );
+                SuspiciousIdentityService.instance( ).create( request, DtoConverter.convertDtoToIdentity(qualifiedIdentity), rule, this._strClientCode, this._author, response );
+                response.getMetadata().put(Constants.METADATA_MARKED_SUSPICIOUS, _strCustomerId);
+            }
+        }
         return response;
     }
 }
