@@ -162,7 +162,7 @@ public class IdentityStoreFindDuplicatesRequest extends AbstractIdentityStoreApp
                 request.getSuspiciousIdentity( ).setCustomerId( _strCustomerId );
                 request.getSuspiciousIdentity( ).setDuplicationRuleCode( _strRuleCode );
                 request.getSuspiciousIdentity( ).getMetadata( ).putAll( response.getMetadata( ) );
-                SuspiciousIdentityService.instance( ).create( request, DtoConverter.convertDtoToIdentity(qualifiedIdentity), rule, this._strClientCode, this._author, response );
+                SuspiciousIdentityService.instance( ).create( request, DtoConverter.convertDtoToIdentity(qualifiedIdentity), rule, this._strClientCode, this._author );
                 response.getMetadata().put(Constants.METADATA_MARKED_SUSPICIOUS, _strCustomerId);
             }
         }

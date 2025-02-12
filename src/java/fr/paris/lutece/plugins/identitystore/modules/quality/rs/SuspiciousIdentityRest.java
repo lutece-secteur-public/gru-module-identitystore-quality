@@ -64,6 +64,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -286,11 +287,9 @@ public class SuspiciousIdentityRest implements IRestService
             @ApiParam( name = Constants.PARAM_APPLICATION_CODE, value = SwaggerConstants.PARAM_APPLICATION_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_APPLICATION_CODE ) @DefaultValue( "" ) String strHeaderAppCode )
             throws IdentityStoreException
     {
-        final String trustedClientCode = IdentityStoreService.getTrustedClientCode( strHeaderClientCode, StringUtils.EMPTY, strHeaderAppCode );
-        final IdentityStoreSuspiciousCheckLockRequest suspiciousIdentityStoreCheckLockRequest = new IdentityStoreSuspiciousCheckLockRequest( trustedClientCode, customer_id,
-                authorName, authorType );
-        final SuspiciousIdentityLockResponse suspiciousIdentityLockResponse = (SuspiciousIdentityLockResponse) suspiciousIdentityStoreCheckLockRequest.doRequest( );
-        return Response.status( Response.Status.OK ).entity( suspiciousIdentityLockResponse ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
+        final IdentityStoreSuspiciousCheckLockRequest request =
+                new IdentityStoreSuspiciousCheckLockRequest( customer_id, strHeaderClientCode, strHeaderAppCode, authorName, authorType );
+        return this.buildJsonResponse(request.doRequest());
     }
 
     @GET
@@ -308,11 +307,9 @@ public class SuspiciousIdentityRest implements IRestService
             @ApiParam( name = Constants.PARAM_APPLICATION_CODE, value = SwaggerConstants.PARAM_APPLICATION_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_APPLICATION_CODE ) @DefaultValue( "" ) String strHeaderAppCode )
             throws IdentityStoreException
     {
-        final String trustedClientCode = IdentityStoreService.getTrustedClientCode( strHeaderClientCode, StringUtils.EMPTY, strHeaderAppCode );
-        final IdentityStoreSuspiciousCheckAllLocksRequest suspiciousIdentityStoreCheckAllLocksRequest = new IdentityStoreSuspiciousCheckAllLocksRequest( trustedClientCode,
-                authorName, authorType );
-        final SuspiciousIdentityAllLocksResponse suspiciousIdentityAllLocksResponse = (SuspiciousIdentityAllLocksResponse) suspiciousIdentityStoreCheckAllLocksRequest.doRequest( );
-        return Response.status( Response.Status.OK ).entity( suspiciousIdentityAllLocksResponse ).type( MediaType.APPLICATION_JSON_TYPE ).build( );
+        final IdentityStoreSuspiciousCheckAllLocksRequest request =
+                new IdentityStoreSuspiciousCheckAllLocksRequest( strHeaderClientCode, strHeaderAppCode, authorName, authorType );
+        return this.buildJsonResponse(request.doRequest());
     }
 
 }
