@@ -35,17 +35,18 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.SuspiciousIdentityRequestValidator;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.ResponseStatusFactory;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * This class represents a create request for IdentityStoreRestServive
  */
 public class IdentityStoreSuspiciousCheckLockRequest extends AbstractIdentityStoreRequest
 {
-    private final SuspiciousIdentityLockRequest _request;
+    private final String _customerId;
 
     /**
      * Constructor of IdentityStoreCreateRequest
@@ -57,23 +58,28 @@ public class IdentityStoreSuspiciousCheckLockRequest extends AbstractIdentitySto
             throws IdentityStoreException
     {
         super( strClientAppCode, authorName, authorType );
-        this._request = new SuspiciousIdentityLockRequest( );
-        _request.setCustomerId( customer_id );
-        _request.setLocked( false );
+        _customerId = customer_id ;
     }
 
     @Override
     protected void validateSpecificRequest( ) throws IdentityStoreException
     {
-        SuspiciousIdentityRequestValidator.instance( ).checkLockRequest( _request );
+        if (StringUtils.isBlank( _customerId ) )
+        {
+            throw new IdentityStoreException( "The provided customer id is null or empty." );
+        }
     }
 
     @Override
-    public SuspiciousIdentityLockResponse doSpecificRequest( )
+    public SuspiciousIdentityLockResponse doSpecificRequest( ) throws IdentityStoreException
     {
         final SuspiciousIdentityLockResponse response = new SuspiciousIdentityLockResponse( );
 
-        SuspiciousIdentityService.instance( ).checkLock( _request, _strClientCode, _author, response );
+        final boolean locked = SuspiciousIdentityService.instance( ).checkLock( _customerId, _strClientCode, _author );
+
+        response.setCustomerId( _customerId );
+        response.setLocked( locked );
+        response.setStatus( ResponseStatusFactory.ok( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
 
         return response;
     }

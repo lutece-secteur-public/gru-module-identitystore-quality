@@ -53,7 +53,6 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdenti
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.history.IdentityChangeType;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityAllLocksResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
@@ -358,48 +357,37 @@ public class SuspiciousIdentityService
         return suspiciousIdentities.stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) );
     }
 
-    public void checkLock( SuspiciousIdentityLockRequest request, String clientCode,
-                           final RequestAuthor author, SuspiciousIdentityLockResponse response   )
+    public boolean checkLock( String customerId, String clientCode,
+                           final RequestAuthor author   ) throws IdentityStoreException
     {
-
-        TransactionManager.beginTransaction( null );
         try{
-            final boolean locked = SuspiciousIdentityHome.isLock(request.getCustomerId());
-            TransactionManager.commitTransaction( null );
-            response.setCustomerId( request.getCustomerId( ) );
-            response.setLocked( locked );
-            response.setStatus( ResponseStatusFactory.success( ).setMessage( "Identities lock status catch." )
-                    .setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
+            final boolean locked = SuspiciousIdentityHome.isLock(customerId);
 
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_READ, ACCESS_SUSPICIOUS_IDENTITY_LOCK_STATUS,
-                    _internalUserService.getApiUser( author, clientCode ), request, SPECIFIC_ORIGIN );
+                    _internalUserService.getApiUser( author, clientCode ), customerId, SPECIFIC_ORIGIN );
+
+            return locked;
         }
         catch( Exception e )
         {
-            TransactionManager.rollBack( null );
-            response.setStatus(
-                    ResponseStatusFactory.failure( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_DURING_TREATMENT ) );
+            throw new IdentityStoreException( e.getMessage( ), Constants.PROPERTY_REST_ERROR_DURING_TREATMENT );
         }
     }
 
-    public void getAllLocks(String clientCode, final RequestAuthor author, final SuspiciousIdentityAllLocksResponse response )
+    public List<SuspiciousIdentityDto> getAllLocks(String clientCode, final RequestAuthor author ) throws IdentityStoreException
     {
-        TransactionManager.beginTransaction( null );
         try{
             final List<SuspiciousIdentity> suspiciousIdentitysList = SuspiciousIdentityHome.getAllLocks();
-            TransactionManager.commitTransaction( null );
-            response.setSuspiciousIdentityDtoList(suspiciousIdentitysList.stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) ));
-            response.setStatus( ResponseStatusFactory.success( ).setMessage( "Identities lock status catch." )
-                    .setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
+            List<SuspiciousIdentityDto> suspiciousIdentityDtoList = suspiciousIdentitysList.stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) );
 
             AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_READ, ACCESS_SUSPICIOUS_IDENTITY_LOCK_STATUS,
                     _internalUserService.getApiUser( author, clientCode ), null, SPECIFIC_ORIGIN );
+
+            return suspiciousIdentityDtoList;
         }
         catch( Exception e )
         {
-            TransactionManager.rollBack( null );
-            response.setStatus(
-                    ResponseStatusFactory.failure( ).setMessage( e.getMessage( ) ).setMessageKey( Constants.PROPERTY_REST_ERROR_DURING_TREATMENT ) );
+            throw new IdentityStoreException( e.getMessage( ), Constants.PROPERTY_REST_ERROR_DURING_TREATMENT );
         }
     }
 }

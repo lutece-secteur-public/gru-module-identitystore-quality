@@ -35,8 +35,13 @@ package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
 import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.AbstractIdentityStoreRequest;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityAllLocksResponse;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.ResponseStatusFactory;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
+
+import java.util.List;
 
 /**
  * This class represents a create request for IdentityStoreRestServive
@@ -62,11 +67,14 @@ public class IdentityStoreSuspiciousCheckAllLocksRequest extends AbstractIdentit
     }
 
     @Override
-    public SuspiciousIdentityAllLocksResponse doSpecificRequest( )
+    public SuspiciousIdentityAllLocksResponse doSpecificRequest( ) throws IdentityStoreException
     {
         final SuspiciousIdentityAllLocksResponse response = new SuspiciousIdentityAllLocksResponse( );
 
-        SuspiciousIdentityService.instance( ).getAllLocks( _strClientCode, _author, response );
+        List<SuspiciousIdentityDto> suspiciousIdentityDtoList = SuspiciousIdentityService.instance( ).getAllLocks( _strClientCode, _author );
+
+        response.setSuspiciousIdentityDtoList( suspiciousIdentityDtoList );
+        response.setStatus( ResponseStatusFactory.ok( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
 
         return response;
     }
