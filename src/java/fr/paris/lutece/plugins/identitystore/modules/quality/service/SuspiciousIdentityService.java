@@ -49,11 +49,8 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdenti
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityExcludeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.history.IdentityChangeType;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityAllLocksResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.ResponseStatusFactory;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.plugins.identitystore.web.exception.RequestFormatException;
 import fr.paris.lutece.plugins.identitystore.web.exception.ResourceNotFoundException;
@@ -293,40 +290,5 @@ public class SuspiciousIdentityService
     {
         final List<SuspiciousIdentity> suspiciousIdentities = SuspiciousIdentityHome.selectByCustomerIDs(customerIds);
         return suspiciousIdentities.stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) );
-    }
-
-    public boolean checkLock( String customer_id, String clientCode,
-                           final RequestAuthor author   ) throws IdentityStoreException
-    {
-
-        try{
-            final boolean locked = SuspiciousIdentityHome.isLock(customer_id);
-
-            AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_READ, ACCESS_SUSPICIOUS_IDENTITY_LOCK_STATUS,
-                    _internalUserService.getApiUser( author, clientCode ), customer_id, SPECIFIC_ORIGIN );
-
-            return locked ;
-        }
-        catch( Exception e )
-        {
-            throw new IdentityStoreException( e.getMessage( ), Constants.PROPERTY_REST_ERROR_DURING_TREATMENT );
-        }
-    }
-
-    public List<SuspiciousIdentityDto> getAllLocks(String clientCode, final RequestAuthor author ) throws IdentityStoreException
-    {
-        try{
-            final List<SuspiciousIdentity> suspiciousIdentitysList = SuspiciousIdentityHome.getAllLocks();
-            List<SuspiciousIdentityDto> suspiciousIdentityDtoList = suspiciousIdentitysList.stream( ).map( SuspiciousIdentityMapper::toDto ).collect( Collectors.toList( ) );
-
-            AccessLogService.getInstance( ).info( AccessLoggerConstants.EVENT_TYPE_READ, ACCESS_SUSPICIOUS_IDENTITY_LOCK_STATUS,
-                    _internalUserService.getApiUser( author, clientCode ), null, SPECIFIC_ORIGIN );
-
-            return suspiciousIdentityDtoList;
-        }
-        catch( Exception e )
-        {
-            throw new IdentityStoreException( e.getMessage( ), Constants.PROPERTY_REST_ERROR_DURING_TREATMENT );
-        }
     }
 }

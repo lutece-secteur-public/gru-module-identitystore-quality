@@ -37,8 +37,6 @@ import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.Identit
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreFindDuplicatesRequest;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSearchDuplicatesRequest;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousCancelExclusionRequest;
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousCheckAllLocksRequest;
-import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousCheckLockRequest;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousCreateRequest;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousExcludeRequest;
 import fr.paris.lutece.plugins.identitystore.modules.quality.web.request.IdentityStoreSuspiciousLockRequest;
@@ -51,8 +49,6 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdenti
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentitySearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.duplicate.DuplicateRuleSummarySearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockRequest;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityAllLocksResponse;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.lock.SuspiciousIdentityLockResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.DuplicateSearchResponse;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.swagger.SwaggerConstants;
@@ -64,7 +60,6 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import org.apache.commons.lang3.StringUtils;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -269,47 +264,6 @@ public class SuspiciousIdentityRest implements IRestService
         final IdentityStoreSuspiciousLockRequest request = new IdentityStoreSuspiciousLockRequest( lockRequest, strHeaderClientCode, strHeaderAppCode,
                 authorName, authorType );
         return this.buildJsonResponse( request.doRequest( ) );
-    }
-
-    @GET
-    @Path( Constants.CHECK_LOCK_PATH + "/{customer_id}" )
-    @Consumes( MediaType.APPLICATION_JSON )
-    @ApiOperation( value = "Check if a Suspicious Identity is locked", notes = "The suspicious identity must exist." )
-    @ApiResponses( value = {
-            @ApiResponse( code = 201, message = "Success" ), @ApiResponse( code = 400, message = ERROR_DURING_TREATMENT + " with explanation message" ),
-            @ApiResponse( code = 403, message = "Failure" ), @ApiResponse( code = 409, message = "Conflict" )
-    } )
-    public Response isLock(
-            @ApiParam( name = "customer_id", value = "the id of the customer" ) @PathParam( "customer_id" ) final String customer_id,
-            @ApiParam( name = Constants.PARAM_CLIENT_CODE, value = SwaggerConstants.PARAM_CLIENT_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_CLIENT_CODE ) final String strHeaderClientCode,
-            @ApiParam( name = Constants.PARAM_AUTHOR_NAME, value = SwaggerConstants.PARAM_AUTHOR_NAME_DESCRIPTION ) @HeaderParam( Constants.PARAM_AUTHOR_NAME ) String authorName,
-            @ApiParam( name = Constants.PARAM_AUTHOR_TYPE, value = SwaggerConstants.PARAM_AUTHOR_TYPE_DESCRIPTION ) @HeaderParam( Constants.PARAM_AUTHOR_TYPE ) String authorType,
-            @ApiParam( name = Constants.PARAM_APPLICATION_CODE, value = SwaggerConstants.PARAM_APPLICATION_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_APPLICATION_CODE ) @DefaultValue( "" ) String strHeaderAppCode )
-            throws IdentityStoreException
-    {
-        final IdentityStoreSuspiciousCheckLockRequest request =
-                new IdentityStoreSuspiciousCheckLockRequest( customer_id, strHeaderClientCode, strHeaderAppCode, authorName, authorType );
-        return this.buildJsonResponse(request.doRequest());
-    }
-
-    @GET
-    @Path( Constants.ALL_LOCKS_PATH  )
-    @Consumes( MediaType.APPLICATION_JSON )
-    @ApiOperation( value = "Check if a Suspicious Identity is locked", notes = "The suspicious identity must exist." )
-    @ApiResponses( value = {
-            @ApiResponse( code = 201, message = "Success" ), @ApiResponse( code = 400, message = ERROR_DURING_TREATMENT + " with explanation message" ),
-            @ApiResponse( code = 403, message = "Failure" ), @ApiResponse( code = 409, message = "Conflict" )
-    } )
-    public Response getAllLocks(
-            @ApiParam( name = Constants.PARAM_CLIENT_CODE, value = SwaggerConstants.PARAM_CLIENT_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_CLIENT_CODE ) final String strHeaderClientCode,
-            @ApiParam( name = Constants.PARAM_AUTHOR_NAME, value = SwaggerConstants.PARAM_AUTHOR_NAME_DESCRIPTION ) @HeaderParam( Constants.PARAM_AUTHOR_NAME ) String authorName,
-            @ApiParam( name = Constants.PARAM_AUTHOR_TYPE, value = SwaggerConstants.PARAM_AUTHOR_TYPE_DESCRIPTION ) @HeaderParam( Constants.PARAM_AUTHOR_TYPE ) String authorType,
-            @ApiParam( name = Constants.PARAM_APPLICATION_CODE, value = SwaggerConstants.PARAM_APPLICATION_CODE_DESCRIPTION ) @HeaderParam( Constants.PARAM_APPLICATION_CODE ) @DefaultValue( "" ) String strHeaderAppCode )
-            throws IdentityStoreException
-    {
-        final IdentityStoreSuspiciousCheckAllLocksRequest request =
-                new IdentityStoreSuspiciousCheckAllLocksRequest( strHeaderClientCode, strHeaderAppCode, authorName, authorType );
-        return this.buildJsonResponse(request.doRequest());
     }
 
 }
