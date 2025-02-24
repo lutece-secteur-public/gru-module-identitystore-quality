@@ -87,12 +87,16 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     private static final String TEMPLATE_SEARCH_DUPLICATES = "/admin/plugins/identitystore/modules/quality/search_duplicates.html";
     private static final String TEMPLATE_SELECT_IDENTITIES = "/admin/plugins/identitystore/modules/quality/select_identities.html";
     private static final String TEMPLATE_MANAGE_EXCLUDED_IDENTITIES = "/admin/plugins/identitystore/modules/quality/manage_excluded_identities.html";
+    private static final String TEMPLATE_MANAGE_LOCKED_IDENTITIES = "/admin/plugins/identitystore/modules/quality/manage_locked_identities.html";
     private static final String TEMPLATE_DISPLAY_IDENTITIES = "/admin/plugins/identitystore/modules/quality/display_excluded_identities.html";
+    private static final String TEMPLATE_DISPLAY_LOCKED_IDENTITIES = "/admin/plugins/identitystore/modules/quality/display_locked_identities.html";
 
     // Parameters
     private static final String PARAMETER_ID_SUSPICIOUSIDENTITY = "id";
     private static final String PARAMETER_FIRST_CUSTOMER_ID = "first_customer_id";
     private static final String PARAMETER_SECOND_CUSTOMER_ID = "second_customer_id";
+    private static final String PARAM_SUSPICIOUS_IDENTITIES_LIST = "suspicious_identities_list";
+    private static final String PARAM_CUSTOMER_ID = "customer_id";
 
     // Properties for page titles
     private static final String PROPERTY_PAGE_TITLE_MANAGE_SUSPICIOUSIDENTITYS = "module.identitystore.quality.choose_duplicate_type.pageTitle";
@@ -102,6 +106,8 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     private static final String PROPERTY_PAGE_TITLE_SELECT_IDENTITIES = "module.identitystore.quality.select_identities.pageTitle";
     private static final String PROPERTY_PAGE_TITLE_MANAGE_EXCLUDED_IDENTITIES = "module.identitystore.quality.manage_excluded_identities.pageTitle";
     private static final String PROPERTY_PAGE_TITLE_DISPLAY_IDENTITIES = "module.identitystore.quality.display_excluded_identities.pageTitle";
+    private static final String PROPERTY_PAGE_TITLE_MANAGE_LOCKED_IDENTITIES = "module.identitystore.quality.manage_locked_identities.pageTitle";
+    private static final String PROPERTY_PAGE_TITLE_DISPLAY_LOCKED_IDENTITIES = "module.identitystore.quality.display_locked_identities.pageTitle";
 
     // Markers
     private static final String MARK_SUSPICIOUSIDENTITY_LIST = "suspiciousidentity_list";
@@ -111,6 +117,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     private static final String MARK_DUPLICATE_HOLDER_LIST = "duplicate_holder_list";
     private static final String MARK_READABLE_ATTRIBUTES = "readable_attribute_list";
     private static final String MARK_IDENTITY_LIST = "identity_list";
+    private static final String MARK_CUSTOMER_ID = "customer_id";
     private static final String MARK_FIRST_CUSTOMER_ID = "first_customer_id";
     private static final String MARK_SECOND_CUSTOMER_ID = "second_customer_id";
     private static final String MARK_DUPLICATE_RULE = "rule";
@@ -134,12 +141,16 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     private static final String VIEW_SELECT_IDENTITIES = "selectIdentities";
     private static final String VIEW_MANAGE_EXCLUDED_IDENTITIES = "manageExcludedIdentities";
     private static final String VIEW_DISPLAY_EXCLUDED_IDENTITIES = "displayExcludedIdentities";
+    private static final String VIEW_DISPLAY_LOCKED_IDENTITIES = "displayLockedIdentities";
+    private static final String VIEW_MANAGE_LOCKED_IDENTITIES = "manageLockedIdentities";
+
 
     // Actions
     private static final String ACTION_CREATE_SUSPICIOUSIDENTITY = "createSuspiciousIdentity";
     private static final String ACTION_MODIFY_SUSPICIOUSIDENTITY = "modifySuspiciousIdentity";
     private static final String ACTION_REMOVE_SUSPICIOUSIDENTITY = "removeSuspiciousIdentity";
     private static final String ACTION_REMOVE_EXCLUDED_IDENTITIES = "removeExcludedIdentities";
+    private static final String ACTION_REMOVE_LOCKED_IDENTITIES = "removeLockedIdentities";
     private static final String ACTION_CONFIRM_REMOVE_SUSPICIOUSIDENTITY = "confirmRemoveSuspiciousIdentity";
     private static final String ACTION_CONFIRM_REMOVE_EXCLUDED_IDENTITIES = "confirmRemoveExcludedIdentities";
     private static final String ACTION_PURGE_DUPLICATES = "purgeDuplicates";
@@ -372,8 +383,8 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         String secondCustomerId;
         try
         {
-            firstCustomerId = request.getParameter( "first_customer_id" );
-            secondCustomerId = request.getParameter( "second_customer_id" );
+            firstCustomerId = request.getParameter( PARAMETER_FIRST_CUSTOMER_ID );
+            secondCustomerId = request.getParameter( PARAMETER_SECOND_CUSTOMER_ID);
             if ( StringUtils.isEmpty( firstCustomerId ) )
             {
                 addError( "First Customer ID must be specified in request " );
@@ -687,6 +698,84 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         resetListId( );
 
         return redirectView( request, VIEW_MANAGE_SUSPICIOUSIDENTITYS );
+    }
+
+    /**
+     * Process the data to send the search request and returns the duplicates search form and results
+     *
+     * @param request
+     *            The Http request
+     * @return the html code of the duplicate form
+     */
+    @View( value = VIEW_MANAGE_LOCKED_IDENTITIES )
+    public String getManageLockedIdentities( final HttpServletRequest request ) throws AccessDeniedException
+    {
+        final List<SuspiciousIdentity> suspiciousIdentityList = SuspiciousIdentityHome.getAllLocks();
+        suspiciousIdentityList.sort(Comparator.comparing(o -> o.getLock().getLockEndDate()));
+        Collections.reverse(suspiciousIdentityList);
+        final Map<String, Object> model = getModel( );
+
+        model.put( PARAM_SUSPICIOUS_IDENTITIES_LIST, suspiciousIdentityList);
+
+        return this.getPage( PROPERTY_PAGE_TITLE_MANAGE_LOCKED_IDENTITIES, TEMPLATE_MANAGE_LOCKED_IDENTITIES, model );
+    }
+
+    @Action( value = ACTION_REMOVE_LOCKED_IDENTITIES)
+    public String doRemoveLock( final HttpServletRequest request )
+    {
+        final String customerId = request.getParameter( PARAM_CUSTOMER_ID );
+        SuspiciousIdentityHome.removeLock( customerId );
+
+        return redirectView( request, VIEW_MANAGE_LOCKED_IDENTITIES );
+    }
+
+    /**
+     * Returns the form to select which identities to process
+     *
+     * @param request
+     * @return
+     */
+    @View( value = VIEW_DISPLAY_LOCKED_IDENTITIES )
+    public String getDisplayLockedIdentities( final HttpServletRequest request )
+    {
+        final IdentityDto firstIdentity;
+        final List<IdentityDto> identities = new ArrayList<>( );
+        final List<AttributeKey> readableAttributes;
+        String customerId;
+        try
+        {
+            customerId = request.getParameter( PARAM_CUSTOMER_ID );
+            if ( StringUtils.isEmpty( customerId ) )
+            {
+                addError( "Customer ID must be specified in request " );
+                return getDuplicateTypes( request );
+            }
+
+            firstIdentity = getQualifiedIdentity( customerId );
+            if ( firstIdentity == null )
+            {
+                addError( "Could not find first identity with customer ID " + customerId );
+                return getDuplicateTypes( request );
+            }
+
+            identities.add( firstIdentity );
+            readableAttributes = new ArrayList<>( AttributeKeyHome.getAttributeKeysList( false ) );
+            final Comparator<AttributeKey> sortById = Comparator.comparing( AttributeKey::getId );
+            final Comparator<AttributeKey> sortByPivot = ( o1, o2 ) -> Boolean.compare( o2.getPivot( ), o1.getPivot( ) );
+            readableAttributes.sort( sortByPivot.thenComparing( sortById ) );
+        }
+        catch( final Exception e )
+        {
+            addError( "An error occurred when identities : " + e.getMessage( ) );
+            return getDuplicateTypes( request );
+        }
+
+        final Map<String, Object> model = getModel( );
+        model.put( MARK_IDENTITY_LIST, identities );
+        model.put( MARK_CUSTOMER_ID, customerId );
+        model.put( MARK_READABLE_ATTRIBUTES, readableAttributes );
+
+        return getPage( PROPERTY_PAGE_TITLE_DISPLAY_LOCKED_IDENTITIES, TEMPLATE_DISPLAY_LOCKED_IDENTITIES, model );
     }
 
     private IdentityDto getQualifiedIdentity( final String customerId )
