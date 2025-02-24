@@ -57,7 +57,7 @@
                     <td>Connection ID</td>
                     <#list identity_list as identity>
                         <td>
-                            <span>${identity.connectionId}</span>
+                            <span>${identity.connectionId!''}</span>
                         </td>
                     </#list>
                 </tr>
