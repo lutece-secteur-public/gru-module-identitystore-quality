@@ -64,7 +64,14 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -130,9 +137,11 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
         this.info( rules.size( ) + " applicable detection rules found. Starting process..." );
         rules.sort( Comparator.comparingInt( DuplicateRule::getPriority ) );
 
+        final Set<String> detectedCuids = new HashSet<>();
         for ( final DuplicateRule rule : rules )
         {
-            this.processRule( rule );
+            final Set<String> newlyDetectedCuids = this.processRule( rule, detectedCuids );
+            detectedCuids.addAll( newlyDetectedCuids );
             rule.setDaemonLastExecDate( Timestamp.from( ZonedDateTime.now( ZoneId.systemDefault( ) ).toInstant( ) ) );
             DuplicateRuleHome.update( rule );
         }
@@ -149,8 +158,9 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
      * @param rule
      *            the rule used to search duplicates
      */
-    private void processRule( final DuplicateRule rule )
+    private Set<String> processRule( final DuplicateRule rule, final Set<String> higherPrioRulesDetectedCuids )
     {
+        final Set<String> detectedCuids = new HashSet<>();
         try
         {
             this.info( "-- Processing Rule id = [" + rule.getId( ) + "] code = [" + rule.getCode( ) + "] priority = [" + rule.getPriority( ) + "] (" + LocalDateTime.now( ).format( DateTimeFormatter.ofPattern( "dd/MM/yyyy HH:mm:ss.SSS" ) ) +")..." );
@@ -164,11 +174,11 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
                     }
                     else
                     {
-                        this.processRule( rule, bddSuspicious );
+                        detectedCuids.addAll( this.processRule( rule, bddSuspicious, higherPrioRulesDetectedCuids ) );
                     }
                     break;
                 case INCREMENTAL:
-                    this.processRule( rule, 0 );
+                    detectedCuids.addAll( this.processRule( rule, 0, higherPrioRulesDetectedCuids ) );
                     break;
                 default:
                     break;
@@ -179,26 +189,27 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
         {
             this.error( "An error occurred during processing of rule " + rule.getCode( ) + " : " + e.getMessage( ) );
         }
+        return detectedCuids;
     }
 
-    private void processRule( final DuplicateRule rule, final int suspiciousCounterInitializer ) {
+    private Set<String> processRule( final DuplicateRule rule, final int suspiciousCounterInitializer, final Set<String> higherPrioRulesDetectedCuids ) {
         final Batch<String> cuidBatches = IdentityService.instance( ).getCUIDsBatchForPotentialDuplicate( rule, batchSize, limitationMode == DuplicatesDaemonLimitationMode.INCREMENTAL );
         if ( cuidBatches == null || cuidBatches.isEmpty( ) )
         {
             this.error( "No identities having required attributes and not already suspicious found." );
-            return;
+            return Set.of();
         }
 
         this.info( cuidBatches.totalSize( ) + " identities found. Searching for potential duplicates on those..." );
         int suspicionsCounter = suspiciousCounterInitializer;
-        final List<String> enhancerFilter = new ArrayList<>( ); // holds cuids that have been detected as duplicates to reduce iteration
+        final Set<String> detectedCuids = new HashSet<>( ); // holds cuids that have been detected as duplicates to reduce iteration
         final List<String> attributesFilter = rule.getCheckedAttributes( ).stream( ).map( AttributeKey::getKeyName ).collect( Collectors.toList( ) );
         detection_loop: for( final List<String> cuids : cuidBatches )
         {
             final List<IdentityDto> identities = IdentityService.instance( ).search( cuids, attributesFilter ).stream( ).filter( Objects::nonNull ).collect( Collectors.toList( ) );
             for ( final IdentityDto identity : identities )
             {
-                if ( !enhancerFilter.contains( identity.getCustomerId( ) ) )
+                if ( !higherPrioRulesDetectedCuids.contains( identity.getCustomerId( ) ) && !detectedCuids.contains( identity.getCustomerId( ) ) )
                 {
                     try {
                         final Map<String, QualifiedIdentitySearchResult> result = this.delayedNetworkService.call(() -> SearchDuplicatesService.instance().findDuplicates(identity, Collections.singletonList( rule ), Collections.singletonList( "customerId" )), "Find duplicates", this);
@@ -236,7 +247,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
                                 this.info( "Identity " + identity.getCustomerId( ) + " has been marked suspicious." );
                                 suspicionsCounter++;
                             }
-                            enhancerFilter.addAll( customerIds );
+                            detectedCuids.addAll( customerIds );
                         }
 
                         if ( rule.getDetectionLimit( ) > 0 && suspicionsCounter >= rule.getDetectionLimit( ) )
@@ -254,6 +265,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
             }
         }
         this.info( suspicionsCounter + " identities have been marked as suspicious." );
+        return detectedCuids;
     }
 
     /**
