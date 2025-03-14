@@ -63,6 +63,12 @@
             <version>[3.1.5-SNAPSHOT,)</version>
             <type>lutece-plugin</type>
         </dependency>
+        <dependency>
+            <groupId>fr.paris.lutece.plugins</groupId>
+            <artifactId>plugin-taskstack</artifactId>
+            <version>1.0.4-SNAPSHOT</version>
+            <type>lutece-plugin</type>
+        </dependency>
         <!-- Génération du fichier swagger.json -->
         <dependency>
             <groupId>io.swagger</groupId>

@@ -212,7 +212,7 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
                 if ( !higherPrioRulesDetectedCuids.contains( identity.getCustomerId( ) ) && !detectedCuids.contains( identity.getCustomerId( ) ) )
                 {
                     try {
-                        final Map<String, QualifiedIdentitySearchResult> result = this.delayedNetworkService.call(() -> SearchDuplicatesService.instance().findDuplicates(identity, Collections.singletonList( rule ), Collections.singletonList( "customerId" )), "Find duplicates", this);
+                        final Map<String, QualifiedIdentitySearchResult> result = this.delayedNetworkService.call(() -> SearchDuplicatesService.instance().findDuplicates(identity, Collections.singletonList( rule ), Collections.singletonList( "customerId" ), true), "Find duplicates", this);
                         final QualifiedIdentitySearchResult duplicates = result.get(rule.getCode());
                         final int duplicateCount = duplicates != null ? duplicates.getQualifiedIdentities().size( ) : 0;
                         if ( duplicateCount > 0 )

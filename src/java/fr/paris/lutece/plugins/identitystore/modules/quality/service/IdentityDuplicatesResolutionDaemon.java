@@ -37,12 +37,10 @@ import fr.paris.lutece.plugins.identitystore.business.attribute.AttributeKey;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentity;
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
-import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
 import fr.paris.lutece.plugins.identitystore.service.attribute.IdentityAttributeService;
 import fr.paris.lutece.plugins.identitystore.service.daemon.LoggingDaemon;
 import fr.paris.lutece.plugins.identitystore.service.duplicate.DuplicateRuleService;
-import fr.paris.lutece.plugins.identitystore.service.identity.IdentityQualityService;
 import fr.paris.lutece.plugins.identitystore.service.identity.IdentityService;
 import fr.paris.lutece.plugins.identitystore.service.network.DelayedNetworkService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.DtoConverter;
@@ -54,10 +52,16 @@ import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.IdentityDto;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.QualityDefinition;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.RequestAuthor;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.common.ResponseStatusType;
-import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.merge.IdentityMergeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.search.QualifiedIdentitySearchResult;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.task.IdentityResourceType;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.task.IdentityTaskType;
+import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.IdentityStoreException;
 import fr.paris.lutece.plugins.identitystore.web.exception.ResourceNotFoundException;
+import fr.paris.lutece.plugins.taskstack.dto.TaskDto;
+import fr.paris.lutece.plugins.taskstack.exception.TaskStackException;
+import fr.paris.lutece.plugins.taskstack.service.TaskService;
+import fr.paris.lutece.portal.service.util.AppLogService;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
@@ -76,8 +80,11 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
     private final String clientCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.client.code" );
     private final String authorName = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.author.name" );
     private final String ruleCode = AppPropertiesService.getProperty( "daemon.identityDuplicatesResolutionDaemon.rule.code" );
+    private final boolean MERGE_STRICT_CONNECTED = AppPropertiesService.getPropertyBoolean("daemon.identityDuplicatesResolutionDaemon.merge.strict.connected", false);
+    private final boolean MERGE_STRICT_CONNECTED_AND_UNCONNECTED = AppPropertiesService.getPropertyBoolean("daemon.identityDuplicatesResolutionDaemon.merge.strict.connectedAndNot", false);
     private final DelayedNetworkService<IdentityDto> identityDtoDelayedNetworkService = new DelayedNetworkService<>();
     private final DelayedNetworkService<Map<String, QualifiedIdentitySearchResult>> duplicateSearchResponseDelayedNetworkService = new DelayedNetworkService<>();
+
     private int nbIdentitiesMerged = 0;
 
     @Override
@@ -108,7 +115,7 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
                     if ( suspiciousIdentity.getLock( ) == null || !suspiciousIdentity.getLock( ).isLocked( ) )
                     {
                         /* Get and sort identities to process */
-                        final IdentityDto identity = identityDtoDelayedNetworkService.call(() -> DtoConverter.convertIdentityToDto( IdentityHome.findByCustomerId( suspiciousIdentity.getCustomerId( ) ) ), "Get qualified identity " + suspiciousIdentity.getCustomerId(), this);
+                        final IdentityDto identity = identityDtoDelayedNetworkService.call(() -> IdentityService.instance().search(suspiciousIdentity.getCustomerId()), "Get qualified identity " + suspiciousIdentity.getCustomerId(), this);
                         final Map<String, QualifiedIdentitySearchResult> result = duplicateSearchResponseDelayedNetworkService.call(() -> SearchDuplicatesService.instance( ).findDuplicates( identity,
                                 Collections.singletonList( processedRule ), Collections.emptyList( ) ), "Get duplicates for identity " + suspiciousIdentity.getCustomerId(), this );
                         final QualifiedIdentitySearchResult duplicates = result.get(processedRule.getCode());
@@ -134,7 +141,7 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
                             /* Try to merge */
                             for ( final IdentityDto candidate : processedIdentities )
                             {
-                                this.merge( primaryIdentity, candidate, suspiciousIdentity.getCustomerId( ), author );
+                                this.merge( primaryIdentity, candidate, suspiciousIdentity.getCustomerId( ), author, processedIdentities.size() );
                             }
                         }
                         else
@@ -179,7 +186,7 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
         return author;
     }
 
-    private void merge( final IdentityDto primaryIdentity, final IdentityDto candidate, final String suspiciousCustomerId, final RequestAuthor author )
+    private void merge( final IdentityDto primaryIdentity, final IdentityDto candidate, final String suspiciousCustomerId, final RequestAuthor author, final int duplicateListSize )
             throws IdentityStoreException
     {
         /* Cannot merge connected identity */
@@ -236,9 +243,70 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
             SuspiciousIdentityHome.manageLock( suspiciousCustomerId, "IdentityDuplicatesResolutionDaemon", AuthorType.admin.name( ), false );
             this.info( "Unlock suspicious identity with customer ID " + suspiciousCustomerId );
         }
+        else if((MERGE_STRICT_CONNECTED || MERGE_STRICT_CONNECTED_AND_UNCONNECTED) && duplicateListSize == 1 && this.isStrictDuplicate(primaryIdentity, candidate))
+        {
+            this.createMergeTask(primaryIdentity, candidate, suspiciousCustomerId, author);
+        }
         else
         {
             final String err = "Candidate identity with customer ID " + candidate.getCustomerId( ) + " is not eligible to automatic merge.";
+            this.info( err );
+        }
+    }
+
+    //creation of a merge task with notification of the identity
+    private void createMergeTask(final IdentityDto primaryIdentity, final IdentityDto candidate, final String suspiciousCustomerId,
+                                 final RequestAuthor author) throws IdentityStoreException
+    {
+        final String taskType = primaryIdentity.isMonParisActive() && candidate.isMonParisActive() ?
+                IdentityTaskType.ACCOUNT_MERGE_REQUEST.name() : IdentityTaskType.ACCOUNT_IDENTITY_MERGE_REQUEST.name();
+
+        //we check if the identity already has a merge task
+        List<TaskDto> responsePrimaryList =  new ArrayList<>();
+        List<TaskDto> responseCandidateList = new ArrayList<>();
+        try
+        {
+            responsePrimaryList = TaskService.instance( ).getTasks(primaryIdentity.getCustomerId(), IdentityResourceType.CUID.name());
+        } catch (TaskStackException e)
+        {
+            AppLogService.error( "Error while trying to retrieve task list for identity [customerId = " + primaryIdentity.getCustomerId() + "].", e );
+            this.error( e.getMessage( ) );
+        }
+        try
+        {
+            responseCandidateList = TaskService.instance( ).getTasks(candidate.getCustomerId(), IdentityResourceType.CUID.name());
+        } catch (TaskStackException e)
+        {
+            AppLogService.error( "Error while trying to retrieve task list for identity [customerId = " + candidate.getCustomerId() + "].", e );
+            this.error( e.getMessage( ) );
+        }
+        if(responsePrimaryList.isEmpty() && responseCandidateList.isEmpty())
+        {
+            try
+            {
+                final TaskDto task = new TaskDto( );
+                task.setTaskType( taskType );
+                task.setResourceType( IdentityResourceType.CUID.name( ) );
+                task.setResourceId( primaryIdentity.getCustomerId() );
+                final Map<String, String> metadata = new HashMap<>();
+                metadata.put(Constants.METADATA_ACCOUNT_MERGE_SECOND_CUID, candidate.getCustomerId());
+                metadata.put(Constants.METADATA_ORIGIN, AuthorType.owner.name());
+                task.setMetadata(metadata);
+
+                TaskService.instance( ).createTask(task, this.authorToTaskAuthorMapper(author), suspiciousCustomerId);
+            }
+            catch( final TaskStackException e )
+            {
+                AppLogService.error( "Error while trying to create " + taskType + " for identity [customerId = " + primaryIdentity.getCustomerId() + "].", e );
+                this.error( "An error occured while noticing the user" );
+                this.error( e.getMessage( ) );
+            }
+        }
+        else
+        {
+            final String err = "Candidate identity with customer ID " +
+                    (responsePrimaryList.isEmpty() ? primaryIdentity.getCustomerId( ) : candidate.getCustomerId( )) +
+                    " already have a merge task.";
             this.info( err );
         }
     }
@@ -275,5 +343,15 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
                 primaryIdentity.getAttributes().stream().filter(a -> pivotAttributeKeys.contains(a.getKey())).mapToInt(AttributeDto::getCertificationLevel)
                                .min().orElse(0);
         return lowestPivotCertificationLevel >= requiredCertificationLevel;
+    }
+
+    private fr.paris.lutece.plugins.taskstack.rs.request.common.RequestAuthor authorToTaskAuthorMapper(RequestAuthor author)
+    {
+        fr.paris.lutece.plugins.taskstack.rs.request.common.RequestAuthor taskAuthor = new fr.paris.lutece.plugins.taskstack.rs.request.common.RequestAuthor();
+
+        taskAuthor.setName( author.getName( ) );
+        taskAuthor.setType(fr.paris.lutece.plugins.taskstack.rs.request.common.AuthorType.valueOf(author.getType( ).name( ) ) );
+
+        return taskAuthor;
     }
 }
