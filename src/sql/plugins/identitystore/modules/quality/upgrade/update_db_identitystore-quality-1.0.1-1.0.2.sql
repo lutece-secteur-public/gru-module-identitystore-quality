@@ -1,0 +1,2 @@
+CREATE INDEX identitystore_quality_suspicious_identity_date_create_index
+    ON identitystore_quality_suspicious_identity (date_create);
