@@ -61,6 +61,7 @@ import fr.paris.lutece.portal.service.rbac.RBACService;
 import fr.paris.lutece.portal.service.security.SecurityTokenService;
 import fr.paris.lutece.portal.service.util.AppException;
 import fr.paris.lutece.portal.service.util.AppLogService;
+import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import fr.paris.lutece.portal.util.mvc.admin.annotations.Controller;
 import fr.paris.lutece.portal.util.mvc.commons.annotations.Action;
 import fr.paris.lutece.portal.util.mvc.commons.annotations.View;
@@ -160,6 +161,8 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
     private static final String INFO_SUSPICIOUSIDENTITY_UPDATED = "module.identitystore.quality.info.suspiciousidentity.updated";
     private static final String INFO_SUSPICIOUSIDENTITY_REMOVED = "module.identitystore.quality.info.suspiciousidentity.removed";
     private static final String INFO_SUSPICIOUSIDENTITY_PURGED = "module.identitystore.quality.info.suspiciousidentity.purged";
+    public static final String QUERY_PARAM_CUID_LINK = "cuid_link";
+    private static final String RESOURCE_SEARCH_LINK = AppPropertiesService.getProperty("identitystore-quality.search.resource.link", "");
 
     // Errors
     private static final String ERROR_RESOURCE_NOT_FOUND = "Resource not found";
@@ -716,6 +719,7 @@ public class ManageSuspiciousIdentitys extends AbstractManageQualityJspBean
         final Map<String, Object> model = getModel( );
 
         model.put( PARAM_SUSPICIOUS_IDENTITIES_LIST, suspiciousIdentityList);
+        model.put( QUERY_PARAM_CUID_LINK, RESOURCE_SEARCH_LINK );
 
         return this.getPage( PROPERTY_PAGE_TITLE_MANAGE_LOCKED_IDENTITIES, TEMPLATE_MANAGE_LOCKED_IDENTITIES, model );
     }

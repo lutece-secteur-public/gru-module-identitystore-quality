@@ -19,7 +19,12 @@
     <#if suspicious_identities_list?has_content>
         <#list suspicious_identities_list as identity>
         <tr>
-            <@td>${identity.customerId}</@td>
+            <@td>
+                <a href="${cuid_link}${identity.customerId!}"
+                   title="#i18n{module.identitystore.quality.manage_locked_identities.buttonView}">
+                    ${identity.customerId!''}
+                </a>
+            </@td>
             <@td>${identity.lock.lockEndDate}</@td>
             <@td>${identity.lock.authorName}</@td>
             <@td>${identity.lock.authorType}</@td>
