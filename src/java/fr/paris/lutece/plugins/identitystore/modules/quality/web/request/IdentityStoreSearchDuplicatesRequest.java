@@ -88,8 +88,7 @@ public class IdentityStoreSearchDuplicatesRequest extends AbstractIdentityStoreA
     }
 
     @Override
-    protected void fetchResources( ) throws ResourceNotFoundException
-    {
+    protected void fetchResources( ) throws ResourceNotFoundException, ClientAuthorizationException {
         for ( final String ruleCode : _request.getRuleCodes( ) )
         {
             rules.add( DuplicateRuleService.instance( ).get( ruleCode ) );
