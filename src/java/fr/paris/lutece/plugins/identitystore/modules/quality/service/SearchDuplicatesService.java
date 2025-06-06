@@ -52,6 +52,11 @@ public class SearchDuplicatesService
     private static SearchDuplicatesService instance;
     private final IDuplicateService _duplicateServiceElasticSearch = SpringContextService.getBean( "identitystore.duplicateService.elasticsearch" );
 
+    /**
+     * get instance
+     * 
+     * @return the instance
+     */
     public static SearchDuplicatesService instance( )
     {
         if ( instance == null )
@@ -61,19 +66,74 @@ public class SearchDuplicatesService
         return instance;
     }
 
+    /**
+     * find duplicates from an identity
+     * (allow empty response)
+     * 
+     * @param identity
+     * @param rules
+     * @param attributesFilter
+     * @return
+     * @throws IdentityStoreException
+     */
     public final Map<String, QualifiedIdentitySearchResult> findDuplicates( final IdentityDto identity, final List<DuplicateRule> rules,
             final List<String> attributesFilter ) throws IdentityStoreException
     {
-        return this.findDuplicates( identity, rules, attributesFilter, false );
+        return this.findDuplicates( identity, rules, attributesFilter, true );
     }
 
+    /**
+     * find duplicates from an identity
+     * 
+     * @param identity
+     * @param rules
+     * @param attributesFilter
+     * @param allowEmptyResponse
+     * @return
+     * @throws IdentityStoreException
+     */
     public final Map<String, QualifiedIdentitySearchResult> findDuplicates( final IdentityDto identity, final List<DuplicateRule> rules,
             final List<String> attributesFilter, final boolean allowEmptyResponse ) throws IdentityStoreException
     {
         final Map<String, String> attributeMap = identity.getAttributes( ).stream( )
                 .filter( attributeDto -> StringUtils.isNotBlank( attributeDto.getValue( ) ) ).collect( Collectors.toMap( AttributeDto::getKey, AttributeDto::getValue ) );
-        final Map<String, QualifiedIdentitySearchResult> duplicates = _duplicateServiceElasticSearch.findDuplicates( attributeMap, identity.getCustomerId( ),
-                rules, attributesFilter );
+        
+        return findDuplicates ( attributeMap, identity.getCustomerId( ), rules, attributesFilter, allowEmptyResponse);
+    }
+
+    /**
+     * find duplicates from an attribute list
+     * (allow empty response)
+     * 
+     * @param attributeValues
+     * @param rules
+     * @param attributesFilter
+     * @return
+     * @throws IdentityStoreException
+     */
+    public final Map<String, QualifiedIdentitySearchResult> findDuplicates( final Map<String, String> attributeValues, final List<DuplicateRule> rules,
+            final List<String> attributesFilter ) throws IdentityStoreException
+    {
+	return findDuplicates( attributeValues, StringUtils.EMPTY, rules, attributesFilter, true );
+    }
+    
+    /**
+     * find duplicates
+     * 
+     * @param attributeValues
+     * @param strCustomerID
+     * @param rules
+     * @param attributesFilter
+     * @param allowEmptyResponse
+     * @return
+     * @throws IdentityStoreException
+     */
+    public final Map<String, QualifiedIdentitySearchResult> findDuplicates( final Map<String, String> attributeValues, String strCustomerID, final List<DuplicateRule> rules,
+            final List<String> attributesFilter, final boolean allowEmptyResponse ) throws IdentityStoreException
+    {
+        final Map<String, QualifiedIdentitySearchResult> duplicates = _duplicateServiceElasticSearch.findDuplicates( attributeValues, strCustomerID, rules,
+                attributesFilter );
+        
         if ( !allowEmptyResponse && ( duplicates == null || duplicates.values( ).stream( ).allMatch( r -> r.getQualifiedIdentities( ).isEmpty( ) ) ) )
         {
             throw new ResourceNotFoundException(
@@ -81,21 +141,7 @@ public class SearchDuplicatesService
                             + String.join( ",", rules.stream( ).map( DuplicateRule::getCode ).collect( Collectors.toList( ) ) ),
                     Constants.PROPERTY_REST_ERROR_NO_POTENTIAL_DUPLICATE_FOUND );
         }
-        return duplicates;
-    }
 
-    public final Map<String, QualifiedIdentitySearchResult> findDuplicates( final Map<String, String> attributeValues, final List<DuplicateRule> rules,
-            final List<String> attributesFilter ) throws IdentityStoreException
-    {
-        final Map<String, QualifiedIdentitySearchResult> duplicates = _duplicateServiceElasticSearch.findDuplicates( attributeValues, StringUtils.EMPTY, rules,
-                attributesFilter );
-        if ( duplicates.values( ).stream( ).allMatch( r -> r.getQualifiedIdentities( ).isEmpty( ) ) )
-        {
-            throw new ResourceNotFoundException(
-                    "No potential duplicate found with the rule(s) : "
-                            + String.join( ",", rules.stream( ).map( DuplicateRule::getCode ).collect( Collectors.toList( ) ) ),
-                    Constants.PROPERTY_REST_ERROR_NO_POTENTIAL_DUPLICATE_FOUND );
-        }
         return duplicates;
     }
 }

@@ -33,6 +33,12 @@
  */
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.request;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
 import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
@@ -60,12 +66,6 @@ import fr.paris.lutece.plugins.identitystore.web.exception.RequestContentFormatt
 import fr.paris.lutece.plugins.identitystore.web.exception.RequestFormatException;
 import fr.paris.lutece.plugins.identitystore.web.exception.ResourceConsistencyException;
 import fr.paris.lutece.plugins.identitystore.web.exception.ResourceNotFoundException;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class IdentityStoreFindDuplicatesRequest extends AbstractIdentityStoreAppCodeRequest
 {
@@ -146,26 +146,39 @@ public class IdentityStoreFindDuplicatesRequest extends AbstractIdentityStoreApp
                 } );
         final List<String> matchingRuleCodes = duplicates.entrySet( ).stream( ).filter( e -> !e.getValue( ).getQualifiedIdentities( ).isEmpty( ) )
                 .map( Map.Entry::getKey ).collect( Collectors.toList( ) );
-
-        response.setStatus( ResponseStatusFactory.ok( ).setMessage( "Potential duplicate(s) found with rule(s) : " + String.join( ",", matchingRuleCodes ) )
-                .setMessageKey( Constants.PROPERTY_REST_INFO_POTENTIAL_DUPLICATE_FOUND ) );
-
-        // LUT-29120 - Si des doublons potentiels sont trouvés, et que l'identité n'est pas déjà marquée suspecte, on la marque.
-        if (rule.isDaemon() && duplicates.values().stream().anyMatch(result -> !result.getQualifiedIdentities( ).isEmpty( ) ) ) {
-            final List<String> processedIdentitiesCuids =
-                    duplicates.values().stream().flatMap( r -> r.getQualifiedIdentities( ).stream( ) ).map(IdentityDto::getCustomerId).collect(Collectors.toList());
-            processedIdentitiesCuids.add( _strCustomerId );
-            if ( !SuspiciousIdentityService.instance().hasSuspicious(processedIdentitiesCuids) )
+        
+        if ( duplicates.size ( ) == 0 )
+        {
+            response.setStatus( ResponseStatusFactory.ok( )
+        	    .setMessage( "No potential duplicate found." )
+                    .setMessageKey( Constants.PROPERTY_REST_INFO_NO_POTENTIAL_DUPLICATE_FOUND ) );
+        }
+        else
+        {
+            response.setStatus( ResponseStatusFactory.ok( )
+        	    .setMessage( String.valueOf( duplicates.size ( ) ) +  " potential duplicate(s) found  with rule(s) : " + String.join( ",", matchingRuleCodes ) )
+                    .setMessageKey( Constants.PROPERTY_REST_INFO_POTENTIAL_DUPLICATE_FOUND ) );
+        
+            // LUT-29120 - Si des doublons potentiels sont trouvés, et que l'identité n'est pas déjà marquée suspecte, on la marque.
+            if ( rule.isDaemon( ) && rule.isActive( ) 
+            	&& duplicates.values().stream().anyMatch(result -> !result.getQualifiedIdentities( ).isEmpty( ) ) ) 
             {
-                final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
-                request.setSuspiciousIdentity( new SuspiciousIdentityDto( ));
-                request.getSuspiciousIdentity( ).setCustomerId( _strCustomerId );
-                request.getSuspiciousIdentity( ).setDuplicationRuleCode( _strRuleCode );
-                request.getSuspiciousIdentity( ).getMetadata( ).putAll( response.getMetadata( ) );
-                SuspiciousIdentityService.instance( ).create( request, DtoConverter.convertDtoToIdentity(qualifiedIdentity), rule, this._strClientCode, this._author );
-                response.getMetadata().put(Constants.METADATA_MARKED_SUSPICIOUS, _strCustomerId);
+                final List<String> processedIdentitiesCuids =
+                        duplicates.values().stream().flatMap( r -> r.getQualifiedIdentities( ).stream( ) ).map(IdentityDto::getCustomerId).collect(Collectors.toList());
+                processedIdentitiesCuids.add( _strCustomerId );
+                if ( !SuspiciousIdentityService.instance().hasSuspicious(processedIdentitiesCuids) )
+                {
+                    final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
+                    request.setSuspiciousIdentity( new SuspiciousIdentityDto( ));
+                    request.getSuspiciousIdentity( ).setCustomerId( _strCustomerId );
+                    request.getSuspiciousIdentity( ).setDuplicationRuleCode( _strRuleCode );
+                    request.getSuspiciousIdentity( ).getMetadata( ).putAll( response.getMetadata( ) );
+                    SuspiciousIdentityService.instance( ).create( request, DtoConverter.convertDtoToIdentity(qualifiedIdentity), rule, this._strClientCode, this._author );
+                    response.getMetadata().put(Constants.METADATA_MARKED_SUSPICIOUS, _strCustomerId);
+                }
             }
         }
+        
         return response;
     }
 }
