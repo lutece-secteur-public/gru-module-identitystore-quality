@@ -12,6 +12,9 @@
 			<@formGroup labelFor='customer_id' labelKey='#i18n{module.identitystore.quality.modify_suspiciousidentity.labelCustomerId}' mandatory=true>
 				<@input type='text' id='customer_id' name='customer_id'  maxlength=50 value='${suspiciousidentity.customerId!\'\'}' tabIndex='0' />
 			</@formGroup>
+			<@formGroup labelFor='duplicate_customer_id' labelKey='#i18n{module.identitystore.quality.modify_suspiciousidentity.labelDuplicateCustomerId}' mandatory=false>
+				<@input type='text' id='duplicate_customer_id' name='duplicate_customer_id'  maxlength=50 value='${suspiciousidentity.duplicateCustomerId!\'\'}' tabIndex='1' />
+			</@formGroup>
         <@actionButtons button1Name="action_modifySuspiciousIdentity" button2Name="view_manageSuspiciousIdentity"/>
     </@tform>
 	</@boxBody>

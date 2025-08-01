@@ -224,30 +224,46 @@ public class IdentityDuplicatesDaemon extends LoggingDaemon
                             if ( DuplicatesDaemonLimitationMode.INCREMENTAL == limitationMode )
                             {
                                 this.debug("Incremental mode: remove lower rule suspicious detections if any.");
-                                final List<SuspiciousIdentityDto> suspiciousIdentity = SuspiciousIdentityService.instance().getSuspiciousIdentity(customerIds);
-                                for ( final SuspiciousIdentityDto suspiciousIdentityDto : suspiciousIdentity )
+                                final List<SuspiciousIdentity> suspiciousIdentityList = SuspiciousIdentityHome.selectByCustomerIDs(customerIds);
+                                for ( final SuspiciousIdentity suspiciousIdentity : suspiciousIdentityList )
                                 {
-                                    final DuplicateRule existingDuplicateRule = DuplicateRuleService.instance().get(suspiciousIdentityDto.getDuplicationRuleCode());
-                                    if ( rule.getPriority() < existingDuplicateRule.getPriority() ) // Higher priority means that priority level is lower
-                                    {
-                                        this.info("Incremental mode: removing suspicion [rule-code: " + suspiciousIdentityDto.getDuplicationRuleCode() + "][cuid: " + suspiciousIdentityDto.getCustomerId() + "] with lower rule priority [rule-priority: " + existingDuplicateRule.getPriority() + "]");
-                                        SuspiciousIdentityHome.remove( suspiciousIdentityDto.getCustomerId() );
+                                    if(identity.getCustomerId().equals(suspiciousIdentity.getCustomerId()) || identity.getCustomerId().equals(suspiciousIdentity.getDuplicateCuid()) ) {
+                                        final DuplicateRule existingDuplicateRule =
+                                                DuplicateRuleService.instance().get(suspiciousIdentity.getDuplicateRuleCode());
+                                        if (rule.getPriority() < existingDuplicateRule.getPriority()) // Higher priority means that priority level is lower
+                                        {
+                                            this.info("Incremental mode: removing suspicion [rule-code: " + suspiciousIdentity.getDuplicateRuleCode() +
+                                                      "][cuid: " + suspiciousIdentity.getCustomerId() + "] with lower rule priority [rule-priority: " +
+                                                      existingDuplicateRule.getPriority() + "]");
+                                            SuspiciousIdentityHome.remove(suspiciousIdentity.getId());
+                                        }
                                     }
                                 }
                             }
 
-                            if ( !SuspiciousIdentityService.instance( ).hasSuspicious( customerIds ) )
-                            {
-                                final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
-                                request.setSuspiciousIdentity( new SuspiciousIdentityDto( ) );
-                                request.getSuspiciousIdentity( ).setCustomerId( identity.getCustomerId( ) );
-                                request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
-                                request.getSuspiciousIdentity( ).getMetadata( ).putAll( duplicates.getMetadata( ) );
-                                SuspiciousIdentityService.instance( ).create( request, DtoConverter.convertDtoToIdentity(identity), rule, clientCode, author );
-                                this.info( "Identity " + identity.getCustomerId( ) + " has been marked suspicious." );
-                                suspicionsCounter++;
+                            if(!customerIds.isEmpty()) {
+                                // remove all suspiciousIdentity with identity customerId, but without any duplicate_customer_id (old model)
+                                SuspiciousIdentityService.instance().delete( identity.getCustomerId(), true);
+                                // create one suspicious identity for each detected customerId
+                                for(final String cuid : customerIds) {
+                                    if(cuid.equals(identity.getCustomerId( ) )) {
+                                        continue;
+                                    }
+                                    // if the suspicious pair doesn't exist, create it
+                                    if(!SuspiciousIdentityService.instance().existsSuspicious(identity.getCustomerId( ) , cuid, rule.getId())) {
+                                        final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
+                                        request.setSuspiciousIdentity( new SuspiciousIdentityDto( ) );
+                                        request.getSuspiciousIdentity( ).setCustomerId( identity.getCustomerId( ) );
+                                        request.getSuspiciousIdentity( ).setDuplicateCuid( cuid );
+                                        request.getSuspiciousIdentity( ).setDuplicationRuleCode( rule.getCode( ) );
+                                        request.getSuspiciousIdentity( ).getMetadata( ).putAll( duplicates.getMetadata( ) );
+                                        SuspiciousIdentityService.instance( ).create( request, DtoConverter.convertDtoToIdentity(identity), cuid, rule, clientCode, author );
+                                        this.info( "Identity pair [" + identity.getCustomerId( ) + " / " + cuid + "] has been marked suspicious." );
+                                        suspicionsCounter++;
+                                    }
+                                }
+                                detectedCuids.addAll( customerIds );
                             }
-                            detectedCuids.addAll( customerIds );
                         }
 
                         if ( rule.getDetectionLimit( ) > 0 && suspicionsCounter >= rule.getDetectionLimit( ) )

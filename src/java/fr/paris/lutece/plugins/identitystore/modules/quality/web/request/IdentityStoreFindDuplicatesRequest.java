@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.identity.Identity;
 import fr.paris.lutece.plugins.identitystore.business.identity.IdentityHome;
 import fr.paris.lutece.plugins.identitystore.business.rules.duplicate.DuplicateRule;
@@ -166,15 +167,26 @@ public class IdentityStoreFindDuplicatesRequest extends AbstractIdentityStoreApp
                 final List<String> processedIdentitiesCuids =
                         duplicates.values().stream().flatMap( r -> r.getQualifiedIdentities( ).stream( ) ).map(IdentityDto::getCustomerId).collect(Collectors.toList());
                 processedIdentitiesCuids.add( _strCustomerId );
-                if ( !SuspiciousIdentityService.instance().hasSuspicious(processedIdentitiesCuids) )
-                {
-                    final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
-                    request.setSuspiciousIdentity( new SuspiciousIdentityDto( ));
-                    request.getSuspiciousIdentity( ).setCustomerId( _strCustomerId );
-                    request.getSuspiciousIdentity( ).setDuplicationRuleCode( _strRuleCode );
-                    request.getSuspiciousIdentity( ).getMetadata( ).putAll( response.getMetadata( ) );
-                    SuspiciousIdentityService.instance( ).create( request, DtoConverter.convertDtoToIdentity(qualifiedIdentity), rule, this._strClientCode, this._author );
-                    response.getMetadata().put(Constants.METADATA_MARKED_SUSPICIOUS, _strCustomerId);
+
+                // remove all suspiciousIdentity with identity customerId, but without any duplicate_customer_id (old model)
+                SuspiciousIdentityHome.remove(_strCustomerId , true);
+                // create one suspicious identity for each detected customerId
+                for(final String duplicateCuid : processedIdentitiesCuids) {
+                    if(duplicateCuid.equals(_strCustomerId )) {
+                        continue;
+                    }
+                    // if the suspicious pair doesn't exist, create it
+                    if(!SuspiciousIdentityService.instance().existsSuspicious(_strCustomerId , duplicateCuid, rule.getId())) {
+                        final SuspiciousIdentityChangeRequest request = new SuspiciousIdentityChangeRequest( );
+                        request.setSuspiciousIdentity( new SuspiciousIdentityDto( ));
+                        request.getSuspiciousIdentity( ).setCustomerId( _strCustomerId );
+                        request.getSuspiciousIdentity( ).setDuplicateCuid( duplicateCuid );
+                        request.getSuspiciousIdentity( ).setDuplicationRuleCode( _strRuleCode );
+                        request.getSuspiciousIdentity( ).getMetadata( ).putAll( response.getMetadata( ) );
+
+                        SuspiciousIdentityService.instance( ).create( request, DtoConverter.convertDtoToIdentity(qualifiedIdentity), duplicateCuid, rule, this._strClientCode, this._author );
+                        response.getMetadata().put(Constants.METADATA_MARKED_SUSPICIOUS, _strCustomerId);
+                    }
                 }
             }
         }

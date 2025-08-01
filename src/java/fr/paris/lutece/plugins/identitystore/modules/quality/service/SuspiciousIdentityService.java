@@ -108,8 +108,8 @@ public class SuspiciousIdentityService
      * @throws IdentityStoreException
      *             in case of error
      */
-    public SuspiciousIdentityDto create( final SuspiciousIdentityChangeRequest request, final Identity identity, final DuplicateRule duplicateRule,
-            final String clientCode, final RequestAuthor author ) throws IdentityStoreException
+    public SuspiciousIdentityDto create( final SuspiciousIdentityChangeRequest request, final Identity identity, final String duplicateCustomerId,
+            final DuplicateRule duplicateRule, final String clientCode, final RequestAuthor author ) throws IdentityStoreException
     {
         TransactionManager.beginTransaction( null );
         try
@@ -119,6 +119,7 @@ public class SuspiciousIdentityService
             suspiciousIdentity.setDuplicateRuleCode( duplicateRule.getCode( ) );
             suspiciousIdentity.setIdDuplicateRule( duplicateRule.getId( ) );
             suspiciousIdentity.setCustomerId( identity.getCustomerId( ) );
+            suspiciousIdentity.setDuplicateCuid( duplicateCustomerId );
             suspiciousIdentity.setCreationDate( Timestamp.from( Instant.now( ) ) );
             suspiciousIdentity.setLastUpdateDate( identity.getLastUpdateDate( ) );
 
@@ -138,6 +139,29 @@ public class SuspiciousIdentityService
         }
         catch( final Exception e )
         {
+            TransactionManager.rollBack( null );
+            throw new IdentityStoreException( e.getMessage( ), Constants.PROPERTY_REST_ERROR_DURING_TREATMENT );
+        }
+    }
+
+    public void delete(final List<SuspiciousIdentity> suspiciousIdentityList) throws IdentityStoreException {
+        TransactionManager.beginTransaction( null );
+        try {
+            suspiciousIdentityList.forEach( suspiciousIdentity -> SuspiciousIdentityHome.remove( suspiciousIdentity.getId( ) ) );
+            TransactionManager.commitTransaction( null );
+        }
+        catch( final Exception e )
+        {
+            TransactionManager.rollBack( null );
+            throw new IdentityStoreException( e.getMessage( ), Constants.PROPERTY_REST_ERROR_DURING_TREATMENT );
+        }
+    }
+
+    public void delete(final String cuid, final boolean emptyDuplicateCuid) throws IdentityStoreException {
+        TransactionManager.beginTransaction( null );
+        try {
+            SuspiciousIdentityHome.remove(cuid , emptyDuplicateCuid);
+        }catch( final Exception e ) {
             TransactionManager.rollBack( null );
             throw new IdentityStoreException( e.getMessage( ), Constants.PROPERTY_REST_ERROR_DURING_TREATMENT );
         }
@@ -284,6 +308,10 @@ public class SuspiciousIdentityService
     public boolean hasSuspicious( final List<String> customerIds )
     {
         return SuspiciousIdentityHome.hasSuspicious( customerIds );
+    }
+
+    public boolean existsSuspicious(final String cuid1, final String cuid2, final int ruleId) {
+        return SuspiciousIdentityHome.exists( cuid1, cuid2, ruleId );
     }
 
     public List<SuspiciousIdentityDto> getSuspiciousIdentity( final List<String> customerIds )

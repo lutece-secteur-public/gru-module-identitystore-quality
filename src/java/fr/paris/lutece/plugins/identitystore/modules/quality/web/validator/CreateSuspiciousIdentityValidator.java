@@ -34,9 +34,12 @@
 package fr.paris.lutece.plugins.identitystore.modules.quality.web.validator;
 
 import fr.paris.lutece.plugins.identitystore.business.duplicates.suspicions.SuspiciousIdentityHome;
+import fr.paris.lutece.plugins.identitystore.modules.quality.service.SuspiciousIdentityService;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.dto.crud.SuspiciousIdentityChangeRequest;
 import fr.paris.lutece.plugins.identitystore.v3.web.rs.util.Constants;
 import fr.paris.lutece.plugins.identitystore.web.exception.ResourceConsistencyException;
+
+import java.util.List;
 
 public class CreateSuspiciousIdentityValidator
 {
@@ -57,7 +60,7 @@ public class CreateSuspiciousIdentityValidator
 
     public void checkIfNotAlreadyReported( final SuspiciousIdentityChangeRequest request ) throws ResourceConsistencyException
     {
-        if ( SuspiciousIdentityHome.selectByCustomerID( request.getSuspiciousIdentity( ).getCustomerId( ) ) != null )
+        if ( SuspiciousIdentityHome.selectByCustomerIDs(List.of(request.getSuspiciousIdentity().getCustomerId(), request.getSuspiciousIdentity().getDuplicateCuid()) ) != null )
         {
             throw new ResourceConsistencyException( "Identity already reported", Constants.PROPERTY_REST_ERROR_IDENTITY_ALREADY_SUSPICIOUS );
         }

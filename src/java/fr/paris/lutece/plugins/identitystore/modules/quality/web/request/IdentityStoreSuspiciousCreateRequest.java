@@ -65,6 +65,7 @@ public class IdentityStoreSuspiciousCreateRequest extends AbstractIdentityStoreA
 
     private DuplicateRule duplicateRule;
     private Identity identity;
+    private Identity potentialDuplicateIdentity;
 
     /**
      * Constructor of IdentityStoreCreateRequest
@@ -98,7 +99,12 @@ public class IdentityStoreSuspiciousCreateRequest extends AbstractIdentityStoreA
         identity = IdentityHome.findByCustomerId( _request.getSuspiciousIdentity( ).getCustomerId( ) );
         if ( identity == null )
         {
-            throw new ResourceNotFoundException( "Identity not found", Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND );
+            throw new ResourceNotFoundException( "Identity not found for suspicious identity cuid", Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND );
+        }
+        potentialDuplicateIdentity = IdentityHome.findByCustomerId( _request.getSuspiciousIdentity().getDuplicateCuid() );
+        if( potentialDuplicateIdentity == null )
+        {
+            throw new ResourceNotFoundException( "Identity not found for suspicious identity duplicate cuid", Constants.PROPERTY_REST_ERROR_IDENTITY_NOT_FOUND );
         }
     }
 
@@ -138,7 +144,7 @@ public class IdentityStoreSuspiciousCreateRequest extends AbstractIdentityStoreA
     {
         final SuspiciousIdentityChangeResponse response = new SuspiciousIdentityChangeResponse( );
 
-        final SuspiciousIdentityDto result = SuspiciousIdentityService.instance( ).create( _request, identity, duplicateRule, _strClientCode, _author );
+        final SuspiciousIdentityDto result = SuspiciousIdentityService.instance( ).create( _request, identity, potentialDuplicateIdentity.getCustomerId(), duplicateRule, _strClientCode, _author );
         response.setSuspiciousIdentity( result );
         response.setStatus( ResponseStatusFactory.success( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
 

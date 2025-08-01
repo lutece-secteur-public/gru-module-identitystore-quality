@@ -54,6 +54,7 @@ public class SuspiciousIdentityMapper
         final SuspiciousIdentityDto dto = new SuspiciousIdentityDto( );
         dto.setCreationDate( suspiciousIdentity.getCreationDate( ) );
         dto.setCustomerId( suspiciousIdentity.getCustomerId( ) );
+        dto.setDuplicateCuid( suspiciousIdentity.getDuplicateCuid( ) );
         dto.setLastUpdateDate( suspiciousIdentity.getLastUpdateDate( ) );
         dto.setDuplicationRuleCode( suspiciousIdentity.getDuplicateRuleCode( ) );
         final SuspiciousIdentityLockDto lock = new SuspiciousIdentityLockDto( );

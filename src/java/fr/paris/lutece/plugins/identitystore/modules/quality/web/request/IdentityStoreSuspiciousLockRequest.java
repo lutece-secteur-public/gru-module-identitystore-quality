@@ -54,6 +54,10 @@ import fr.paris.lutece.plugins.identitystore.web.exception.RequestFormatExceptio
 import fr.paris.lutece.plugins.identitystore.web.exception.ResourceConsistencyException;
 import fr.paris.lutece.plugins.identitystore.web.exception.ResourceNotFoundException;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
+
 /**
  * This class represents a create request for IdentityStoreRestServive
  */
@@ -61,7 +65,7 @@ public class IdentityStoreSuspiciousLockRequest extends AbstractIdentityStoreApp
 {
     private final SuspiciousIdentityLockRequest _request;
 
-    private SuspiciousIdentity suspiciousIdentity;
+    private List<SuspiciousIdentity> suspiciousIdentityList;
 
     /**
      * Constructor of IdentityStoreCreateRequest
@@ -89,8 +93,8 @@ public class IdentityStoreSuspiciousLockRequest extends AbstractIdentityStoreApp
             throw new ResourceNotFoundException( "Could not find identity with customerId " + _request.getCustomerId( ),
                     Constants.PROPERTY_REST_ERROR_NO_MATCHING_IDENTITY );
         }
-        suspiciousIdentity = SuspiciousIdentityHome.selectByCustomerID( _request.getCustomerId( ) );
-        if ( suspiciousIdentity == null )
+        suspiciousIdentityList = SuspiciousIdentityHome.selectByCustomerIDs(List.of(_request.getCustomerId()) );
+        if ( suspiciousIdentityList == null || suspiciousIdentityList.isEmpty() )
         {
             throw new ResourceNotFoundException( "Could not find suspicious identity with customerId " + _request.getCustomerId( ),
                     Constants.PROPERTY_REST_ERROR_NO_SUSPICIOUS_IDENTITY_FOUND );
@@ -107,13 +111,39 @@ public class IdentityStoreSuspiciousLockRequest extends AbstractIdentityStoreApp
     @Override
     protected void validateClientAuthorization( ) throws ClientAuthorizationException
     {
-        LockSuspiciousIdentityValidator.instance( ).validateLockRequestAuthorization( suspiciousIdentity, _request, _author );
+        final ListIterator<SuspiciousIdentity> it = suspiciousIdentityList.listIterator();
+        final List<ClientAuthorizationException> exceptionList = new ArrayList<>( );
+        while(it.hasNext()) {
+            final SuspiciousIdentity suspiciousIdentity = it.next();
+            try {
+                LockSuspiciousIdentityValidator.instance( ).validateLockRequestAuthorization( suspiciousIdentity, _request, _author );
+            } catch (final ClientAuthorizationException e) {
+                it.remove();
+                exceptionList.add(e);
+            }
+        }
+        if (suspiciousIdentityList.isEmpty() && !exceptionList.isEmpty()) {
+            throw exceptionList.get( 0 );
+        }
     }
 
     @Override
     protected void validateResourcesConsistency( ) throws ResourceConsistencyException
     {
-        LockSuspiciousIdentityValidator.instance( ).validateLockRequestConsistency( suspiciousIdentity, _request );
+        final ListIterator<SuspiciousIdentity> it = suspiciousIdentityList.listIterator();
+        final List<ResourceConsistencyException> exceptionList = new ArrayList<>( );
+        while(it.hasNext()) {
+            final SuspiciousIdentity suspiciousIdentity = it.next();
+            try {
+                LockSuspiciousIdentityValidator.instance( ).validateLockRequestConsistency( suspiciousIdentity, _request );
+            } catch (final ResourceConsistencyException e) {
+                it.remove();
+                exceptionList.add(e);
+            }
+        }
+        if (suspiciousIdentityList.isEmpty() && !exceptionList.isEmpty()) {
+            throw exceptionList.get( 0 );
+        }
     }
 
     @Override
@@ -133,7 +163,10 @@ public class IdentityStoreSuspiciousLockRequest extends AbstractIdentityStoreApp
     {
         final SuspiciousIdentityLockResponse response = new SuspiciousIdentityLockResponse( );
 
-        final boolean locked = SuspiciousIdentityService.instance( ).lock( _request, suspiciousIdentity, _strClientCode, _author );
+        boolean locked = true;
+        for( final SuspiciousIdentity suspiciousIdentity : suspiciousIdentityList ) {
+            locked = locked && SuspiciousIdentityService.instance( ).lock( _request, suspiciousIdentity, _strClientCode, _author );
+        }
         response.setLocked( locked );
         response.setStatus( ResponseStatusFactory.success( ).setMessageKey( Constants.PROPERTY_REST_INFO_SUCCESSFUL_OPERATION ) );
 
