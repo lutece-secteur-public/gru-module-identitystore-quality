@@ -232,7 +232,7 @@ public class IdentityDuplicatesResolutionDaemon extends LoggingDaemon
             }
             final Pair<Identity, List<AttributeStatus>> mergeResult =
                     IdentityService.instance().merge(DtoConverter.convertDtoToIdentity(primaryIdentity), DtoConverter.convertDtoToIdentity(candidate), identity,
-                            ruleCode, author, clientCode, Collections.emptyList( ));
+                            ruleCode, author, clientCode, false, Collections.emptyList( ) );
             nbIdentitiesMerged++;
 
             final boolean fullSuccess = mergeResult.getValue( ).stream( ).map( AttributeStatus::getStatus )
