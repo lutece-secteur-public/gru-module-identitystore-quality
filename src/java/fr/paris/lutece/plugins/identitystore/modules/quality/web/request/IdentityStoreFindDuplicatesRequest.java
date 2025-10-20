@@ -147,7 +147,7 @@ public class IdentityStoreFindDuplicatesRequest extends AbstractIdentityStoreApp
         final List<String> matchingRuleCodes = duplicates.entrySet( ).stream( ).filter( e -> !e.getValue( ).getQualifiedIdentities( ).isEmpty( ) )
                 .map( Map.Entry::getKey ).collect( Collectors.toList( ) );
         
-        if ( duplicates.size ( ) == 0 )
+        if ( duplicates.isEmpty( ) )
         {
             response.setStatus( ResponseStatusFactory.ok( )
         	    .setMessage( "No potential duplicate found." )
@@ -155,8 +155,9 @@ public class IdentityStoreFindDuplicatesRequest extends AbstractIdentityStoreApp
         }
         else
         {
+            long nbOfDuplicates = duplicates.values( ).stream( ).mapToLong( q -> q.getQualifiedIdentities( ).size( ) ).sum( );
             response.setStatus( ResponseStatusFactory.ok( )
-        	    .setMessage( String.valueOf( duplicates.size ( ) ) +  " potential duplicate(s) found  with rule(s) : " + String.join( ",", matchingRuleCodes ) )
+        	    .setMessage( nbOfDuplicates +  " potential duplicate(s) found  with rule(s) : " + String.join( ",", matchingRuleCodes ) )
                     .setMessageKey( Constants.PROPERTY_REST_INFO_POTENTIAL_DUPLICATE_FOUND ) );
         
             // LUT-29120 - Si des doublons potentiels sont trouvés, et que l'identité n'est pas déjà marquée suspecte, on la marque.
