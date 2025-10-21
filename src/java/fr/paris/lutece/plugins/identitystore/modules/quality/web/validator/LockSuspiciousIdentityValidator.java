@@ -70,14 +70,14 @@ public class LockSuspiciousIdentityValidator
         if ( lock && isAlreadyLocked && !sameAuthor )
         {
             throw new ClientAuthorizationException( "Suspicious identity with customerId " + suspiciousIdentity.getCustomerId( ) + " is locked by "
-                    + suspiciousIdentity.getLock( ).getAuthorName( ) + ".", Constants.PROPERTY_REST_ERROR_UNAUTHORIZED_OPERATION );
+                    + suspiciousIdentity.getLock( ).getAuthorName( ) + ".", Constants.PROPERTY_REST_ERROR_SUSPICIOUS_ALREADY_LOCKED);
         }
         if ( !lock && isAlreadyLocked && !sameAuthor )
         {
             throw new ClientAuthorizationException(
                     "Suspicious identity with customerId " + suspiciousIdentity.getCustomerId( ) + " is locked by "
                             + suspiciousIdentity.getLock( ).getAuthorName( ) + ". User " + author.getName( ) + " is not allowed to unlock.",
-                    Constants.PROPERTY_REST_ERROR_UNAUTHORIZED_OPERATION );
+                    Constants.PROPERTY_REST_ERROR_SUSPICIOUS_ALREADY_LOCKED);
         }
     }
 
